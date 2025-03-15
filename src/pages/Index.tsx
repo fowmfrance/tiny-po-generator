@@ -7,7 +7,7 @@ import {
   FileText, 
   Users, 
   DollarSign, 
-  FileInvoice, 
+  Receipt, 
   TrendingUp,
   AlertCircle,
   Clock,
@@ -117,7 +117,7 @@ const Index = () => {
             <CardTitle className="text-sm font-medium">
               Pending Invoices
             </CardTitle>
-            <FileInvoice className="h-4 w-4 text-muted-foreground" />
+            <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">8</div>
@@ -237,7 +237,7 @@ const Index = () => {
           <Link to="/invoices">
             <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <FileInvoice className="h-10 w-10 text-po-blue mb-2" />
+                <Receipt className="h-10 w-10 text-po-blue mb-2" />
                 <span className="text-sm font-medium">Check Invoices</span>
               </CardContent>
             </Card>

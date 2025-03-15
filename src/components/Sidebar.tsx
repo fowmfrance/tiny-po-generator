@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { 
   FileText, 
   Users, 
-  FileInvoice, 
+  Receipt, 
   PieChart, 
   Settings, 
   Home,
@@ -70,7 +70,7 @@ const Sidebar = () => {
                 }`
               }
             >
-              <FileInvoice className="w-5 h-5 mr-3" />
+              <Receipt className="w-5 h-5 mr-3" />
               Invoices
             </NavLink>
           </li>
