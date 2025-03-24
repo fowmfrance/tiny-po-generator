@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
@@ -170,6 +171,17 @@ const BudgetDetails = () => {
     );
   }
 
+  // Handler for creating a new PO from this budget
+  const handleCreatePO = () => {
+    navigate('/purchase-orders/create', { 
+      state: { 
+        budgetId: budget.id,
+        budgetName: budget.name,
+        budgetCode: budget.code 
+      } 
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -179,6 +191,13 @@ const BudgetDetails = () => {
           </Button>
           <h1 className="text-2xl font-bold">Budget Details</h1>
         </div>
+        <Button 
+          onClick={handleCreatePO}
+          className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Create Purchase Order
+        </Button>
       </div>
 
       <Card>
@@ -187,7 +206,7 @@ const BudgetDetails = () => {
             <div>
               <CardTitle className="text-xl">{budget.name}</CardTitle>
               <CardDescription className="mt-1">
-                Code: {budget.code} | Type: <Badge variant="secondary">{budget.type}</Badge>
+                Code: {budget.code} | Type: <span className="inline-block"><Badge variant="secondary">{budget.type}</Badge></span>
               </CardDescription>
             </div>
             <div className="text-right">

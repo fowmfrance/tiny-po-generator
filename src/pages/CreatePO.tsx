@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,11 +27,22 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface BudgetNavState {
+  budgetId?: string;
+  budgetName?: string;
+  budgetCode?: string;
+}
+
 const CreatePO = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  const budgetInfo: BudgetNavState = location.state || {};
+  const { budgetId, budgetName, budgetCode } = budgetInfo;
 
-  // Mock vendor list
+  const [isFromBudget, setIsFromBudget] = useState<boolean>(!!budgetId);
+
   const vendorList = [
     { id: '1', name: 'Apple Inc.' },
     { id: '2', name: 'Microsoft Corp' },
@@ -41,18 +51,19 @@ const CreatePO = () => {
     { id: '5', name: 'Samsung Electronics' },
   ];
 
-  // Mock function to handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Show success toast
     toast({
       title: "Purchase Order Created",
       description: "The purchase order has been created successfully.",
     });
     
-    // Navigate back to purchase orders
-    navigate('/purchase-orders');
+    if (budgetId) {
+      navigate(`/budgets/${budgetId}`);
+    } else {
+      navigate('/purchase-orders');
+    }
   };
 
   return (
@@ -60,17 +71,21 @@ const CreatePO = () => {
       <div className="flex items-center gap-4">
         <Button 
           variant="outline" 
-          onClick={() => navigate('/purchase-orders')}
+          onClick={() => budgetId ? navigate(`/budgets/${budgetId}`) : navigate('/purchase-orders')}
           className="p-2"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Create Purchase Order</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Create Purchase Order</h1>
+          {budgetName && (
+            <p className="text-muted-foreground">For budget: {budgetName}</p>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main PO Information */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Purchase Order Information</CardTitle>
@@ -80,7 +95,6 @@ const CreatePO = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* PO Type */}
                 <div className="space-y-2">
                   <Label htmlFor="poType">PO Type</Label>
                   <Select defaultValue="project">
@@ -94,18 +108,22 @@ const CreatePO = () => {
                   </Select>
                 </div>
 
-                {/* PO Number Format */}
                 <div className="space-y-2">
                   <Label htmlFor="poNumberFormat">PO Number Format</Label>
                   <Input 
                     id="poNumberFormat" 
                     placeholder="PR-{YYYY}-{000}" 
-                    defaultValue="PR-2023-" 
+                    defaultValue={budgetCode ? `${budgetCode}-` : "PR-2023-"} 
                   />
                 </div>
               </div>
 
-              {/* Vendor Selection */}
+              {budgetId && (
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700">
+                  <p className="text-sm font-medium">This PO will be associated with budget: {budgetName}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="vendor">Vendor</Label>
                 <Select>
@@ -122,7 +140,6 @@ const CreatePO = () => {
                 </Select>
               </div>
 
-              {/* Currency and Expected Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
@@ -151,7 +168,6 @@ const CreatePO = () => {
                 </div>
               </div>
 
-              {/* Notes */}
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea 
@@ -163,7 +179,6 @@ const CreatePO = () => {
             </CardContent>
           </Card>
 
-          {/* Sidebar with approval workflow */}
           <Card>
             <CardHeader>
               <CardTitle>Approval Workflow</CardTitle>
@@ -205,7 +220,6 @@ const CreatePO = () => {
             </CardContent>
           </Card>
 
-          {/* Line Items */}
           <Card className="lg:col-span-3">
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -294,7 +308,7 @@ const CreatePO = () => {
           <Button 
             type="button" 
             variant="outline" 
-            onClick={() => navigate('/purchase-orders')}
+            onClick={() => budgetId ? navigate(`/budgets/${budgetId}`) : navigate('/purchase-orders')}
           >
             Cancel
           </Button>
