@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import CreatePO from "./pages/CreatePO";
 import Vendors from "./pages/Vendors";
+import Budgets from "./pages/Budgets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,12 +23,12 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/budgets" element={<Budgets />} />
             <Route path="/purchase-orders" element={<PurchaseOrders />} />
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />
             {/* Placeholder routes for future implementation */}
             <Route path="/invoices" element={<div className="p-6">Invoices Page (Coming Soon)</div>} />
-            <Route path="/budgets" element={<div className="p-6">Budgets Page (Coming Soon)</div>} />
             <Route path="/reports" element={<div className="p-6">Reports Page (Coming Soon)</div>} />
             <Route path="/settings" element={<div className="p-6">Settings Page (Coming Soon)</div>} />
           </Route>

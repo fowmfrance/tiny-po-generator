@@ -37,6 +37,19 @@ const Sidebar = () => {
           </li>
           <li>
             <NavLink 
+              to="/budgets" 
+              className={({ isActive }) => 
+                `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                }`
+              }
+            >
+              <DollarSign className="w-5 h-5 mr-3" />
+              Budgets
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
               to="/purchase-orders" 
               className={({ isActive }) => 
                 `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
@@ -72,19 +85,6 @@ const Sidebar = () => {
             >
               <Receipt className="w-5 h-5 mr-3" />
               Invoices
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/budgets" 
-              className={({ isActive }) => 
-                `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
-                }`
-              }
-            >
-              <DollarSign className="w-5 h-5 mr-3" />
-              Budgets
             </NavLink>
           </li>
           <li>
