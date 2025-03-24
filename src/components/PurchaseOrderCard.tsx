@@ -1,7 +1,9 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
+import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
 
 interface PurchaseOrderCardProps {
   id: string;
@@ -11,7 +13,7 @@ interface PurchaseOrderCardProps {
   amount: number;
   currency: string;
   date: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'matched' | 'paid';
+  status: PurchaseOrderStatus;
   paymentProgress?: number;
 }
 
@@ -26,33 +28,6 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   status,
   paymentProgress = 0
 }) => {
-  const getStatusBadge = () => {
-    const statusClasses = {
-      draft: 'status-badge status-draft',
-      pending: 'status-badge status-pending',
-      approved: 'status-badge status-approved',
-      rejected: 'status-badge status-rejected',
-      matched: 'status-badge status-matched',
-      paid: 'status-badge status-paid'
-    };
-
-    const statusText = {
-      draft: 'Draft',
-      pending: 'Pending Approval',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      matched: 'Invoice Matched',
-      paid: 'Paid'
-    };
-
-    return (
-      <span className={statusClasses[status]}>
-        {status === 'matched' && <Check className="inline w-3 h-3 mr-1" />}
-        {statusText[status]}
-      </span>
-    );
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
       <div className="p-4">
@@ -64,7 +39,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
             </Link>
           </div>
           <div>
-            {getStatusBadge()}
+            <StatusBadge status={status} />
           </div>
         </div>
         
