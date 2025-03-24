@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
 import CreatePO from "./pages/CreatePO";
 import Vendors from "./pages/Vendors";
 import Budgets from "./pages/Budgets";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/budgets/:budgetId" element={<BudgetDetails />} />
             <Route path="/purchase-orders" element={<PurchaseOrders />} />
+            <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />
             {/* Placeholder routes for future implementation */}
