@@ -25,11 +25,20 @@ import {
   Plus, 
   Trash2,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  CircleCheck,
+  BarChart3
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { validateBudgetActive, BudgetCurrency } from '@/services/budgetService';
+import { 
+  validateBudgetActive, 
+  BudgetCurrency, 
+  BudgetRecognitionType, 
+  calculateRecognizedAmount 
+} from '@/services/budgetService';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface BudgetNavState {
   budgetId?: string;
@@ -38,6 +47,8 @@ interface BudgetNavState {
   budgetStartDate?: Date | null;
   budgetEndDate?: Date | null;
   budgetCurrency?: BudgetCurrency;
+  budgetRecognitionType?: BudgetRecognitionType;
+  budgetCompletionPercentage?: number;
 }
 
 const CreatePO = () => {
@@ -52,7 +63,9 @@ const CreatePO = () => {
     budgetCode,
     budgetStartDate,
     budgetEndDate,
-    budgetCurrency
+    budgetCurrency,
+    budgetRecognitionType,
+    budgetCompletionPercentage
   } = budgetInfo;
 
   const [isFromBudget, setIsFromBudget] = useState<boolean>(!!budgetId);
@@ -75,6 +88,16 @@ const CreatePO = () => {
     { id: '4', name: 'Amazon Business' },
     { id: '5', name: 'Samsung Electronics' },
   ];
+
+  // Calculate recognition data if budget info is available
+  const recognitionData = budgetId && budgetRecognitionType && budgetStartDate && budgetEndDate ? 
+    calculateRecognizedAmount(
+      100, // Using 100 as a percent value for visualization
+      budgetRecognitionType,
+      new Date(budgetStartDate),
+      new Date(budgetEndDate),
+      budgetCompletionPercentage
+    ) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,12 +186,31 @@ const CreatePO = () => {
               </div>
 
               {budgetId && (
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700">
-                  <p className="text-sm font-medium">This PO will be associated with budget: {budgetName}</p>
-                  {(budgetStartDate || budgetEndDate) && (
-                    <p className="text-sm mt-1">
-                      Budget period: {budgetStartDate ? new Date(budgetStartDate).toLocaleDateString() : 'No start date'} - {budgetEndDate ? new Date(budgetEndDate).toLocaleDateString() : 'No end date'}
-                    </p>
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-md">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">This PO will be associated with budget: {budgetName}</p>
+                      {(budgetStartDate || budgetEndDate) && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Budget period: {budgetStartDate ? new Date(budgetStartDate).toLocaleDateString() : 'No start date'} - {budgetEndDate ? new Date(budgetEndDate).toLocaleDateString() : 'No end date'}
+                        </p>
+                      )}
+                    </div>
+                    {budgetRecognitionType && (
+                      <Badge variant="outline" className="capitalize">
+                        {budgetRecognitionType} recognition
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {recognitionData && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-blue-700">Recognition Progress</span>
+                        <span className="text-blue-700">{recognitionData.recognitionPercentage.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={recognitionData.recognitionPercentage} className="h-1.5" />
+                    </div>
                   )}
                 </div>
               )}

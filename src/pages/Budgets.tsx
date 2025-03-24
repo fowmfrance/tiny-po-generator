@@ -22,7 +22,8 @@ import {
   MoreVertical, 
   Edit, 
   Copy, 
-  Download 
+  Download,
+  CalendarRange
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -34,8 +35,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
+import { BudgetCurrency, BudgetRecognitionType, formatCurrency } from '@/services/budgetService';
 
 interface Budget {
   id: string;
@@ -44,10 +44,14 @@ interface Budget {
   currency: BudgetCurrency;
   initialAmount: number;
   remainingAmount: number;
-  receivedAmount: number; // Added receivedAmount field
+  receivedAmount: number;
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
+  startDate: Date | null;
+  endDate: Date | null;
+  recognitionType: BudgetRecognitionType;
+  completionPercentage?: number;
 }
 
 const Budgets = () => {
@@ -63,10 +67,13 @@ const Budgets = () => {
       currency: 'USD',
       initialAmount: 100000,
       remainingAmount: 45000,
-      receivedAmount: 55000, // Initial amount - remaining amount
+      receivedAmount: 55000,
       type: 'Project',
       poCount: 12,
       createdAt: new Date(),
+      startDate: new Date('2023-01-01'),
+      endDate: new Date('2023-12-31'),
+      recognitionType: 'linear',
     },
     {
       id: '2',
@@ -75,10 +82,14 @@ const Budgets = () => {
       currency: 'EUR',
       initialAmount: 50000,
       remainingAmount: 23000,
-      receivedAmount: 27000, // Initial amount - remaining amount
+      receivedAmount: 27000,
       type: 'G&A',
       poCount: 8,
       createdAt: new Date(),
+      startDate: new Date('2023-07-01'),
+      endDate: new Date('2023-09-30'),
+      recognitionType: 'completion',
+      completionPercentage: 65,
     },
     {
       id: '3',
@@ -87,16 +98,24 @@ const Budgets = () => {
       currency: 'GBP',
       initialAmount: 75000,
       remainingAmount: 60000,
-      receivedAmount: 15000, // Initial amount - remaining amount
+      receivedAmount: 15000,
       type: 'Project',
       poCount: 5,
       createdAt: new Date(),
+      startDate: new Date('2023-06-01'),
+      endDate: new Date('2024-05-31'),
+      recognitionType: 'linear',
     },
   ]);
 
   // Handle budget row click to navigate to details page
   const handleBudgetRowClick = (budget: Budget) => {
     navigate(`/budgets/${budget.id}`);
+  };
+
+  // Handle create budget button click
+  const handleCreateBudget = () => {
+    navigate('/budgets/create');
   };
 
   return (
@@ -110,11 +129,13 @@ const Budgets = () => {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Budget List</CardTitle>
-              <CardDescription>
-                Here you can view and manage all your budgets.
-              </CardDescription>
-              <Button>
+              <div>
+                <CardTitle>Budget List</CardTitle>
+                <CardDescription>
+                  Here you can view and manage all your budgets.
+                </CardDescription>
+              </div>
+              <Button onClick={handleCreateBudget}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Budget
               </Button>
@@ -131,8 +152,9 @@ const Budgets = () => {
                   <TableHead className="text-right">Received</TableHead>
                   <TableHead className="text-right">Remaining</TableHead>
                   <TableHead className="text-center">Currency</TableHead>
-                  <TableHead className="text-center">PO Count</TableHead>
-                  <TableHead className="text-right">Created At</TableHead>
+                  <TableHead className="text-center">Recognition</TableHead>
+                  <TableHead className="text-center">Period</TableHead>
+                  <TableHead className="text-center">POs</TableHead>
                   <TableHead className="text-right"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -149,19 +171,33 @@ const Budgets = () => {
                       <Badge variant="secondary">{budget.type}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {budget.initialAmount.toLocaleString()}
+                      {formatCurrency(budget.currency, budget.initialAmount)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {budget.receivedAmount.toLocaleString()}
+                      {formatCurrency(budget.currency, budget.receivedAmount)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {budget.remainingAmount.toLocaleString()}
+                      {formatCurrency(budget.currency, budget.remainingAmount)}
                     </TableCell>
                     <TableCell className="text-center">{budget.currency}</TableCell>
-                    <TableCell className="text-center">{budget.poCount}</TableCell>
-                    <TableCell className="text-right">
-                      {budget.createdAt.toLocaleDateString()}
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="capitalize">
+                        {budget.recognitionType}
+                      </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {budget.startDate && budget.endDate ? (
+                        <div className="flex items-center justify-center text-xs text-gray-500">
+                          <CalendarRange className="h-3 w-3 mr-1" />
+                          <span>
+                            {budget.startDate.toLocaleDateString()} - {budget.endDate.toLocaleDateString()}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500">No dates set</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">{budget.poCount}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

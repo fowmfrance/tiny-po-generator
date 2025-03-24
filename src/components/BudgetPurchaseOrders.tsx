@@ -9,12 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { validateBudgetActive } from '@/services/budgetService';
+import { 
+  validateBudgetActive, 
+  calculateRecognizedAmount, 
+  BudgetCurrency, 
+  formatCurrency,
+  BudgetRecognitionType
+} from '@/services/budgetService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarRange } from 'lucide-react';
-
-type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
+import { CalendarRange, CircleCheck } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface Budget {
   id: string;
@@ -28,6 +33,8 @@ interface Budget {
   createdAt: Date;
   startDate: Date | null;
   endDate: Date | null;
+  recognitionType: BudgetRecognitionType;
+  completionPercentage?: number;
 }
 
 interface PurchaseOrder {
@@ -58,14 +65,17 @@ const BudgetPurchaseOrders: React.FC<BudgetPurchaseOrdersProps> = ({
   // Calculate total invoiced amount
   const totalInvoicedAmount = purchaseOrders.reduce((sum, po) => sum + po.invoicedAmount, 0);
   
-  // Currency display helper
-  const formatCurrency = (currency: BudgetCurrency, amount: number) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
-    return `${symbol}${amount.toLocaleString()}`;
-  };
-
   // Check if budget is active
   const budgetStatus = validateBudgetActive(budget.startDate, budget.endDate);
+
+  // Calculate recognized amount
+  const recognition = calculateRecognizedAmount(
+    budget.initialAmount,
+    budget.recognitionType,
+    budget.startDate,
+    budget.endDate,
+    budget.completionPercentage
+  );
 
   return (
     <div className="space-y-4">
@@ -92,6 +102,41 @@ const BudgetPurchaseOrders: React.FC<BudgetPurchaseOrdersProps> = ({
             {budgetStatus.message}
           </Badge>
         )}
+      </div>
+
+      <div className="bg-gray-50 p-4 rounded-md border space-y-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h4 className="font-medium text-sm">Budget Recognition</h4>
+            <p className="text-sm text-gray-500">
+              {budget.recognitionType === 'linear' 
+                ? 'Linear recognition based on elapsed time' 
+                : 'Recognition based on service completion'}
+            </p>
+          </div>
+          <Badge variant="outline" className="capitalize">
+            {budget.recognitionType} recognition
+          </Badge>
+        </div>
+        
+        <div>
+          <div className="flex justify-between text-sm mb-1">
+            <span>Recognition Progress</span>
+            <span>{recognition.recognitionPercentage.toFixed(1)}%</span>
+          </div>
+          <Progress value={recognition.recognitionPercentage} className="h-2" />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="bg-white p-3 rounded border">
+            <span className="text-sm text-gray-500 block">Recognized Amount</span>
+            <span className="font-medium">{formatCurrency(budget.currency, recognition.recognizedAmount)}</span>
+          </div>
+          <div className="bg-white p-3 rounded border">
+            <span className="text-sm text-gray-500 block">Remaining to Recognize</span>
+            <span className="font-medium">{formatCurrency(budget.currency, recognition.remainingToRecognize)}</span>
+          </div>
+        </div>
       </div>
 
       {purchaseOrders.length > 0 ? (

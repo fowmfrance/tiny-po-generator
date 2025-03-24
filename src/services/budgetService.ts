@@ -11,6 +11,7 @@ const exchangeRates = {
 };
 
 export type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
+export type BudgetRecognitionType = 'linear' | 'completion';
 
 /**
  * Converts an amount from the source currency to EUR
@@ -115,4 +116,78 @@ export function validateBudgetActive(
   }
   
   return { active: true };
+}
+
+/**
+ * Calculate recognized amount based on recognition type 
+ */
+export function calculateRecognizedAmount(
+  totalAmount: number,
+  recognitionType: BudgetRecognitionType,
+  startDate: Date | null,
+  endDate: Date | null,
+  completionPercentage: number = 0
+): { 
+  recognizedAmount: number; 
+  remainingToRecognize: number;
+  recognitionPercentage: number; 
+} {
+  if (recognitionType === 'completion') {
+    // For completion-based recognition, we use the provided completion percentage
+    const recognizedAmount = totalAmount * (completionPercentage / 100);
+    return {
+      recognizedAmount,
+      remainingToRecognize: totalAmount - recognizedAmount,
+      recognitionPercentage: completionPercentage
+    };
+  } else {
+    // For linear recognition, we calculate based on the elapsed time percentage
+    if (!startDate || !endDate) {
+      return {
+        recognizedAmount: 0,
+        remainingToRecognize: totalAmount,
+        recognitionPercentage: 0
+      };
+    }
+    
+    const today = new Date();
+    const totalDuration = endDate.getTime() - startDate.getTime();
+    
+    // If budget hasn't started yet
+    if (today < startDate) {
+      return {
+        recognizedAmount: 0,
+        remainingToRecognize: totalAmount,
+        recognitionPercentage: 0
+      };
+    }
+    
+    // If budget has ended, recognize 100%
+    if (today > endDate) {
+      return {
+        recognizedAmount: totalAmount,
+        remainingToRecognize: 0,
+        recognitionPercentage: 100
+      };
+    }
+    
+    // Calculate elapsed percentage
+    const elapsedTime = today.getTime() - startDate.getTime();
+    const elapsedPercentage = Math.min(100, (elapsedTime / totalDuration) * 100);
+    const recognizedAmount = totalAmount * (elapsedPercentage / 100);
+    
+    return {
+      recognizedAmount,
+      remainingToRecognize: totalAmount - recognizedAmount,
+      recognitionPercentage: elapsedPercentage
+    };
+  }
+}
+
+/**
+ * Format a currency value with the appropriate symbol
+ */
+export function formatCurrency(currency: BudgetCurrency, amount: number): string {
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
+  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
