@@ -13,6 +13,9 @@ import Vendors from "./pages/Vendors";
 import Budgets from "./pages/Budgets";
 import BudgetDetails from "./pages/BudgetDetails";
 import NotFound from "./pages/NotFound";
+import SupplierPortal from "./pages/SupplierPortal";
+import SupplierDashboard from "./pages/SupplierDashboard";
+import SupplierInvoiceCreate from "./pages/SupplierInvoiceCreate";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +26,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Main Application Routes */}
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/budgets" element={<Budgets />} />
@@ -36,6 +40,12 @@ const App = () => (
             <Route path="/reports" element={<div className="p-6">Reports Page (Coming Soon)</div>} />
             <Route path="/settings" element={<div className="p-6">Settings Page (Coming Soon)</div>} />
           </Route>
+          
+          {/* Supplier Portal Routes */}
+          <Route path="/supplier" element={<SupplierPortal />} />
+          <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
+          <Route path="/supplier/invoices/create" element={<SupplierInvoiceCreate />} />
+          
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>

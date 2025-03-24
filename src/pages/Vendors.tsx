@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Plus, Building, Mail, Phone, ArrowRight } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, ArrowRight, LogIn } from 'lucide-react';
 
 // Mock data for demonstration
 const mockVendors = [
@@ -84,12 +84,20 @@ const Vendors = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Vendors</h1>
-        <Link to="/vendors/new">
-          <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add New Vendor
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/supplier">
+            <Button variant="outline" className="flex items-center gap-2">
+              <LogIn className="w-4 h-4" />
+              Supplier Portal
+            </Button>
+          </Link>
+          <Link to="/vendors/new">
+            <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add New Vendor
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="relative">
