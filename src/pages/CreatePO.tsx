@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,14 +24,20 @@ import {
   ArrowLeft, 
   Plus, 
   Trash2,
-  Calendar
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { validateBudgetActive, BudgetCurrency } from '@/services/budgetService';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface BudgetNavState {
   budgetId?: string;
   budgetName?: string;
   budgetCode?: string;
+  budgetStartDate?: Date | null;
+  budgetEndDate?: Date | null;
+  budgetCurrency?: BudgetCurrency;
 }
 
 const CreatePO = () => {
@@ -39,9 +46,27 @@ const CreatePO = () => {
   const { toast } = useToast();
   
   const budgetInfo: BudgetNavState = location.state || {};
-  const { budgetId, budgetName, budgetCode } = budgetInfo;
+  const { 
+    budgetId, 
+    budgetName, 
+    budgetCode,
+    budgetStartDate,
+    budgetEndDate,
+    budgetCurrency
+  } = budgetInfo;
 
   const [isFromBudget, setIsFromBudget] = useState<boolean>(!!budgetId);
+  const [budgetStatus, setBudgetStatus] = useState<{ active: boolean; message?: string }>({ active: true });
+
+  useEffect(() => {
+    if (budgetId && (budgetStartDate || budgetEndDate)) {
+      const status = validateBudgetActive(
+        budgetStartDate ? new Date(budgetStartDate) : null,
+        budgetEndDate ? new Date(budgetEndDate) : null
+      );
+      setBudgetStatus(status);
+    }
+  }, [budgetId, budgetStartDate, budgetEndDate]);
 
   const vendorList = [
     { id: '1', name: 'Apple Inc.' },
@@ -53,6 +78,15 @@ const CreatePO = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (budgetId && !budgetStatus.active) {
+      toast({
+        variant: "destructive",
+        title: "Cannot create Purchase Order",
+        description: budgetStatus.message,
+      });
+      return;
+    }
     
     toast({
       title: "Purchase Order Created",
@@ -83,6 +117,16 @@ const CreatePO = () => {
           )}
         </div>
       </div>
+
+      {budgetId && !budgetStatus.active && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Budget not active</AlertTitle>
+          <AlertDescription>
+            {budgetStatus.message} You cannot create purchase orders for this budget.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -121,6 +165,11 @@ const CreatePO = () => {
               {budgetId && (
                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700">
                   <p className="text-sm font-medium">This PO will be associated with budget: {budgetName}</p>
+                  {(budgetStartDate || budgetEndDate) && (
+                    <p className="text-sm mt-1">
+                      Budget period: {budgetStartDate ? new Date(budgetStartDate).toLocaleDateString() : 'No start date'} - {budgetEndDate ? new Date(budgetEndDate).toLocaleDateString() : 'No end date'}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -143,7 +192,7 @@ const CreatePO = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Select defaultValue="usd">
+                  <Select defaultValue={budgetCurrency?.toLowerCase() || "usd"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
@@ -315,6 +364,7 @@ const CreatePO = () => {
           <Button 
             type="submit"
             className="bg-po-blue hover:bg-blue-600"
+            disabled={budgetId && !budgetStatus.active}
           >
             Create Purchase Order
           </Button>

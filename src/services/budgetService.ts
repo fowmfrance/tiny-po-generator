@@ -90,3 +90,29 @@ export function calculateRemainingBudget(
   
   return currentRemainingAmount - poAmountInBudgetCurrency;
 }
+
+/**
+ * Validates if a budget is active based on its start and end dates
+ */
+export function validateBudgetActive(
+  budgetStartDate: Date | null,
+  budgetEndDate: Date | null
+): { active: boolean; message?: string } {
+  const today = new Date();
+  
+  if (budgetStartDate && today < budgetStartDate) {
+    return {
+      active: false,
+      message: `This budget is not active yet. It starts on ${budgetStartDate.toLocaleDateString()}.`
+    };
+  }
+  
+  if (budgetEndDate && today > budgetEndDate) {
+    return {
+      active: false,
+      message: `This budget has expired. It ended on ${budgetEndDate.toLocaleDateString()}.`
+    };
+  }
+  
+  return { active: true };
+}

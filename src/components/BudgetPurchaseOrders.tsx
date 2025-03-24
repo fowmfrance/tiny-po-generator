@@ -9,6 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { validateBudgetActive } from '@/services/budgetService';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { CalendarRange } from 'lucide-react';
 
 type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
 
@@ -22,6 +26,8 @@ interface Budget {
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
+  startDate: Date | null;
+  endDate: Date | null;
 }
 
 interface PurchaseOrder {
@@ -58,6 +64,9 @@ const BudgetPurchaseOrders: React.FC<BudgetPurchaseOrdersProps> = ({
     return `${symbol}${amount.toLocaleString()}`;
   };
 
+  // Check if budget is active
+  const budgetStatus = validateBudgetActive(budget.startDate, budget.endDate);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -69,6 +78,20 @@ const BudgetPurchaseOrders: React.FC<BudgetPurchaseOrdersProps> = ({
           <span className="text-gray-500">Invoiced: </span>
           <span className="font-medium">{formatCurrency(budget.currency, totalInvoicedAmount)}</span>
         </div>
+      </div>
+
+      <div className="flex items-center mb-4">
+        <div className="mr-4 flex items-center">
+          <CalendarRange className="h-4 w-4 mr-2 text-gray-500" />
+          <span className="text-sm text-gray-500">
+            {budget.startDate ? budget.startDate.toLocaleDateString() : 'No start date'} - {budget.endDate ? budget.endDate.toLocaleDateString() : 'No end date'}
+          </span>
+        </div>
+        {!budgetStatus.active && (
+          <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-50">
+            {budgetStatus.message}
+          </Badge>
+        )}
       </div>
 
       {purchaseOrders.length > 0 ? (
