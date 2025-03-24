@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ interface PurchaseOrder {
   poNumber: string;
   budgetId: string;
   vendor: string;
+  vendorId: string;
   currency: BudgetCurrency;
   amount: number;
   invoicedAmount: number;
@@ -86,8 +88,16 @@ const BudgetPurchaseOrders: React.FC<BudgetPurchaseOrdersProps> = ({
             <TableBody>
               {purchaseOrders.map((po) => (
                 <TableRow key={po.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{po.poNumber}</TableCell>
-                  <TableCell>{po.vendor}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to={`/purchase-orders/${po.id}`} className="text-po-blue hover:underline">
+                      {po.poNumber}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link to={`/vendors/${po.vendorId}`} className="text-po-blue hover:underline">
+                      {po.vendor}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-center">{po.currency}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(po.currency, po.amount)}

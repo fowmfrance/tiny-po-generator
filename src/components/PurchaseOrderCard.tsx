@@ -7,6 +7,7 @@ interface PurchaseOrderCardProps {
   id: string;
   poNumber: string;
   vendor: string;
+  vendorId: string;
   amount: number;
   currency: string;
   date: string;
@@ -18,6 +19,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   id,
   poNumber,
   vendor,
+  vendorId,
   amount,
   currency,
   date,
@@ -57,7 +59,9 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
         <div className="flex justify-between items-start mb-3">
           <div>
             <h3 className="text-lg font-medium">PO #{poNumber}</h3>
-            <p className="text-sm text-gray-500">{vendor}</p>
+            <Link to={`/vendors/${vendorId}`} className="text-sm text-po-blue hover:underline">
+              {vendor}
+            </Link>
           </div>
           <div>
             {getStatusBadge()}
