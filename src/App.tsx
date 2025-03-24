@@ -10,6 +10,7 @@ import PurchaseOrders from "./pages/PurchaseOrders";
 import CreatePO from "./pages/CreatePO";
 import Vendors from "./pages/Vendors";
 import Budgets from "./pages/Budgets";
+import BudgetDetails from "./pages/BudgetDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/budgets" element={<Budgets />} />
+            <Route path="/budgets/:budgetId" element={<BudgetDetails />} />
             <Route path="/purchase-orders" element={<PurchaseOrders />} />
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />

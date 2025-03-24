@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -8,32 +9,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { 
-  ArrowLeft, 
   Plus, 
-  Trash2,
-  Calendar
+  MoreVertical, 
+  Edit, 
+  Copy, 
+  Download 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { MoreVertical, Edit, Copy, Download, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +32,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import BudgetPurchaseOrdersDialog from '@/components/BudgetPurchaseOrdersDialog';
+} from "@/components/ui/dropdown-menu";
 
 type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
 
@@ -58,20 +48,9 @@ interface Budget {
   createdAt: Date;
 }
 
-interface PurchaseOrder {
-  id: string;
-  poNumber: string;
-  budgetId: string;
-  vendor: string;
-  currency: BudgetCurrency;
-  amount: number;
-  invoicedAmount: number;
-  invoiceDate: Date | null;
-  createdAt: Date;
-}
-
 const Budgets = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Mock budget list
   const [budgets, setBudgets] = useState<Budget[]>([
@@ -110,56 +89,9 @@ const Budgets = () => {
     },
   ]);
 
-  // Mock purchase orders
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
-    {
-      id: '101',
-      poNumber: 'PO-2023-001',
-      budgetId: '1',
-      vendor: 'Dell Technologies',
-      currency: 'USD',
-      amount: 15000,
-      invoicedAmount: 15000,
-      invoiceDate: new Date(),
-      createdAt: new Date(),
-    },
-    {
-      id: '102',
-      poNumber: 'PO-2023-002',
-      budgetId: '1',
-      vendor: 'Amazon Business',
-      currency: 'USD',
-      amount: 20000,
-      invoicedAmount: 5000,
-      invoiceDate: null,
-      createdAt: new Date(),
-    },
-    {
-      id: '103',
-      poNumber: 'PO-2023-003',
-      budgetId: '2',
-      vendor: 'Software Inc.',
-      currency: 'EUR',
-      amount: 10000,
-      invoicedAmount: 10000,
-      invoiceDate: new Date(),
-      createdAt: new Date(),
-    },
-  ]);
-  
-  // Add state for purchase orders dialog
-  const [selectedBudgetPOs, setSelectedBudgetPOs] = useState<PurchaseOrder[]>([]);
-  const [isPoDialogOpen, setIsPoDialogOpen] = useState(false);
-  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
-
-  // Modify table row click handler to open dialog
+  // Handle budget row click to navigate to details page
   const handleBudgetRowClick = (budget: Budget) => {
-    // Fetch purchase orders for this budget
-    const relatedPOs = purchaseOrders.filter(po => po.budgetId === budget.id);
-    
-    setSelectedBudget(budget);
-    setSelectedBudgetPOs(relatedPOs);
-    setIsPoDialogOpen(true);
+    navigate(`/budgets/${budget.id}`);
   };
 
   return (
@@ -221,7 +153,7 @@ const Budgets = () => {
                     <TableCell className="text-right">
                       {budget.createdAt.toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -251,16 +183,6 @@ const Budgets = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Add dialog for purchase orders */}
-      {selectedBudget && (
-        <BudgetPurchaseOrdersDialog 
-          isOpen={isPoDialogOpen}
-          onOpenChange={setIsPoDialogOpen}
-          purchaseOrders={selectedBudgetPOs}
-          budget={selectedBudget}
-        />
-      )}
     </>
   );
 };
