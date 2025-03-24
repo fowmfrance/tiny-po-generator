@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Filter, Search, ArrowUpDown, X, DollarSign } from 'lucide-react';
+import { Plus, Filter, Search, ArrowUpDown, X, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -50,6 +50,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import BudgetPurchaseOrders from '@/components/BudgetPurchaseOrders';
 
 // Define types for our budget data
 type BudgetType = 'Project' | 'G&A';
@@ -64,6 +65,19 @@ interface Budget {
   initialAmount: number;
   remainingAmount: number;
   poCount: number;
+  createdAt: Date;
+}
+
+// Define types for PO data
+interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  budgetId: string;
+  vendor: string;
+  currency: BudgetCurrency;
+  amount: number;
+  invoicedAmount: number;
+  invoiceDate: Date | null;
   createdAt: Date;
 }
 
@@ -116,11 +130,104 @@ const mockBudgets: Budget[] = [
   },
 ];
 
+// Mock data for purchase orders
+const mockPurchaseOrders: PurchaseOrder[] = [
+  {
+    id: '1',
+    poNumber: 'PRJ-001-001',
+    budgetId: '1',
+    vendor: 'Office Supplies Co.',
+    currency: 'EUR',
+    amount: 5200,
+    invoicedAmount: 5200,
+    invoiceDate: new Date('2023-08-10'),
+    createdAt: new Date('2023-07-20'),
+  },
+  {
+    id: '2',
+    poNumber: 'PRJ-001-002',
+    budgetId: '1',
+    vendor: 'Furniture Emporium',
+    currency: 'EUR',
+    amount: 8500,
+    invoicedAmount: 8500,
+    invoiceDate: new Date('2023-08-25'),
+    createdAt: new Date('2023-07-22'),
+  },
+  {
+    id: '3',
+    poNumber: 'PRJ-001-003',
+    budgetId: '1',
+    vendor: 'Renovation Experts',
+    currency: 'USD',
+    amount: 4200,
+    invoicedAmount: 0,
+    invoiceDate: null,
+    createdAt: new Date('2023-07-30'),
+  },
+  {
+    id: '4',
+    poNumber: 'GA-2023-Q3-001',
+    budgetId: '2',
+    vendor: 'Office Supplies Co.',
+    currency: 'EUR',
+    amount: 2300,
+    invoicedAmount: 2300,
+    invoiceDate: new Date('2023-07-25'),
+    createdAt: new Date('2023-07-10'),
+  },
+  {
+    id: '5',
+    poNumber: 'GA-2023-Q3-002',
+    budgetId: '2',
+    vendor: 'Software Solutions Inc.',
+    currency: 'EUR',
+    amount: 4500,
+    invoicedAmount: 4500,
+    invoiceDate: new Date('2023-08-05'),
+    createdAt: new Date('2023-07-15'),
+  },
+  {
+    id: '6',
+    poNumber: 'PRJ-002-001',
+    budgetId: '3',
+    vendor: 'Hardware Suppliers',
+    currency: 'USD',
+    amount: 12000,
+    invoicedAmount: 12000,
+    invoiceDate: new Date('2023-07-20'),
+    createdAt: new Date('2023-06-15'),
+  },
+  {
+    id: '7',
+    poNumber: 'PRJ-002-002',
+    budgetId: '3',
+    vendor: 'Network Solutions',
+    currency: 'USD',
+    amount: 8200,
+    invoicedAmount: 8200,
+    invoiceDate: new Date('2023-07-25'),
+    createdAt: new Date('2023-06-20'),
+  },
+  {
+    id: '8',
+    poNumber: 'PRJ-002-003',
+    budgetId: '3',
+    vendor: 'Cloud Services Inc.',
+    currency: 'EUR',
+    amount: 4000,
+    invoicedAmount: 0,
+    invoiceDate: null,
+    createdAt: new Date('2023-06-25'),
+  },
+];
+
 const Budgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>(mockBudgets);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [expandedBudgetId, setExpandedBudgetId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -174,6 +281,20 @@ const Budgets = () => {
     form.reset();
     
     toast.success('Budget created successfully');
+  };
+
+  // Toggle expanded budget row
+  const toggleBudgetExpansion = (budgetId: string) => {
+    if (expandedBudgetId === budgetId) {
+      setExpandedBudgetId(null);
+    } else {
+      setExpandedBudgetId(budgetId);
+    }
+  };
+
+  // Filter purchase orders for a specific budget
+  const getBudgetPurchaseOrders = (budgetId: string) => {
+    return mockPurchaseOrders.filter(po => po.budgetId === budgetId);
   };
 
   return (
@@ -389,6 +510,7 @@ const Budgets = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
                 <TableHead className="w-[100px]">Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
@@ -401,41 +523,65 @@ const Budgets = () => {
             </TableHeader>
             <TableBody>
               {filteredBudgets.map((budget) => (
-                <TableRow key={budget.id} className="cursor-pointer hover:bg-gray-50">
-                  <TableCell className="font-medium">{budget.code}</TableCell>
-                  <TableCell>{budget.name}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      budget.type === 'Project'
-                        ? 'bg-blue-50 text-blue-800'
-                        : 'bg-green-50 text-green-800'
-                    }`}>
-                      {budget.type}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">{budget.currency}</TableCell>
-                  <TableCell className="text-right">
-                    {budget.currency === 'EUR' ? '€' : budget.currency === 'USD' ? '$' : '£'}
-                    {budget.initialAmount.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={`${
-                      budget.remainingAmount / budget.initialAmount < 0.2
-                        ? 'text-red-600'
-                        : budget.remainingAmount / budget.initialAmount < 0.5
-                        ? 'text-amber-600'
-                        : 'text-green-600'
-                    }`}>
+                <React.Fragment key={budget.id}>
+                  <TableRow 
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleBudgetExpansion(budget.id)}
+                  >
+                    <TableCell className="p-2">
+                      {expandedBudgetId === budget.id ? (
+                        <ChevronUp className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{budget.code}</TableCell>
+                    <TableCell>{budget.name}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        budget.type === 'Project'
+                          ? 'bg-blue-50 text-blue-800'
+                          : 'bg-green-50 text-green-800'
+                      }`}>
+                        {budget.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">{budget.currency}</TableCell>
+                    <TableCell className="text-right">
                       {budget.currency === 'EUR' ? '€' : budget.currency === 'USD' ? '$' : '£'}
-                      {budget.remainingAmount.toLocaleString()} 
-                      ({((budget.remainingAmount / budget.initialAmount) * 100).toFixed(0)}%)
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">{budget.poCount}</TableCell>
-                  <TableCell className="text-right">
-                    {budget.createdAt.toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
+                      {budget.initialAmount.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={`${
+                        budget.remainingAmount / budget.initialAmount < 0.2
+                          ? 'text-red-600'
+                          : budget.remainingAmount / budget.initialAmount < 0.5
+                          ? 'text-amber-600'
+                          : 'text-green-600'
+                      }`}>
+                        {budget.currency === 'EUR' ? '€' : budget.currency === 'USD' ? '$' : '£'}
+                        {budget.remainingAmount.toLocaleString()} 
+                        ({((budget.remainingAmount / budget.initialAmount) * 100).toFixed(0)}%)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">{budget.poCount}</TableCell>
+                    <TableCell className="text-right">
+                      {budget.createdAt.toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                  {expandedBudgetId === budget.id && (
+                    <TableRow>
+                      <TableCell colSpan={9} className="p-0 border-t-0">
+                        <div className="bg-gray-50 p-4">
+                          <BudgetPurchaseOrders 
+                            purchaseOrders={getBudgetPurchaseOrders(budget.id)} 
+                            budget={budget} 
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
