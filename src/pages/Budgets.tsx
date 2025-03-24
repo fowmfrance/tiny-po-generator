@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -43,6 +44,7 @@ interface Budget {
   currency: BudgetCurrency;
   initialAmount: number;
   remainingAmount: number;
+  receivedAmount: number; // Added receivedAmount field
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
@@ -61,6 +63,7 @@ const Budgets = () => {
       currency: 'USD',
       initialAmount: 100000,
       remainingAmount: 45000,
+      receivedAmount: 55000, // Initial amount - remaining amount
       type: 'Project',
       poCount: 12,
       createdAt: new Date(),
@@ -72,6 +75,7 @@ const Budgets = () => {
       currency: 'EUR',
       initialAmount: 50000,
       remainingAmount: 23000,
+      receivedAmount: 27000, // Initial amount - remaining amount
       type: 'G&A',
       poCount: 8,
       createdAt: new Date(),
@@ -83,6 +87,7 @@ const Budgets = () => {
       currency: 'GBP',
       initialAmount: 75000,
       remainingAmount: 60000,
+      receivedAmount: 15000, // Initial amount - remaining amount
       type: 'Project',
       poCount: 5,
       createdAt: new Date(),
@@ -123,6 +128,7 @@ const Budgets = () => {
                   <TableHead>Name</TableHead>
                   <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-right">Initial Amount</TableHead>
+                  <TableHead className="text-right">Received</TableHead>
                   <TableHead className="text-right">Remaining</TableHead>
                   <TableHead className="text-center">Currency</TableHead>
                   <TableHead className="text-center">PO Count</TableHead>
@@ -144,6 +150,9 @@ const Budgets = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       {budget.initialAmount.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {budget.receivedAmount.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
                       {budget.remainingAmount.toLocaleString()}

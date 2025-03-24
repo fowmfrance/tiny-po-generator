@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -29,6 +28,7 @@ interface Budget {
   currency: BudgetCurrency;
   initialAmount: number;
   remainingAmount: number;
+  receivedAmount: number; // Added receivedAmount field
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
@@ -64,6 +64,7 @@ const BudgetDetails = () => {
         currency: 'USD',
         initialAmount: 100000,
         remainingAmount: 45000,
+        receivedAmount: 55000, // Added receivedAmount
         type: 'Project',
         poCount: 12,
         createdAt: new Date(),
@@ -75,6 +76,7 @@ const BudgetDetails = () => {
         currency: 'EUR',
         initialAmount: 50000,
         remainingAmount: 23000,
+        receivedAmount: 27000, // Added receivedAmount
         type: 'G&A',
         poCount: 8,
         createdAt: new Date(),
@@ -86,6 +88,7 @@ const BudgetDetails = () => {
         currency: 'GBP',
         initialAmount: 75000,
         remainingAmount: 60000,
+        receivedAmount: 15000, // Added receivedAmount
         type: 'Project',
         poCount: 5,
         createdAt: new Date(),
@@ -190,6 +193,9 @@ const BudgetDetails = () => {
             <div className="text-right">
               <div className="font-medium">
                 Initial Amount: {formatCurrency(budget.currency, budget.initialAmount)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Received: {formatCurrency(budget.currency, budget.receivedAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
                 Remaining: {formatCurrency(budget.currency, budget.remainingAmount)}
