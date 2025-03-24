@@ -23,6 +23,7 @@ const recentPOs = [
     id: '1',
     poNumber: '2023-001',
     vendor: 'Apple Inc.',
+    vendorId: 'v1', // Adding the missing vendorId property
     amount: 5000,
     currency: 'USD',
     date: '2023-06-15',
@@ -33,6 +34,7 @@ const recentPOs = [
     id: '2',
     poNumber: '2023-002',
     vendor: 'Microsoft Corp',
+    vendorId: 'v2', // Adding the missing vendorId property
     amount: 3500,
     currency: 'USD',
     date: '2023-06-18',
@@ -43,6 +45,7 @@ const recentPOs = [
     id: '3',
     poNumber: '2023-003',
     vendor: 'Dell Technologies',
+    vendorId: 'v3', // Adding the missing vendorId property
     amount: 2800,
     currency: 'USD',
     date: '2023-06-20',
