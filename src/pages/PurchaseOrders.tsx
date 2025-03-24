@@ -1,29 +1,11 @@
-
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import PurchaseOrderCard from '@/components/PurchaseOrderCard';
+import { PurchaseOrdersFilters } from '@/components/purchase-orders/PurchaseOrdersFilters';
+import { PurchaseOrdersCardView } from '@/components/purchase-orders/PurchaseOrdersCardView';
+import { PurchaseOrdersTableView } from '@/components/purchase-orders/PurchaseOrdersTableView';
 import CreatePOButton from '@/components/CreatePOButton';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Search, Filter, ListFilter, Grid, List } from 'lucide-react';
 
 // Mock data for demonstration
-const mockPurchaseOrders = [
+export const mockPurchaseOrders = [
   {
     id: '1',
     poNumber: '2023-001',
@@ -89,6 +71,20 @@ const mockPurchaseOrders = [
   }
 ];
 
+export type PurchaseOrderStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'matched' | 'paid';
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  vendor: string;
+  vendorId: string;
+  amount: number;
+  currency: string;
+  date: string;
+  status: PurchaseOrderStatus;
+  paymentProgress?: number;
+}
+
 const PurchaseOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -105,32 +101,6 @@ const PurchaseOrders = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusClasses = {
-      draft: 'bg-gray-200 text-gray-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      matched: 'bg-blue-100 text-blue-800',
-      paid: 'bg-purple-100 text-purple-800'
-    };
-
-    const statusMap = {
-      draft: 'Draft',
-      pending: 'Pending',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      matched: 'Matched',
-      paid: 'Paid'
-    };
-
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status as keyof typeof statusClasses]}`}>
-        {statusMap[status as keyof typeof statusMap]}
-      </span>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -138,101 +108,20 @@ const PurchaseOrders = () => {
         <CreatePOButton />
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search purchase orders..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="pending">Pending Approval</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="matched">Invoice Matched</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex bg-muted rounded-md">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`${viewMode === 'card' ? 'bg-background' : ''} rounded-md`}
-              onClick={() => setViewMode('card')}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`${viewMode === 'table' ? 'bg-background' : ''} rounded-md`}
-              onClick={() => setViewMode('table')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PurchaseOrdersFilters 
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
 
       {filteredPOs.length > 0 ? (
         viewMode === 'card' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPOs.map((po) => (
-              <PurchaseOrderCard key={po.id} {...po} />
-            ))}
-          </div>
+          <PurchaseOrdersCardView purchaseOrders={filteredPOs} />
         ) : (
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>PO Number</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Date</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPOs.map((po) => (
-                  <TableRow key={po.id}>
-                    <TableCell className="font-medium">
-                      <Link to={`/purchase-orders/${po.id}`} className="text-po-blue hover:underline">
-                        {po.poNumber}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link to={`/vendors/${po.vendorId}`} className="text-po-blue hover:underline">
-                        {po.vendor}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {po.currency} {po.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-center">{po.date}</TableCell>
-                    <TableCell className="text-center">
-                      {getStatusBadge(po.status)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <PurchaseOrdersTableView purchaseOrders={filteredPOs} />
         )
       ) : (
         <div className="bg-white p-8 rounded-lg shadow text-center">
