@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Search, Plus, Building, Mail, Phone, ArrowRight, LogIn } from 'lucide-react';
 
-// Mock data for demonstration
-const mockVendors = [
+// Mock data for demonstration - Export this for use in other components
+export const mockVendors = [
   {
     id: '1',
     name: 'Apple Inc.',

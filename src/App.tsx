@@ -10,6 +10,7 @@ import PurchaseOrders from "./pages/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
 import CreatePO from "./pages/CreatePO";
 import Vendors from "./pages/Vendors";
+import VendorDetail from "./pages/VendorDetail";
 import Budgets from "./pages/Budgets";
 import BudgetDetails from "./pages/BudgetDetails";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />
+            <Route path="/vendors/:id" element={<VendorDetail />} />
             {/* Placeholder routes for future implementation */}
             <Route path="/invoices" element={<div className="p-6">Invoices Page (Coming Soon)</div>} />
             <Route path="/reports" element={<div className="p-6">Reports Page (Coming Soon)</div>} />
