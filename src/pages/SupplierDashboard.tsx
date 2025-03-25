@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, ChevronLeft, FileText, Mail, Plus } from 'lucide-react';
+import { Calendar, ChevronLeft, FileText, Mail, Plus, ArrowDown, ArrowUp } from 'lucide-react';
 import { mockVendors } from '@/pages/Vendors';
 import { mockPurchaseOrders } from '@/pages/PurchaseOrders';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
@@ -14,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Mock invoices data
+// Enhanced mock invoices data with more varied examples
 const mockInvoices = [
   {
     id: 'inv-1',
@@ -48,8 +47,96 @@ const mockInvoices = [
     date: '2023-07-20',
     status: 'paid',
     paymentDate: '2023-08-05'
+  },
+  {
+    id: 'inv-4',
+    invoiceNumber: 'INV-2023-004',
+    poId: '3',
+    poNumber: '2023-003',
+    amount: 12000,
+    currency: 'USD',
+    date: '2023-08-15',
+    status: 'paid',
+    paymentDate: '2023-09-01'
+  },
+  {
+    id: 'inv-5',
+    invoiceNumber: 'INV-2023-005',
+    poId: '4',
+    poNumber: '2023-004',
+    amount: 5750,
+    currency: 'USD',
+    date: '2023-09-05',
+    status: 'pending',
+    paymentDate: null
+  },
+  {
+    id: 'inv-6',
+    invoiceNumber: 'INV-2023-006',
+    poId: '6',
+    poNumber: '2023-006',
+    amount: 2250,
+    currency: 'USD',
+    date: '2023-10-10',
+    status: 'paid',
+    paymentDate: '2023-10-25'
   }
 ];
+
+// Additional mock purchase orders for more comprehensive testing
+const additionalMockPOs = [
+  {
+    id: '7',
+    poNumber: '2023-007',
+    vendorId: '1',
+    date: '2023-11-01',
+    amount: 6000,
+    currency: 'USD',
+    status: 'approved',
+    items: [
+      { id: '701', name: 'Marketing Materials', quantity: 5000, unitPrice: 1.2 }
+    ]
+  },
+  {
+    id: '8',
+    poNumber: '2023-008',
+    vendorId: '1',
+    date: '2023-11-15',
+    amount: 8800,
+    currency: 'USD',
+    status: 'pending',
+    items: [
+      { id: '801', name: 'Display Units', quantity: 40, unitPrice: 220 }
+    ]
+  },
+  {
+    id: '9',
+    poNumber: '2023-009',
+    vendorId: '1',
+    date: '2023-12-01',
+    amount: 4500,
+    currency: 'USD',
+    status: 'approved',
+    items: [
+      { id: '901', name: 'Product Samples', quantity: 300, unitPrice: 15 }
+    ]
+  },
+  {
+    id: '10',
+    poNumber: '2023-010',
+    vendorId: '1',
+    date: '2023-12-15',
+    amount: 15000,
+    currency: 'USD',
+    status: 'approved',
+    items: [
+      { id: '1001', name: 'Event Equipment', quantity: 1, unitPrice: 15000 }
+    ]
+  }
+];
+
+// Combine with existing purchase orders
+const extendedMockPurchaseOrders = [...mockPurchaseOrders, ...additionalMockPOs];
 
 const SupplierDashboard = () => {
   const { toast } = useToast();
@@ -80,8 +167,8 @@ const SupplierDashboard = () => {
     );
   }
 
-  // Get POs for this vendor
-  const vendorPOs = mockPurchaseOrders.filter(po => po.vendorId === vendorId);
+  // Get POs for this vendor from extended mock data
+  const vendorPOs = extendedMockPurchaseOrders.filter(po => po.vendorId === vendorId);
   
   // Combine POs and invoices data
   const poAndInvoices = vendorPOs.map(po => {
@@ -260,7 +347,7 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
             >
               Date
               {sortBy === 'date' && (
-                <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                <span className="ml-1">{sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}</span>
               )}
             </button>
           </TableHead>
@@ -272,7 +359,7 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
             >
               Amount
               {sortBy === 'amount' && (
-                <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                <span className="ml-1">{sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}</span>
               )}
             </button>
           </TableHead>
@@ -283,7 +370,7 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
             >
               Status
               {sortBy === 'status' && (
-                <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                <span className="ml-1">{sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}</span>
               )}
             </button>
           </TableHead>
