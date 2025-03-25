@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Enhanced mock invoices data with more varied examples
 const mockInvoices = [
   {
     id: 'inv-1',
@@ -83,7 +82,6 @@ const mockInvoices = [
   }
 ];
 
-// Additional mock purchase orders for more comprehensive testing
 const additionalMockPOs = [
   {
     id: '7',
@@ -135,7 +133,6 @@ const additionalMockPOs = [
   }
 ];
 
-// Combine with existing purchase orders
 const extendedMockPurchaseOrders = [...mockPurchaseOrders, ...additionalMockPOs];
 
 const SupplierDashboard = () => {
@@ -145,11 +142,9 @@ const SupplierDashboard = () => {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // Get the vendor ID from the query string or default to '1'
   const queryParams = new URLSearchParams(location.search);
   const vendorId = queryParams.get('vendor') || '1';
   
-  // Find the vendor info
   const vendor = mockVendors.find(v => v.id === vendorId);
   
   if (!vendor) {
@@ -167,10 +162,8 @@ const SupplierDashboard = () => {
     );
   }
 
-  // Get POs for this vendor from extended mock data
   const vendorPOs = extendedMockPurchaseOrders.filter(po => po.vendorId === vendorId);
   
-  // Combine POs and invoices data
   const poAndInvoices = vendorPOs.map(po => {
     const relatedInvoices = mockInvoices.filter(inv => inv.poId === po.id);
     return {
@@ -180,7 +173,6 @@ const SupplierDashboard = () => {
     };
   });
 
-  // Sort the combined data
   const sortedData = [...poAndInvoices].sort((a, b) => {
     if (sortBy === 'date') {
       return sortOrder === 'asc' 
@@ -235,8 +227,20 @@ const SupplierDashboard = () => {
             onClick={() => navigate('/supplier/invoices/create')}
           >
             <Plus className="h-4 w-4" />
-            Create Invoice
+            Upload Invoice
           </Button>
+        </div>
+      </div>
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 flex items-start">
+        <FileText className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
+        <div>
+          <h3 className="text-sm font-medium text-blue-800">API Access Coming Soon</h3>
+          <p className="text-sm text-blue-700 mt-1">
+            We're working on an API to allow your systems to submit invoices automatically. 
+            This will enable you to create automation within your invoice tools. 
+            <span className="font-medium"> Contact us for early access.</span>
+          </p>
         </div>
       </div>
 
@@ -484,11 +488,8 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ onSendEmail }) => {
     
     onSendEmail(subject, message);
     
-    // Reset form
     setSubject('');
     setMessage('');
-    
-    // Close dialog (need to click outside or ESC as this is how the Dialog component works)
   };
   
   return (

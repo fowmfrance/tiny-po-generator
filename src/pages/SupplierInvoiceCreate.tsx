@@ -119,7 +119,7 @@ const SupplierInvoiceCreate = () => {
           <div className="flex items-center space-x-4">
             <Building className="h-6 w-6 text-po-blue" />
             <div>
-              <h1 className="text-xl font-semibold">Create Invoice</h1>
+              <h1 className="text-xl font-semibold">Upload Invoice</h1>
               <p className="text-sm text-gray-500">For Purchase Order #{purchaseOrder.poNumber}</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ const SupplierInvoiceCreate = () => {
       <main className="container mx-auto p-6">
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle>Submit Invoice</CardTitle>
+            <CardTitle>Upload Invoice</CardTitle>
             <CardDescription>
               Please fill in the invoice details below
             </CardDescription>
@@ -141,7 +141,7 @@ const SupplierInvoiceCreate = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
                   <Check className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Invoice Submitted Successfully</h3>
+                <h3 className="text-lg font-medium mb-2">Invoice Uploaded Successfully</h3>
                 <p className="text-gray-500 mb-4">
                   Your invoice has been submitted and is pending approval.
                 </p>
@@ -252,7 +252,7 @@ const SupplierInvoiceCreate = () => {
                 onClick={handleSubmit}
                 disabled={loading || !invoiceNumber || !amount || !file}
               >
-                {loading ? 'Submitting...' : 'Submit Invoice'}
+                {loading ? 'Uploading...' : 'Upload Invoice'}
               </Button>
             </CardFooter>
           )}

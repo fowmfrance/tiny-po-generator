@@ -70,7 +70,7 @@ const SupplierPurchaseOrders: React.FC<SupplierPurchaseOrdersProps> = ({ vendorI
                         onClick={() => window.location.href = `/supplier/invoices/create?po=${po.id}`}
                       >
                         <Upload className="h-4 w-4" />
-                        Invoice
+                        Upload Invoice
                       </Button>
                     )}
                   </div>
