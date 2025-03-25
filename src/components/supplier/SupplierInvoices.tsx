@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -274,5 +275,48 @@ const CreateInvoiceDrawer: React.FC<CreateInvoiceDrawerProps> = ({
                       ) : (
                         <p className="text-sm text-gray-500">Drag & drop or click to upload</p>
                       )}
+                      <input
+                        id="invoice-file"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFile(e.target.files[0]);
+                          }
+                        }}
+                        required
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => document.getElementById('invoice-file')?.click()}
+                      >
+                        Select File
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-po-blue hover:bg-blue-600"
+                  >
+                    Submit Invoice
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <div className="text-center p-6">
+                <p className="text-gray-500">No approved purchase orders available.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+};
 
-
+export default SupplierInvoices;
