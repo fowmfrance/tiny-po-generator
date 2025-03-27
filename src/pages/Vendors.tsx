@@ -13,8 +13,20 @@ import {
 } from "@/components/ui/card";
 import { Search, Plus, Building, Mail, Phone, ArrowRight, LogIn } from 'lucide-react';
 
+// Define vendor type
+export interface Vendor {
+  id: string;
+  name: string;
+  category: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'pending' | 'inactive';
+  totalPOs: number;
+  poIds: string[]; // Add poIds property
+}
+
 // Mock data for demonstration - Export this for use in other components
-export const mockVendors = [
+export const mockVendors: Vendor[] = [
   {
     id: '1',
     name: 'Apple Inc.',
@@ -22,7 +34,8 @@ export const mockVendors = [
     email: 'procurement@apple.com',
     phone: '+1 (800) 275-2273',
     status: 'active',
-    totalPOs: 12
+    totalPOs: 12,
+    poIds: ['1', '2'] // Add corresponding PO IDs
   },
   {
     id: '2',
@@ -31,7 +44,8 @@ export const mockVendors = [
     email: 'vendor@microsoft.com',
     phone: '+1 (800) 642-7676',
     status: 'active',
-    totalPOs: 8
+    totalPOs: 8,
+    poIds: ['3', '4']
   },
   {
     id: '3',
@@ -40,7 +54,8 @@ export const mockVendors = [
     email: 'sales@dell.com',
     phone: '+1 (800) 624-9897',
     status: 'active',
-    totalPOs: 5
+    totalPOs: 5,
+    poIds: ['5']
   },
   {
     id: '4',
@@ -49,7 +64,8 @@ export const mockVendors = [
     email: 'business@amazon.com',
     phone: '+1 (866) 486-2360',
     status: 'pending',
-    totalPOs: 0
+    totalPOs: 0,
+    poIds: []
   },
   {
     id: '5',
@@ -58,7 +74,8 @@ export const mockVendors = [
     email: 'b2b@samsung.com',
     phone: '+1 (800) 726-7864',
     status: 'active',
-    totalPOs: 3
+    totalPOs: 3,
+    poIds: ['6']
   },
   {
     id: '6',
@@ -67,7 +84,8 @@ export const mockVendors = [
     email: 'sales@logitech.com',
     phone: '+1 (800) 231-7717',
     status: 'inactive',
-    totalPOs: 2
+    totalPOs: 2,
+    poIds: ['7', '8']
   }
 ];
 

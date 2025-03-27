@@ -9,20 +9,40 @@ import {
   Phone, 
   Building, 
   FileText, 
-  Clock, 
   Share2, 
   Archive,
   AlertTriangle,
   CheckCircle,
   Clock as ClockIcon
 } from 'lucide-react';
-import { mockVendors } from '@/pages/Vendors';
+import { mockVendors, Vendor } from '@/pages/Vendors';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
+// Define interfaces for our data structures
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  poId: string;
+  poNumber: string;
+  amount: number;
+  currency: string;
+  date: string;
+  dueDate: string;
+  status: 'paid' | 'pending' | 'overdue';
+  paymentDate: string | null;
+}
+
+interface POStatus {
+  status: 'paid' | 'partially_paid' | 'unpaid' | 'overdue';
+  paidPercentage: number;
+  poNumber: string;
+  totalAmount: number;
+}
+
 // Mock invoices for demonstration
-const mockInvoices = [
+const mockInvoices: Invoice[] = [
   {
     id: 'inv-1',
     invoiceNumber: 'INV-2023-001',
@@ -61,8 +81,8 @@ const mockInvoices = [
   }
 ];
 
-const calculatePOStatus = (invoices) => {
-  const poInvoices = {};
+const calculatePOStatus = (invoices: Invoice[]): Record<string, POStatus> => {
+  const poInvoices: Record<string, Invoice[]> = {};
   
   // Group invoices by PO
   invoices.forEach(inv => {
@@ -73,7 +93,7 @@ const calculatePOStatus = (invoices) => {
   });
   
   // Calculate status for each PO
-  const poStatuses = {};
+  const poStatuses: Record<string, POStatus> = {};
   
   Object.keys(poInvoices).forEach(poId => {
     const poInvs = poInvoices[poId];
@@ -84,7 +104,7 @@ const calculatePOStatus = (invoices) => {
     
     const paidPercentage = Math.round((paidAmount / totalAmount) * 100);
     
-    let status;
+    let status: 'paid' | 'partially_paid' | 'unpaid' | 'overdue';
     if (paidPercentage === 0) {
       status = 'unpaid';
     } else if (paidPercentage === 100) {
@@ -116,9 +136,9 @@ const VendorDetail = () => {
   const vendor = mockVendors.find(v => v.id === id);
   
   // Calculate PO statuses based on invoices
-  const vendorInvoices = mockInvoices.filter(inv => 
-    vendor?.poIds?.includes(inv.poId)
-  );
+  const vendorInvoices = vendor 
+    ? mockInvoices.filter(inv => vendor.poIds.includes(inv.poId))
+    : [];
   
   const poStatuses = calculatePOStatus(vendorInvoices);
   
