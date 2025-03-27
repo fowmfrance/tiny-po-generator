@@ -11,7 +11,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Plus, Building, Mail, Phone, ArrowRight, LogIn } from 'lucide-react';
+import { 
+  Search, 
+  Plus, 
+  Building, 
+  Mail, 
+  Phone, 
+  ArrowRight,
+  UserPlus
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 // Define vendor type
 export interface Vendor {
@@ -91,6 +109,10 @@ export const mockVendors: Vendor[] = [
 
 const Vendors = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [vendorName, setVendorName] = useState('');
+  const [vendorEmail, setVendorEmail] = useState('');
+  const { toast } = useToast();
 
   // Filter vendors based on search term
   const filteredVendors = mockVendors.filter(vendor => 
@@ -98,17 +120,39 @@ const Vendors = () => {
     vendor.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Create a draft vendor record (would typically save to database)
+    const newVendorId = `draft-${Date.now()}`;
+    
+    // In a real application, this would add to the database
+    // and trigger an email to the supplier
+    
+    toast({
+      title: "Vendor invited successfully",
+      description: `An invitation email has been sent to ${vendorEmail}`,
+    });
+    
+    // Close the dialog and reset form
+    setIsInviteDialogOpen(false);
+    setVendorName('');
+    setVendorEmail('');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Vendors</h1>
         <div className="flex gap-2">
-          <Link to="/supplier">
-            <Button variant="outline" className="flex items-center gap-2">
-              <LogIn className="w-4 h-4" />
-              Supplier Portal
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={() => setIsInviteDialogOpen(true)}
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Vendor
+          </Button>
           <Link to="/vendors/new">
             <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -190,6 +234,52 @@ const Vendors = () => {
           </Link>
         </div>
       )}
+
+      {/* Invite Vendor Dialog */}
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Vendor</DialogTitle>
+            <DialogDescription>
+              Send an invitation email to a vendor to join your supplier network.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleInviteSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="vendor-name">Vendor Name</Label>
+                <Input
+                  id="vendor-name"
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                  placeholder="Enter vendor company name"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="vendor-email">Contact Email</Label>
+                <Input
+                  id="vendor-email"
+                  type="email"
+                  value={vendorEmail}
+                  onChange={(e) => setVendorEmail(e.target.value)}
+                  placeholder="contact@company.com"
+                  required
+                />
+                <p className="text-sm text-gray-500">
+                  An invitation link will be sent to this email address
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Send Invitation</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
