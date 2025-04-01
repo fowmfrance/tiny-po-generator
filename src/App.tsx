@@ -13,6 +13,7 @@ import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
 import Budgets from "./pages/Budgets";
 import BudgetDetails from "./pages/BudgetDetails";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import SupplierPortal from "./pages/SupplierPortal";
 import SupplierDashboard from "./pages/SupplierDashboard";
@@ -37,10 +38,10 @@ const App = () => (
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />
             <Route path="/vendors/:id" element={<VendorDetail />} />
+            <Route path="/settings" element={<Settings />} />
             {/* Placeholder routes for future implementation */}
-            <Route path="/invoices" element={<div className="p-6">Invoices Page (Coming Soon)</div>} />
-            <Route path="/reports" element={<div className="p-6">Reports Page (Coming Soon)</div>} />
-            <Route path="/settings" element={<div className="p-6">Settings Page (Coming Soon)</div>} />
+            <Route path="/invoices" element={<div className="p-6">Page des Factures (À venir)</div>} />
+            <Route path="/reports" element={<div className="p-6">Page des Rapports (À venir)</div>} />
           </Route>
           
           {/* Supplier Portal Routes */}

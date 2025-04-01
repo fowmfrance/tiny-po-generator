@@ -63,8 +63,8 @@ const Budgets = () => {
     {
       id: '1',
       code: 'PRJ-2023-001',
-      name: 'Project Alpha Budget',
-      currency: 'USD',
+      name: 'Budget Projet Alpha',
+      currency: 'EUR',
       initialAmount: 100000,
       remainingAmount: 45000,
       receivedAmount: 55000,
@@ -78,7 +78,7 @@ const Budgets = () => {
     {
       id: '2',
       code: 'GA-2023-002',
-      name: 'G&A Expenses Q3',
+      name: 'Frais G&A Q3',
       currency: 'EUR',
       initialAmount: 50000,
       remainingAmount: 23000,
@@ -94,7 +94,7 @@ const Budgets = () => {
     {
       id: '3',
       code: 'PRJ-2023-003',
-      name: 'Project Beta Budget',
+      name: 'Budget Projet Beta',
       currency: 'GBP',
       initialAmount: 75000,
       remainingAmount: 60000,
@@ -123,21 +123,21 @@ const Budgets = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Budgets</h1>
-          <p className="text-gray-500">Manage your budgets and track expenses.</p>
+          <p className="text-gray-500">Gérez vos budgets et suivez vos dépenses.</p>
         </div>
 
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Budget List</CardTitle>
+                <CardTitle>Liste des Budgets</CardTitle>
                 <CardDescription>
-                  Here you can view and manage all your budgets.
+                  Vous pouvez consulter et gérer tous vos budgets ici.
                 </CardDescription>
               </div>
               <Button onClick={handleCreateBudget}>
                 <Plus className="w-4 h-4 mr-2" />
-                Create Budget
+                Créer Budget
               </Button>
             </div>
           </CardHeader>
@@ -146,15 +146,15 @@ const Budgets = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Nom</TableHead>
                   <TableHead className="text-center">Type</TableHead>
-                  <TableHead className="text-right">Initial Amount</TableHead>
-                  <TableHead className="text-right">Received</TableHead>
-                  <TableHead className="text-right">Remaining</TableHead>
-                  <TableHead className="text-center">Currency</TableHead>
-                  <TableHead className="text-center">Recognition</TableHead>
-                  <TableHead className="text-center">Period</TableHead>
-                  <TableHead className="text-center">POs</TableHead>
+                  <TableHead className="text-right">Montant Initial</TableHead>
+                  <TableHead className="text-right">Reçu</TableHead>
+                  <TableHead className="text-right">Restant</TableHead>
+                  <TableHead className="text-center">Devise</TableHead>
+                  <TableHead className="text-center">Reconnaissance</TableHead>
+                  <TableHead className="text-center">Période</TableHead>
+                  <TableHead className="text-center">BCs</TableHead>
                   <TableHead className="text-right"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -182,7 +182,7 @@ const Budgets = () => {
                     <TableCell className="text-center">{budget.currency}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className="capitalize">
-                        {budget.recognitionType}
+                        {budget.recognitionType === 'linear' ? 'Linéaire' : 'Complété'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
@@ -194,7 +194,7 @@ const Budgets = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-500">No dates set</span>
+                        <span className="text-xs text-gray-500">Pas de dates définies</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">{budget.poCount}</TableCell>
@@ -202,21 +202,21 @@ const Budgets = () => {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">Ouvrir menu</span>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
+                            <Edit className="mr-2 h-4 w-4" /> Modifier
                           </DropdownMenuItem>
                           <DropdownMenuItem>
-                            <Copy className="mr-2 h-4 w-4" /> Copy
+                            <Copy className="mr-2 h-4 w-4" /> Dupliquer
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem>
-                            <Download className="mr-2 h-4 w-4" /> Download
+                            <Download className="mr-2 h-4 w-4" /> Télécharger
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

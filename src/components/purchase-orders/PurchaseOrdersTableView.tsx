@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/table';
 import { PurchaseOrder, PurchaseOrderStatus } from '@/pages/PurchaseOrders';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PurchaseOrdersTableViewProps {
   purchaseOrders: PurchaseOrder[];
@@ -19,16 +22,31 @@ interface PurchaseOrdersTableViewProps {
 export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = ({ 
   purchaseOrders 
 }) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSendPO = (poId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // In a real app, this would send the PO to the vendor
+    toast({
+      title: "Bon de commande envoyé",
+      description: `Le bon de commande a été envoyé avec succès.`,
+    });
+  };
+
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>PO Number</TableHead>
-            <TableHead>Supplier</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <TableHead>N° BC</TableHead>
+            <TableHead>Fournisseur</TableHead>
+            <TableHead className="text-right">Montant</TableHead>
             <TableHead className="text-center">Date</TableHead>
-            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">Statut</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -45,11 +63,22 @@ export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = (
                 </Link>
               </TableCell>
               <TableCell className="text-right">
-                {po.currency} {po.amount.toLocaleString()}
+                {po.currency} {po.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="text-center">{po.date}</TableCell>
               <TableCell className="text-center">
                 <StatusBadge status={po.status} />
+              </TableCell>
+              <TableCell className="text-right">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={(e) => handleSendPO(po.id, e)}
+                >
+                  <Send className="h-3 w-3" />
+                  Envoyer
+                </Button>
               </TableCell>
             </TableRow>
           ))}

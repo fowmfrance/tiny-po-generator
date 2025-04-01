@@ -12,6 +12,10 @@ const exchangeRates = {
 export type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
 export type BudgetRecognitionType = 'linear' | 'completion';
 
+// Default available currencies for the application
+export const availableCurrencies: BudgetCurrency[] = ['EUR', 'USD', 'GBP'];
+export const defaultCurrency: BudgetCurrency = 'EUR';
+
 /**
  * Converts an amount from the source currency to EUR
  */
@@ -187,7 +191,7 @@ export function calculateRecognizedAmount(
  * Format a currency value with the appropriate symbol and French number formatting
  */
 export function formatCurrency(currency: BudgetCurrency, amount: number): string {
-  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '€' : '€';
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
   return `${symbol}${amount.toLocaleString('fr-FR', { 
     minimumFractionDigits: 2, 
     maximumFractionDigits: 2 

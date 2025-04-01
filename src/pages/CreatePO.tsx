@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,8 @@ import {
   validateBudgetActive, 
   BudgetCurrency, 
   BudgetRecognitionType, 
-  calculateRecognizedAmount 
+  calculateRecognizedAmount,
+  defaultCurrency
 } from '@/services/budgetService';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +71,14 @@ const CreatePO = () => {
 
   const [isFromBudget, setIsFromBudget] = useState<boolean>(!!budgetId);
   const [budgetStatus, setBudgetStatus] = useState<{ active: boolean; message?: string }>({ active: true });
+  const [selectedBudget, setSelectedBudget] = useState<string>(budgetId || "");
+
+  // Mock budget list for selector
+  const budgetList = [
+    { id: '1', name: 'Budget Projet Alpha', code: 'PRJ-2023-001', currency: 'EUR' },
+    { id: '2', name: 'Frais G&A Q3', code: 'GA-2023-002', currency: 'EUR' },
+    { id: '3', name: 'Budget Projet Beta', code: 'PRJ-2023-003', currency: 'GBP' },
+  ];
 
   useEffect(() => {
     if (budgetId && (budgetStartDate || budgetEndDate)) {
@@ -124,19 +134,21 @@ const CreatePO = () => {
     if (budgetId && !budgetStatus.active) {
       toast({
         variant: "destructive",
-        title: "Cannot create Purchase Order",
+        title: "Impossible de créer le Bon de Commande",
         description: budgetStatus.message,
       });
       return;
     }
     
     toast({
-      title: "Purchase Order Created",
-      description: "The purchase order has been created successfully.",
+      title: "Bon de Commande Créé",
+      description: "Le bon de commande a été créé avec succès.",
     });
     
     if (budgetId) {
       navigate(`/budgets/${budgetId}`);
+    } else if (selectedBudget) {
+      navigate(`/budgets/${selectedBudget}`);
     } else {
       navigate('/purchase-orders');
     }
@@ -153,9 +165,9 @@ const CreatePO = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Create Purchase Order</h1>
+          <h1 className="text-2xl font-bold">Créer un Bon de Commande</h1>
           {budgetName && (
-            <p className="text-muted-foreground">For budget: {budgetName}</p>
+            <p className="text-muted-foreground">Pour le budget: {budgetName}</p>
           )}
         </div>
       </div>
@@ -163,9 +175,9 @@ const CreatePO = () => {
       {budgetId && !budgetStatus.active && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Budget not active</AlertTitle>
+          <AlertTitle>Budget inactif</AlertTitle>
           <AlertDescription>
-            {budgetStatus.message} You cannot create purchase orders for this budget.
+            {budgetStatus.message} Vous ne pouvez pas créer de bons de commande pour ce budget.
           </AlertDescription>
         </Alert>
       )}
@@ -174,32 +186,40 @@ const CreatePO = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Purchase Order Information</CardTitle>
+              <CardTitle>Informations du Bon de Commande</CardTitle>
               <CardDescription>
-                Enter the details for this purchase order
+                Entrez les détails pour ce bon de commande
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="poType">PO Type</Label>
-                  <Select defaultValue="project">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select PO Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="project">Project Related</SelectItem>
-                      <SelectItem value="ga">G&A Related</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!budgetId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Budget</Label>
+                    <Select 
+                      value={selectedBudget} 
+                      onValueChange={(value) => setSelectedBudget(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un budget" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {budgetList.map(budget => (
+                          <SelectItem key={budget.id} value={budget.id}>
+                            {budget.name} ({budget.code}) - {budget.currency}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="poNumberFormat">PO Number Format</Label>
+                  <Label htmlFor="poNumberFormat">Format du N° BC</Label>
                   <Input 
                     id="poNumberFormat" 
                     placeholder="PR-{YYYY}-{000}" 
-                    defaultValue={budgetCode ? `${budgetCode}-` : "PR-2023-"} 
+                    defaultValue={budgetCode ? `${budgetCode}-` : "BC-2023-"} 
                   />
                 </div>
               </div>
@@ -208,16 +228,16 @@ const CreatePO = () => {
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-md">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="text-sm font-medium text-blue-700">This PO will be associated with budget: {budgetName}</p>
+                      <p className="text-sm font-medium text-blue-700">Ce BC sera associé au budget : {budgetName}</p>
                       {(budgetStartDate || budgetEndDate) && (
                         <p className="text-xs text-blue-600 mt-1">
-                          Budget period: {budgetStartDate ? new Date(budgetStartDate).toLocaleDateString() : 'No start date'} - {budgetEndDate ? new Date(budgetEndDate).toLocaleDateString() : 'No end date'}
+                          Période du budget : {budgetStartDate ? new Date(budgetStartDate).toLocaleDateString() : 'Pas de date de début'} - {budgetEndDate ? new Date(budgetEndDate).toLocaleDateString() : 'Pas de date de fin'}
                         </p>
                       )}
                     </div>
                     {budgetRecognitionType && (
                       <Badge variant="outline" className="capitalize">
-                        {budgetRecognitionType} recognition
+                        {budgetRecognitionType === 'linear' ? 'Reconnaissance linéaire' : 'Reconnaissance par complétion'}
                       </Badge>
                     )}
                   </div>
@@ -225,7 +245,7 @@ const CreatePO = () => {
                   {recognitionData && (
                     <div className="mt-3">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-blue-700">Recognition Progress</span>
+                        <span className="text-blue-700">Progression de la reconnaissance</span>
                         <span className="text-blue-700">{recognitionData.recognitionPercentage.toFixed(1)}%</span>
                       </div>
                       <Progress value={recognitionData.recognitionPercentage} className="h-1.5" />
@@ -235,10 +255,10 @@ const CreatePO = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="vendor">Vendor</Label>
+                <Label htmlFor="vendor">Fournisseur</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a vendor" />
+                    <SelectValue placeholder="Sélectionner un fournisseur" />
                   </SelectTrigger>
                   <SelectContent>
                     {vendorList.map(vendor => (
@@ -252,21 +272,21 @@ const CreatePO = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select defaultValue={budgetCurrency?.toLowerCase() || "usd"}>
+                  <Label htmlFor="currency">Devise</Label>
+                  <Select defaultValue={(budgetCurrency || defaultCurrency).toLowerCase()}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
+                      <SelectValue placeholder="Sélectionner une devise" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="usd">USD - US Dollar</SelectItem>
                       <SelectItem value="eur">EUR - Euro</SelectItem>
-                      <SelectItem value="gbp">GBP - British Pound</SelectItem>
+                      <SelectItem value="usd">USD - Dollar Américain</SelectItem>
+                      <SelectItem value="gbp">GBP - Livre Sterling</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="expectedDate">Expected Delivery Date</Label>
+                  <Label htmlFor="expectedDate">Date de livraison prévue</Label>
                   <div className="relative">
                     <Input 
                       id="expectedDate" 
@@ -282,7 +302,7 @@ const CreatePO = () => {
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea 
                   id="notes" 
-                  placeholder="Enter any additional notes or requirements"
+                  placeholder="Entrez des notes ou exigences supplémentaires"
                   rows={3}
                 />
               </div>
@@ -291,39 +311,39 @@ const CreatePO = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Approval Workflow</CardTitle>
+              <CardTitle>Flux d'Approbation</CardTitle>
               <CardDescription>
-                Select the approval workflow for this purchase order
+                Sélectionnez le flux d'approbation pour ce bon de commande
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="workflow">Workflow Template</Label>
+                <Label htmlFor="workflow">Modèle de Workflow</Label>
                 <Select defaultValue="standard">
                   <SelectTrigger>
-                    <SelectValue placeholder="Select workflow" />
+                    <SelectValue placeholder="Sélectionner un workflow" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standard">Standard Approval</SelectItem>
-                    <SelectItem value="express">Express Approval</SelectItem>
-                    <SelectItem value="extended">Extended Review</SelectItem>
+                    <SelectItem value="standard">Approbation Standard</SelectItem>
+                    <SelectItem value="express">Approbation Express</SelectItem>
+                    <SelectItem value="extended">Révision Étendue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Approval Steps</Label>
+                  <Label>Étapes d'Approbation</Label>
                 </div>
                 <div className="space-y-2 border rounded-md p-3 bg-gray-50">
                   <div className="text-sm text-gray-500">
-                    1. Department Manager
+                    1. Responsable de Département
                   </div>
                   <div className="text-sm text-gray-500">
-                    2. Finance Approval
+                    2. Approbation Financière
                   </div>
                   <div className="text-sm text-gray-500">
-                    3. Final Approval
+                    3. Approbation Finale
                   </div>
                 </div>
               </div>
@@ -334,14 +354,14 @@ const CreatePO = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Line Items</CardTitle>
+                  <CardTitle>Articles</CardTitle>
                   <CardDescription>
-                    Add items to this purchase order
+                    Ajoutez des articles à ce bon de commande
                   </CardDescription>
                 </div>
                 <Button type="button" variant="outline" className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />
-                  Add Item
+                  Ajouter Article
                 </Button>
               </div>
             </CardHeader>
@@ -351,8 +371,8 @@ const CreatePO = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Description</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Unit Price</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantité</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Prix Unitaire</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Total</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-500"></th>
                     </tr>
@@ -361,7 +381,7 @@ const CreatePO = () => {
                     {exampleItems.map(item => (
                       <tr key={item.description}>
                         <td className="px-4 py-3">
-                          <Input placeholder="Item description" defaultValue={item.description} />
+                          <Input placeholder="Description de l'article" defaultValue={item.description} />
                         </td>
                         <td className="px-4 py-3">
                           <Input type="number" defaultValue={item.quantity} min="1" className="w-20" />
@@ -370,7 +390,7 @@ const CreatePO = () => {
                           <Input type="number" defaultValue={item.unitPrice} min="0" step="0.01" className="w-32" />
                         </td>
                         <td className="px-4 py-3 text-sm font-medium">
-                          ${item.total.toFixed(2)}
+                          €{item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
@@ -386,7 +406,7 @@ const CreatePO = () => {
                         Total:
                       </td>
                       <td className="px-4 py-3 text-sm font-bold">
-                        ${exampleItems.reduce((total, item) => total + item.total, 0).toFixed(2)}
+                        €{exampleItems.reduce((total, item) => total + item.total, 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td></td>
                     </tr>
@@ -403,14 +423,14 @@ const CreatePO = () => {
             variant="outline" 
             onClick={() => budgetId ? navigate(`/budgets/${budgetId}`) : navigate('/purchase-orders')}
           >
-            Cancel
+            Annuler
           </Button>
           <Button 
             type="submit"
             className="bg-po-blue hover:bg-blue-600"
             disabled={budgetId && !budgetStatus.active}
           >
-            Create Purchase Order
+            Créer Bon de Commande
           </Button>
         </div>
       </form>
