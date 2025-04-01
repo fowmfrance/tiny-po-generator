@@ -15,7 +15,7 @@ const Sidebar = () => {
   return (
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
       <div className="p-4 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold">OrderFlow</h1>
+        <h1 className="text-xl font-bold">Sapajoo</h1>
         <p className="text-sm text-gray-300">Système de Bons de Commande</p>
       </div>
       
