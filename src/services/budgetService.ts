@@ -1,4 +1,3 @@
-
 /**
  * Budget validation and calculation service
  */
@@ -188,6 +187,6 @@ export function calculateRecognizedAmount(
  * Format a currency value with the appropriate symbol
  */
 export function formatCurrency(currency: BudgetCurrency, amount: number): string {
-  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
-  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '€' : '€';
+  return `${symbol}${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

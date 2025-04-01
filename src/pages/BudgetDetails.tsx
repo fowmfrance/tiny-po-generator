@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -146,7 +145,7 @@ const BudgetDetails = () => {
 
   // Currency display helper
   const formatCurrency = (currency: BudgetCurrency, amount: number) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
+    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '€' : '€';
     return `${symbol}${amount.toLocaleString()}`;
   };
   

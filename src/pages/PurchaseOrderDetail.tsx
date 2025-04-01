@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// This should match the structure from PurchaseOrders.tsx
 interface PurchaseOrder {
   id: string;
   poNumber: string;
@@ -24,7 +22,6 @@ interface PurchaseOrder {
   paymentProgress?: number;
 }
 
-// Mock data for demonstration - In a real app, this would come from an API
 const mockPurchaseOrders = [
   {
     id: '1',
@@ -32,7 +29,7 @@ const mockPurchaseOrders = [
     vendor: 'Apple Inc.',
     vendorId: 'vendor-1',
     amount: 5000,
-    currency: 'USD',
+    currency: 'EUR',
     date: '2023-06-15',
     status: 'matched' as const,
     paymentProgress: 60,
@@ -53,7 +50,7 @@ const mockPurchaseOrders = [
     vendor: 'Microsoft Corp',
     vendorId: 'vendor-2',
     amount: 3500,
-    currency: 'USD',
+    currency: 'EUR',
     date: '2023-06-18',
     status: 'approved' as const,
     paymentProgress: 0,
@@ -66,14 +63,13 @@ const mockPurchaseOrders = [
       { date: '2023-06-18', action: 'Approved', user: 'Jane Smith' }
     ]
   },
-  // Added more mock data to match the IDs in the route
   {
     id: '101',
     poNumber: '2023-101',
     vendor: 'Dell Technologies',
     vendorId: 'vendor-3',
     amount: 7899,
-    currency: 'USD',
+    currency: 'EUR',
     date: '2023-07-05',
     status: 'approved' as const,
     paymentProgress: 0,
@@ -96,10 +92,8 @@ const PurchaseOrderDetail = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch the purchase order
     const fetchPurchaseOrder = () => {
       setLoading(true);
-      // Find the purchase order with the matching ID
       const po = mockPurchaseOrders.find(po => po.id === id);
       
       if (po) {
@@ -233,7 +227,6 @@ const PurchaseOrderDetail = () => {
         </Card>
       </div>
 
-      {/* Items section */}
       <Card>
         <CardHeader>
           <CardTitle>Items</CardTitle>
@@ -278,7 +271,6 @@ const PurchaseOrderDetail = () => {
         </CardContent>
       </Card>
 
-      {/* Timeline section */}
       <Card>
         <CardHeader>
           <CardTitle>Activity Timeline</CardTitle>

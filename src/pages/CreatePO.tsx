@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -89,7 +88,27 @@ const CreatePO = () => {
     { id: '5', name: 'Samsung Electronics' },
   ];
 
-  // Calculate recognition data if budget info is available
+  const exampleItems = [
+    {
+      description: 'MacBook Pro 14"',
+      quantity: 2,
+      unitPrice: 1999.99,
+      total: 3999.98
+    },
+    {
+      description: 'Souris sans fil',
+      quantity: 5,
+      unitPrice: 99.99,
+      total: 499.95
+    },
+    {
+      description: 'Adaptateur USB-C',
+      quantity: 10,
+      unitPrice: 49.99,
+      total: 499.90
+    }
+  ];
+
   const recognitionData = budgetId && budgetRecognitionType && budgetStartDate && budgetEndDate ? 
     calculateRecognizedAmount(
       100, // Using 100 as a percent value for visualization
@@ -339,44 +358,27 @@ const CreatePO = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    <tr>
-                      <td className="px-4 py-3">
-                        <Input placeholder="Item description" defaultValue="Laptop - MacBook Pro 14'" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Input type="number" defaultValue="2" min="1" className="w-20" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Input type="number" defaultValue="1999.99" min="0" step="0.01" className="w-32" />
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium">
-                        $3,999.98
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3">
-                        <Input placeholder="Item description" defaultValue="Software License - Adobe CC" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Input type="number" defaultValue="5" min="1" className="w-20" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Input type="number" defaultValue="599.99" min="0" step="0.01" className="w-32" />
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium">
-                        $2,999.95
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
+                    {exampleItems.map(item => (
+                      <tr key={item.description}>
+                        <td className="px-4 py-3">
+                          <Input placeholder="Item description" defaultValue={item.description} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <Input type="number" defaultValue={item.quantity} min="1" className="w-20" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <Input type="number" defaultValue={item.unitPrice} min="0" step="0.01" className="w-32" />
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          ${item.total.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                   <tfoot className="bg-gray-50">
                     <tr>
@@ -384,7 +386,7 @@ const CreatePO = () => {
                         Total:
                       </td>
                       <td className="px-4 py-3 text-sm font-bold">
-                        $6,999.93
+                        ${exampleItems.reduce((total, item) => total + item.total, 0).toFixed(2)}
                       </td>
                       <td></td>
                     </tr>
