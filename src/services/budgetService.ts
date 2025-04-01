@@ -184,9 +184,12 @@ export function calculateRecognizedAmount(
 }
 
 /**
- * Format a currency value with the appropriate symbol
+ * Format a currency value with the appropriate symbol and French number formatting
  */
 export function formatCurrency(currency: BudgetCurrency, amount: number): string {
   const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '€' : '€';
-  return `${symbol}${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${amount.toLocaleString('fr-FR', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
 }
