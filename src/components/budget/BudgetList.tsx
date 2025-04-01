@@ -14,7 +14,8 @@ import {
   Edit, 
   Copy, 
   Download,
-  CalendarRange
+  CalendarRange,
+  Send
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { BudgetCurrency, BudgetRecognitionType, formatCurrency } from '@/services/budgetService';
+import { useToast } from '@/hooks/use-toast';
 
 interface Budget {
   id: string;
@@ -51,10 +53,38 @@ interface BudgetListProps {
 
 const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Handle budget row click to navigate to details page
   const handleBudgetRowClick = (budget: Budget) => {
     navigate(`/budgets/${budget.id}`);
+  };
+
+  // Handle send PO button click
+  const handleSendPO = (e: React.MouseEvent, budget: Budget) => {
+    e.stopPropagation(); // Prevent row click event
+    
+    if (budget.remainingAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Impossible d'envoyer un BC",
+        description: "Ce budget n'a plus de montant disponible.",
+      });
+      return;
+    }
+    
+    navigate('/purchase-orders/create', { 
+      state: { 
+        budgetId: budget.id,
+        budgetName: budget.name,
+        budgetCode: budget.code,
+        budgetCurrency: budget.currency,
+        budgetStartDate: budget.startDate,
+        budgetEndDate: budget.endDate,
+        budgetRecognitionType: budget.recognitionType,
+        budgetCompletionPercentage: budget.completionPercentage
+      } 
+    });
   };
 
   return (
@@ -115,27 +145,39 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
             </TableCell>
             <TableCell className="text-center">{budget.poCount}</TableCell>
             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Ouvrir menu</span>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem>
-                    <Edit className="mr-2 h-4 w-4" /> Modifier
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Copy className="mr-2 h-4 w-4" /> Dupliquer
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Download className="mr-2 h-4 w-4" /> Télécharger
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={(e) => handleSendPO(e, budget)}
+                  disabled={budget.remainingAmount <= 0}
+                >
+                  <Send className="h-3.5 w-3.5 mr-1" />
+                  Envoyer BC
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Ouvrir menu</span>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem>
+                      <Edit className="mr-2 h-4 w-4" /> Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Copy className="mr-2 h-4 w-4" /> Dupliquer
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Download className="mr-2 h-4 w-4" /> Télécharger
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </TableCell>
           </TableRow>
         ))}
