@@ -25,8 +25,8 @@ const recentPOs = [
     vendor: 'Apple Inc.',
     vendorId: 'v1', // Adding the missing vendorId property
     amount: 5000,
-    currency: 'USD',
-    date: '2023-06-15',
+    currency: 'EUR',
+    date: '15/06/2023',
     status: 'matched' as const,
     paymentProgress: 60
   },
@@ -36,8 +36,8 @@ const recentPOs = [
     vendor: 'Microsoft Corp',
     vendorId: 'v2', // Adding the missing vendorId property
     amount: 3500,
-    currency: 'USD',
-    date: '2023-06-18',
+    currency: 'EUR',
+    date: '18/06/2023',
     status: 'approved' as const,
     paymentProgress: 0
   },
@@ -47,8 +47,8 @@ const recentPOs = [
     vendor: 'Dell Technologies',
     vendorId: 'v3', // Adding the missing vendorId property
     amount: 2800,
-    currency: 'USD',
-    date: '2023-06-20',
+    currency: 'EUR',
+    date: '20/06/2023',
     status: 'pending' as const
   }
 ];
@@ -58,15 +58,15 @@ const Index = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
           <p className="text-muted-foreground">
-            Welcome to OrderFlow, your purchase order management system
+            Bienvenue sur OrderFlow, votre système de gestion de bons de commande
           </p>
         </div>
         <Link to="/purchase-orders/create">
           <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Create Purchase Order
+            Créer un Bon de Commande
           </Button>
         </Link>
       </div>
@@ -76,56 +76,56 @@ const Index = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Purchase Orders
+              Total Bons de Commande
             </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">24</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last month
+              +2 depuis le mois dernier
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Active Vendors
+              Fournisseurs Actifs
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>
             <p className="text-xs text-muted-foreground">
-              +3 new this quarter
+              +3 nouveaux ce trimestre
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Budget Utilization
+              Utilisation du Budget
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">68%</div>
             <p className="text-xs text-muted-foreground">
-              $68,000 of $100,000
+              68 000 € sur 100 000 €
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Pending Invoices
+              Factures en Attente
             </CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">8</div>
             <p className="text-xs text-muted-foreground">
-              $24,500 total value
+              Valeur totale de 24 500 €
             </p>
           </CardContent>
         </Card>
@@ -137,19 +137,19 @@ const Index = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
               <Clock className="mr-2 h-5 w-5 text-amber-500" />
-              Pending Approval
+              En Attente d'Approbation
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold mb-2">3</div>
             <div className="text-sm text-muted-foreground">
-              Purchase orders waiting for approval
+              Bons de commande en attente d'approbation
             </div>
             <Link 
               to="/purchase-orders?status=pending" 
               className="text-po-blue hover:text-blue-700 text-sm flex items-center mt-4"
             >
-              View All
+              Voir Tout
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </CardContent>
@@ -158,19 +158,19 @@ const Index = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
               <AlertCircle className="mr-2 h-5 w-5 text-red-500" />
-              Attention Required
+              Attention Requise
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold mb-2">2</div>
             <div className="text-sm text-muted-foreground">
-              Items requiring your attention
+              Éléments nécessitant votre attention
             </div>
             <Link 
               to="/alerts" 
               className="text-po-blue hover:text-blue-700 text-sm flex items-center mt-4"
             >
-              View Alerts
+              Voir les Alertes
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </CardContent>
@@ -179,19 +179,19 @@ const Index = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
               <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-              Recently Completed
+              Récemment Complétés
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold mb-2">5</div>
             <div className="text-sm text-muted-foreground">
-              Purchase orders fulfilled this month
+              Bons de commande exécutés ce mois-ci
             </div>
             <Link 
               to="/purchase-orders?status=completed" 
               className="text-po-blue hover:text-blue-700 text-sm flex items-center mt-4"
             >
-              View All
+              Voir Tout
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </CardContent>
@@ -201,12 +201,12 @@ const Index = () => {
       {/* Recent POs */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Recent Purchase Orders</h2>
+          <h2 className="text-xl font-semibold">Bons de Commande Récents</h2>
           <Link 
             to="/purchase-orders" 
             className="text-po-blue hover:text-blue-700 text-sm flex items-center"
           >
-            View All
+            Voir Tout
             <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
@@ -219,13 +219,13 @@ const Index = () => {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold mb-4">Actions Rapides</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Link to="/purchase-orders/create">
             <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <FileText className="h-10 w-10 text-po-blue mb-2" />
-                <span className="text-sm font-medium">Create PO</span>
+                <span className="text-sm font-medium">Créer un BC</span>
               </CardContent>
             </Card>
           </Link>
@@ -233,7 +233,7 @@ const Index = () => {
             <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <Users className="h-10 w-10 text-po-blue mb-2" />
-                <span className="text-sm font-medium">Add Vendor</span>
+                <span className="text-sm font-medium">Ajouter un Fournisseur</span>
               </CardContent>
             </Card>
           </Link>
@@ -241,7 +241,7 @@ const Index = () => {
             <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <Receipt className="h-10 w-10 text-po-blue mb-2" />
-                <span className="text-sm font-medium">Check Invoices</span>
+                <span className="text-sm font-medium">Vérifier les Factures</span>
               </CardContent>
             </Card>
           </Link>
@@ -249,7 +249,7 @@ const Index = () => {
             <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <TrendingUp className="h-10 w-10 text-po-blue mb-2" />
-                <span className="text-sm font-medium">View Reports</span>
+                <span className="text-sm font-medium">Voir les Rapports</span>
               </CardContent>
             </Card>
           </Link>

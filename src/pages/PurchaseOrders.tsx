@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PurchaseOrdersFilters } from '@/components/purchase-orders/PurchaseOrdersFilters';
 import { PurchaseOrdersCardView } from '@/components/purchase-orders/PurchaseOrdersCardView';
@@ -12,8 +13,8 @@ export const mockPurchaseOrders = [
     vendor: 'Apple Inc.',
     vendorId: 'vendor-1',
     amount: 5000,
-    currency: 'USD',
-    date: '2023-06-15',
+    currency: 'EUR',
+    date: '15/06/2023',
     status: 'matched' as const,
     paymentProgress: 60
   },
@@ -23,8 +24,8 @@ export const mockPurchaseOrders = [
     vendor: 'Microsoft Corp',
     vendorId: 'vendor-2',
     amount: 3500,
-    currency: 'USD',
-    date: '2023-06-18',
+    currency: 'EUR',
+    date: '18/06/2023',
     status: 'approved' as const,
     paymentProgress: 0
   },
@@ -34,8 +35,8 @@ export const mockPurchaseOrders = [
     vendor: 'Dell Technologies',
     vendorId: 'vendor-3',
     amount: 2800,
-    currency: 'USD',
-    date: '2023-06-20',
+    currency: 'EUR',
+    date: '20/06/2023',
     status: 'pending' as const
   },
   {
@@ -44,8 +45,8 @@ export const mockPurchaseOrders = [
     vendor: 'Logitech',
     vendorId: 'vendor-4',
     amount: 1200,
-    currency: 'USD',
-    date: '2023-06-25',
+    currency: 'EUR',
+    date: '25/06/2023',
     status: 'draft' as const
   },
   {
@@ -54,8 +55,8 @@ export const mockPurchaseOrders = [
     vendor: 'Amazon Business',
     vendorId: 'vendor-5',
     amount: 8500,
-    currency: 'USD',
-    date: '2023-06-28',
+    currency: 'EUR',
+    date: '28/06/2023',
     status: 'paid' as const,
     paymentProgress: 100
   },
@@ -65,8 +66,8 @@ export const mockPurchaseOrders = [
     vendor: 'Samsung Electronics',
     vendorId: 'vendor-6',
     amount: 4200,
-    currency: 'USD',
-    date: '2023-07-02',
+    currency: 'EUR',
+    date: '02/07/2023',
     status: 'rejected' as const
   }
 ];
@@ -104,7 +105,7 @@ const PurchaseOrders = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Purchase Orders</h1>
+        <h1 className="text-2xl font-bold">Bons de Commande</h1>
         <CreatePOButton />
       </div>
 
@@ -125,7 +126,7 @@ const PurchaseOrders = () => {
         )
       ) : (
         <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-500 mb-4">No purchase orders found.</p>
+          <p className="text-gray-500 mb-4">Aucun bon de commande trouvé.</p>
           <CreatePOButton />
         </div>
       )}

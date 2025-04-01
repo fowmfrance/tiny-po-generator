@@ -48,7 +48,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '1',
     name: 'Apple Inc.',
-    category: 'Technology',
+    category: 'Technologie',
     email: 'procurement@apple.com',
     phone: '+1 (800) 275-2273',
     status: 'active',
@@ -58,7 +58,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '2',
     name: 'Microsoft Corp',
-    category: 'Software',
+    category: 'Logiciel',
     email: 'vendor@microsoft.com',
     phone: '+1 (800) 642-7676',
     status: 'active',
@@ -68,7 +68,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '3',
     name: 'Dell Technologies',
-    category: 'Hardware',
+    category: 'Matériel',
     email: 'sales@dell.com',
     phone: '+1 (800) 624-9897',
     status: 'active',
@@ -78,7 +78,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '4',
     name: 'Amazon Business',
-    category: 'Office Supplies',
+    category: 'Fournitures de Bureau',
     email: 'business@amazon.com',
     phone: '+1 (866) 486-2360',
     status: 'pending',
@@ -88,7 +88,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '5',
     name: 'Samsung Electronics',
-    category: 'Electronics',
+    category: 'Électronique',
     email: 'b2b@samsung.com',
     phone: '+1 (800) 726-7864',
     status: 'active',
@@ -98,7 +98,7 @@ export const mockVendors: Vendor[] = [
   {
     id: '6',
     name: 'Logitech',
-    category: 'Computer Accessories',
+    category: 'Accessoires Informatiques',
     email: 'sales@logitech.com',
     phone: '+1 (800) 231-7717',
     status: 'inactive',
@@ -130,8 +130,8 @@ const Vendors = () => {
     // and trigger an email to the supplier
     
     toast({
-      title: "Vendor invited successfully",
-      description: `An invitation email has been sent to ${vendorEmail}`,
+      title: "Fournisseur invité avec succès",
+      description: `Un email d'invitation a été envoyé à ${vendorEmail}`,
     });
     
     // Close the dialog and reset form
@@ -143,7 +143,7 @@ const Vendors = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Vendors</h1>
+        <h1 className="text-2xl font-bold">Fournisseurs</h1>
         <div className="flex gap-2">
           <Button 
             variant="outline" 
@@ -151,12 +151,12 @@ const Vendors = () => {
             onClick={() => setIsInviteDialogOpen(true)}
           >
             <UserPlus className="w-4 h-4" />
-            Invite Vendor
+            Inviter un Fournisseur
           </Button>
           <Link to="/vendors/new">
             <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Add New Vendor
+              Ajouter un Fournisseur
             </Button>
           </Link>
         </div>
@@ -165,7 +165,7 @@ const Vendors = () => {
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Search vendors..."
+          placeholder="Rechercher des fournisseurs..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -184,13 +184,13 @@ const Vendors = () => {
                   </div>
                   <div>
                     {vendor.status === 'active' && (
-                      <span className="status-badge status-approved">Active</span>
+                      <span className="status-badge status-approved">Actif</span>
                     )}
                     {vendor.status === 'pending' && (
-                      <span className="status-badge status-pending">Pending</span>
+                      <span className="status-badge status-pending">En attente</span>
                     )}
                     {vendor.status === 'inactive' && (
-                      <span className="status-badge status-draft">Inactive</span>
+                      <span className="status-badge status-draft">Inactif</span>
                     )}
                   </div>
                 </div>
@@ -207,7 +207,7 @@ const Vendors = () => {
                   </div>
                   <div className="flex items-center text-sm">
                     <Building className="h-4 w-4 mr-2 text-gray-400" />
-                    <span>{vendor.totalPOs} Purchase Orders</span>
+                    <span>{vendor.totalPOs} Bons de Commande</span>
                   </div>
                 </div>
               </CardContent>
@@ -216,7 +216,7 @@ const Vendors = () => {
                   to={`/vendors/${vendor.id}`} 
                   className="text-po-blue hover:text-blue-700 text-sm flex items-center ml-auto"
                 >
-                  View Details
+                  Voir les détails
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Link>
               </CardFooter>
@@ -225,11 +225,11 @@ const Vendors = () => {
         </div>
       ) : (
         <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-500 mb-4">No vendors found.</p>
+          <p className="text-gray-500 mb-4">Aucun fournisseur trouvé.</p>
           <Link to="/vendors/new">
             <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Add New Vendor
+              Ajouter un Fournisseur
             </Button>
           </Link>
         </div>
@@ -239,43 +239,43 @@ const Vendors = () => {
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite Vendor</DialogTitle>
+            <DialogTitle>Inviter un Fournisseur</DialogTitle>
             <DialogDescription>
-              Send an invitation email to a vendor to join your supplier network.
+              Envoyer un email d'invitation à un fournisseur pour rejoindre votre réseau.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInviteSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="vendor-name">Vendor Name</Label>
+                <Label htmlFor="vendor-name">Nom du Fournisseur</Label>
                 <Input
                   id="vendor-name"
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
-                  placeholder="Enter vendor company name"
+                  placeholder="Entrez le nom de l'entreprise"
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="vendor-email">Contact Email</Label>
+                <Label htmlFor="vendor-email">Email de Contact</Label>
                 <Input
                   id="vendor-email"
                   type="email"
                   value={vendorEmail}
                   onChange={(e) => setVendorEmail(e.target.value)}
-                  placeholder="contact@company.com"
+                  placeholder="contact@entreprise.com"
                   required
                 />
                 <p className="text-sm text-gray-500">
-                  An invitation link will be sent to this email address
+                  Un lien d'invitation sera envoyé à cette adresse email
                 </p>
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                Cancel
+                Annuler
               </Button>
-              <Button type="submit">Send Invitation</Button>
+              <Button type="submit">Envoyer l'Invitation</Button>
             </DialogFooter>
           </form>
         </DialogContent>

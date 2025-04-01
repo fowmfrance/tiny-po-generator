@@ -16,7 +16,7 @@ const Sidebar = () => {
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
       <div className="p-4 border-b border-sidebar-border">
         <h1 className="text-xl font-bold">OrderFlow</h1>
-        <p className="text-sm text-gray-300">Purchase Order System</p>
+        <p className="text-sm text-gray-300">Système de Bons de Commande</p>
       </div>
       
       <nav className="flex-1 p-4">
@@ -32,7 +32,7 @@ const Sidebar = () => {
               end
             >
               <Home className="w-5 h-5 mr-3" />
-              Dashboard
+              Tableau de Bord
             </NavLink>
           </li>
           <li>
@@ -58,7 +58,7 @@ const Sidebar = () => {
               }
             >
               <FileText className="w-5 h-5 mr-3" />
-              Purchase Orders
+              Bons de Commande
             </NavLink>
           </li>
           <li>
@@ -71,7 +71,7 @@ const Sidebar = () => {
               }
             >
               <Users className="w-5 h-5 mr-3" />
-              Vendors
+              Fournisseurs
             </NavLink>
           </li>
           <li>
@@ -84,7 +84,7 @@ const Sidebar = () => {
               }
             >
               <Receipt className="w-5 h-5 mr-3" />
-              Invoices
+              Factures
             </NavLink>
           </li>
           <li>
@@ -97,7 +97,7 @@ const Sidebar = () => {
               }
             >
               <PieChart className="w-5 h-5 mr-3" />
-              Reports
+              Rapports
             </NavLink>
           </li>
         </ul>
@@ -113,7 +113,7 @@ const Sidebar = () => {
           }
         >
           <Settings className="w-5 h-5 mr-3" />
-          Settings
+          Paramètres
         </NavLink>
       </div>
     </div>

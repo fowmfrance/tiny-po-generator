@@ -33,7 +33,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h3 className="text-lg font-medium">PO #{poNumber}</h3>
+            <h3 className="text-lg font-medium">BC #{poNumber}</h3>
             <Link to={`/vendors/${vendorId}`} className="text-sm text-po-blue hover:underline">
               {vendor}
             </Link>
@@ -53,7 +53,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
         {(status === 'approved' || status === 'matched' || status === 'paid') && (
           <div className="mb-3">
             <div className="flex justify-between text-xs mb-1">
-              <span>Payment Progress</span>
+              <span>Progression du Paiement</span>
               <span>{paymentProgress}%</span>
             </div>
             <div className="progress-bar">
@@ -71,7 +71,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
           to={`/purchase-orders/${id}`} 
           className="text-po-blue hover:text-blue-700 text-sm flex items-center justify-end"
         >
-          View Details
+          Voir les Détails
           <ArrowRight className="w-4 h-4 ml-1" />
         </Link>
       </div>
