@@ -7,8 +7,10 @@ export interface Budget {
   name: string;
   currency: BudgetCurrency;
   initialAmount: number;
-  remainingAmount: number;
-  receivedAmount: number;
+  remainingAmount: number;  // BC envoyés mais factures en attente de réception
+  receivedAmount: number;   // BC envoyés et factures reçues
+  sentAmount: number;       // Somme des BC envoyés (all POs)
+  availableAmount: number;  // initialAmount - sentAmount
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
@@ -17,3 +19,4 @@ export interface Budget {
   recognitionType: BudgetRecognitionType;
   completionPercentage?: number;
 }
+

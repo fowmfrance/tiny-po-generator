@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -18,8 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-type BudgetCurrency = 'EUR' | 'USD' | 'GBP';
+import { BudgetCurrency, formatCurrency } from '@/services/budgetService';
 
 interface Budget {
   id: string;
@@ -28,7 +28,9 @@ interface Budget {
   currency: BudgetCurrency;
   initialAmount: number;
   remainingAmount: number;
-  receivedAmount: number; // Added receivedAmount field
+  receivedAmount: number;
+  sentAmount: number;
+  availableAmount: number;
   type: 'Project' | 'G&A';
   poCount: number;
   createdAt: Date;
@@ -41,9 +43,13 @@ interface PurchaseOrder {
   vendor: string;
   currency: BudgetCurrency;
   amount: number;
+  amountInEUR: number; // EUR equivalent amount
+  fxGainLoss: number | null; // FX gain/loss at booking date
   invoicedAmount: number;
   invoiceDate: Date | null;
   createdAt: Date;
+  exchangeRate: number; // Exchange rate at PO emission date
+  invoiceExchangeRate: number | null; // Exchange rate at invoice booking date
 }
 
 const BudgetDetails = () => {
@@ -63,8 +69,10 @@ const BudgetDetails = () => {
         name: 'Project Alpha Budget',
         currency: 'USD',
         initialAmount: 100000,
-        remainingAmount: 45000,
-        receivedAmount: 55000, // Added receivedAmount
+        sentAmount: 75000,
+        remainingAmount: 20000,
+        receivedAmount: 55000,
+        availableAmount: 25000,
         type: 'Project',
         poCount: 12,
         createdAt: new Date(),
@@ -75,8 +83,10 @@ const BudgetDetails = () => {
         name: 'G&A Expenses Q3',
         currency: 'EUR',
         initialAmount: 50000,
-        remainingAmount: 23000,
-        receivedAmount: 27000, // Added receivedAmount
+        sentAmount: 35000,
+        remainingAmount: 8000,
+        receivedAmount: 27000,
+        availableAmount: 15000,
         type: 'G&A',
         poCount: 8,
         createdAt: new Date(),
@@ -87,15 +97,17 @@ const BudgetDetails = () => {
         name: 'Project Beta Budget',
         currency: 'GBP',
         initialAmount: 75000,
-        remainingAmount: 60000,
-        receivedAmount: 15000, // Added receivedAmount
+        sentAmount: 15000,
+        remainingAmount: 0,
+        receivedAmount: 15000,
+        availableAmount: 60000,
         type: 'Project',
         poCount: 5,
         createdAt: new Date(),
       },
     ];
 
-    // Mock purchase orders
+    // Mock purchase orders with EUR equivalents and FX gain/loss
     const mockPurchaseOrders: PurchaseOrder[] = [
       {
         id: '101',
@@ -104,6 +116,10 @@ const BudgetDetails = () => {
         vendor: 'Dell Technologies',
         currency: 'USD',
         amount: 15000,
+        amountInEUR: 13800, // USD to EUR at 0.92 exchange rate
+        exchangeRate: 0.92,
+        invoiceExchangeRate: 0.91,
+        fxGainLoss: -150, // (0.92 - 0.91) * 15000 = -150 EUR loss
         invoicedAmount: 15000,
         invoiceDate: new Date(),
         createdAt: new Date(),
@@ -115,6 +131,10 @@ const BudgetDetails = () => {
         vendor: 'Amazon Business',
         currency: 'USD',
         amount: 20000,
+        amountInEUR: 18400, // USD to EUR at 0.92 exchange rate
+        exchangeRate: 0.92,
+        invoiceExchangeRate: null,
+        fxGainLoss: null, // No invoice yet
         invoicedAmount: 5000,
         invoiceDate: null,
         createdAt: new Date(),
@@ -126,6 +146,10 @@ const BudgetDetails = () => {
         vendor: 'Software Inc.',
         currency: 'EUR',
         amount: 10000,
+        amountInEUR: 10000, // Already in EUR
+        exchangeRate: 1.0,
+        invoiceExchangeRate: 1.0,
+        fxGainLoss: 0, // No FX difference for EUR
         invoicedAmount: 10000,
         invoiceDate: new Date(),
         createdAt: new Date(),
@@ -143,15 +167,11 @@ const BudgetDetails = () => {
     setLoading(false);
   }, [budgetId]);
 
-  // Currency display helper
-  const formatCurrency = (currency: BudgetCurrency, amount: number) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '€' : '€';
-    return `${symbol}${amount.toLocaleString()}`;
-  };
-  
   // Calculate totals
   const totalPoAmount = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
   const totalInvoicedAmount = purchaseOrders.reduce((sum, po) => sum + po.invoicedAmount, 0);
+  const totalPoAmountInEUR = purchaseOrders.reduce((sum, po) => sum + po.amountInEUR, 0);
+  const totalFxGainLoss = purchaseOrders.reduce((sum, po) => sum + (po.fxGainLoss || 0), 0);
 
   if (loading) {
     return <div className="p-8 text-center">Loading budget details...</div>;
@@ -213,10 +233,16 @@ const BudgetDetails = () => {
                 Initial Amount: {formatCurrency(budget.currency, budget.initialAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
+                Sent: {formatCurrency(budget.currency, budget.sentAmount)}
+              </div>
+              <div className="text-sm text-muted-foreground">
                 Received: {formatCurrency(budget.currency, budget.receivedAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
                 Remaining: {formatCurrency(budget.currency, budget.remainingAmount)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Available: {formatCurrency(budget.currency, budget.availableAmount)}
               </div>
             </div>
           </div>
@@ -224,12 +250,25 @@ const BudgetDetails = () => {
         <CardContent>
           <div className="mb-4 flex justify-between items-center">
             <h2 className="text-lg font-medium">Purchase Orders</h2>
-            <div className="text-sm">
-              <span className="text-gray-500">Total PO Amount: </span>
-              <span className="font-medium">{formatCurrency(budget.currency, totalPoAmount)}</span>
-              <span className="mx-2 text-gray-400">|</span>
-              <span className="text-gray-500">Invoiced: </span>
-              <span className="font-medium">{formatCurrency(budget.currency, totalInvoicedAmount)}</span>
+            <div className="text-sm space-x-4">
+              <span>
+                <span className="text-gray-500">Total PO Amount: </span>
+                <span className="font-medium">{formatCurrency(budget.currency, totalPoAmount)}</span>
+              </span>
+              <span>
+                <span className="text-gray-500">Total in EUR: </span>
+                <span className="font-medium">{formatCurrency('EUR', totalPoAmountInEUR)}</span>
+              </span>
+              <span>
+                <span className="text-gray-500">Invoiced: </span>
+                <span className="font-medium">{formatCurrency(budget.currency, totalInvoicedAmount)}</span>
+              </span>
+              <span>
+                <span className="text-gray-500">FX Gain/Loss: </span>
+                <span className={`font-medium ${totalFxGainLoss > 0 ? 'text-green-600' : totalFxGainLoss < 0 ? 'text-red-600' : ''}`}>
+                  {formatCurrency('EUR', totalFxGainLoss)}
+                </span>
+              </span>
             </div>
           </div>
 
@@ -242,7 +281,12 @@ const BudgetDetails = () => {
                     <TableHead>Supplier</TableHead>
                     <TableHead className="text-center">Currency</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Amount (EUR)</TableHead>
                     <TableHead className="text-right">Invoiced Amount</TableHead>
+                    <TableHead className="text-right">Exchange Rate</TableHead>
+                    <TableHead className="text-right">
+                      FX Gain/Loss at booking
+                    </TableHead>
                     <TableHead className="text-right">Invoice Date</TableHead>
                     <TableHead className="text-right">Created</TableHead>
                   </TableRow>
@@ -261,7 +305,20 @@ const BudgetDetails = () => {
                         {formatCurrency(po.currency, po.amount)}
                       </TableCell>
                       <TableCell className="text-right">
+                        {formatCurrency('EUR', po.amountInEUR)}
+                      </TableCell>
+                      <TableCell className="text-right">
                         {formatCurrency(po.currency, po.invoicedAmount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {po.exchangeRate.toFixed(4)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {po.fxGainLoss !== null ? (
+                          <span className={po.fxGainLoss > 0 ? 'text-green-600' : po.fxGainLoss < 0 ? 'text-red-600' : ''}>
+                            {formatCurrency('EUR', po.fxGainLoss)}
+                          </span>
+                        ) : 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
                         {po.invoiceDate ? po.invoiceDate.toLocaleDateString() : 'Not invoiced'}

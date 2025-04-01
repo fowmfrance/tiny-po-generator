@@ -1,3 +1,4 @@
+
 /**
  * Budget validation and calculation service
  */
@@ -47,6 +48,17 @@ export function convertCurrency(
   }
   
   return convertFromEUR(amountInEUR, toCurrency);
+}
+
+/**
+ * Calculates FX gain/loss based on PO amount and exchange rates
+ */
+export function calculateFxGainLoss(
+  poAmount: number,
+  exchangeRateAtPoEmission: number,
+  exchangeRateAtInvoiceBooking: number
+): number {
+  return poAmount * (exchangeRateAtPoEmission - exchangeRateAtInvoiceBooking);
 }
 
 /**

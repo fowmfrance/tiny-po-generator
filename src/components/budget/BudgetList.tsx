@@ -29,23 +29,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { BudgetCurrency, BudgetRecognitionType, formatCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-
-interface Budget {
-  id: string;
-  code: string;
-  name: string;
-  currency: BudgetCurrency;
-  initialAmount: number;
-  remainingAmount: number;
-  receivedAmount: number;
-  type: 'Project' | 'G&A';
-  poCount: number;
-  createdAt: Date;
-  startDate: Date | null;
-  endDate: Date | null;
-  recognitionType: BudgetRecognitionType;
-  completionPercentage?: number;
-}
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Budget } from '@/models/Budget';
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -87,6 +77,31 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
     });
   };
 
+  // Handle adjust budget action
+  const handleAdjustBudget = (budget: Budget) => {
+    // Set budget amount to sent amount
+    toast({
+      title: "Budget ajusté",
+      description: `Le budget ${budget.code} a été ajusté au montant envoyé: ${formatCurrency(budget.currency, budget.sentAmount)}`,
+    });
+  };
+
+  // Column title with tooltip helper
+  const ColumnWithTooltip = ({ title, tooltipText }: { title: string; tooltipText: string }) => (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center cursor-help">
+            {title}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs text-xs">{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
     <Table>
       <TableHeader>
@@ -95,8 +110,30 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
           <TableHead>Nom</TableHead>
           <TableHead className="text-center">Type</TableHead>
           <TableHead className="text-right">Montant Initial</TableHead>
-          <TableHead className="text-right">Reçu</TableHead>
-          <TableHead className="text-right">Restant</TableHead>
+          <TableHead className="text-right">
+            <ColumnWithTooltip 
+              title="Envoyé" 
+              tooltipText="Somme des BC envoyés, tous statuts confondus" 
+            />
+          </TableHead>
+          <TableHead className="text-right">
+            <ColumnWithTooltip 
+              title="Reçu" 
+              tooltipText="BC envoyés et factures reçues" 
+            />
+          </TableHead>
+          <TableHead className="text-right">
+            <ColumnWithTooltip 
+              title="Restant" 
+              tooltipText="BC envoyés mais factures en attente de réception, ou rejetées et en attente de mise à jour" 
+            />
+          </TableHead>
+          <TableHead className="text-right">
+            <ColumnWithTooltip 
+              title="Disponible" 
+              tooltipText="Reliquat disponible pour envoi ou économie potentielle par rapport au budget si le projet est terminé" 
+            />
+          </TableHead>
           <TableHead className="text-center">Devise</TableHead>
           <TableHead className="text-center">Reconnaissance</TableHead>
           <TableHead className="text-center">Période</TableHead>
@@ -120,10 +157,16 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
               {formatCurrency(budget.currency, budget.initialAmount)}
             </TableCell>
             <TableCell className="text-right">
+              {formatCurrency(budget.currency, budget.sentAmount)}
+            </TableCell>
+            <TableCell className="text-right">
               {formatCurrency(budget.currency, budget.receivedAmount)}
             </TableCell>
             <TableCell className="text-right">
               {formatCurrency(budget.currency, budget.remainingAmount)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(budget.currency, budget.availableAmount)}
             </TableCell>
             <TableCell className="text-center">{budget.currency}</TableCell>
             <TableCell className="text-center">
@@ -151,7 +194,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
                   size="sm" 
                   className="flex items-center text-blue-600 border-blue-200 hover:bg-blue-50"
                   onClick={(e) => handleSendPO(e, budget)}
-                  disabled={budget.remainingAmount <= 0}
+                  disabled={budget.availableAmount <= 0}
                 >
                   <Send className="h-3.5 w-3.5 mr-1" />
                   Envoyer BC
@@ -170,6 +213,9 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Copy className="mr-2 h-4 w-4" /> Dupliquer
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAdjustBudget(budget)}>
+                      <Edit className="mr-2 h-4 w-4" /> Ajuster le budget au montant envoyé
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
