@@ -13,7 +13,7 @@ import {
 const Sidebar = () => {
   return (
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
-      <div className="p-4 flex justify-start items-center pl-4">
+      <div className="p-4 flex justify-start items-center pl-4 mb-2">
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
           alt="Logo" 
@@ -21,7 +21,7 @@ const Sidebar = () => {
         />
       </div>
       
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 pt-0">
         <ul className="space-y-2">
           <li>
             <NavLink 
