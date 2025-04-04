@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import SupplierPortal from "./pages/SupplierPortal";
 import SupplierDashboard from "./pages/SupplierDashboard";
 import SupplierInvoiceCreate from "./pages/SupplierInvoiceCreate";
+import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient();
 
@@ -38,10 +39,10 @@ const App = () => (
             <Route path="/purchase-orders/create" element={<CreatePO />} />
             <Route path="/vendors" element={<Vendors />} />
             <Route path="/vendors/:id" element={<VendorDetail />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
             {/* Placeholder routes for future implementation */}
             <Route path="/invoices" element={<div className="p-6">Page des Factures (À venir)</div>} />
-            <Route path="/reports" element={<div className="p-6">Page des Rapports (À venir)</div>} />
           </Route>
           
           {/* Supplier Portal Routes */}
