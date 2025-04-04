@@ -53,53 +53,56 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
       }}
       className="h-80"
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 60,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name" 
-            angle={-45} 
-            textAnchor="end" 
-            height={60} 
-          />
-          <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
-          <Tooltip 
-            content={
-              ({ active, payload }) => active && payload && payload.length ? (
-                <ChartTooltipContent 
-                  active={active}
-                  payload={payload}
-                  formatter={(value) => formatEuro(Number(value))}
-                />
-              ) : null
-            }
-          />
-          <ReferenceLine y={0} stroke="#000" />
-          <Bar 
-            dataKey="value" 
-            fill="var(--color-positive)"
-            className="fill-[var(--color-positive)] [&[value^='-']]:fill-[var(--color-negative)]"
-          />
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="flex justify-center gap-8 mt-4">
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-[#22c55e] mr-2"></div>
-          <span className="text-sm">Ajustements favorables</span>
+      {/* Using a Fragment to wrap multiple children */}
+      <>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 60,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45} 
+              textAnchor="end" 
+              height={60} 
+            />
+            <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
+            <Tooltip 
+              content={
+                ({ active, payload }) => active && payload && payload.length ? (
+                  <ChartTooltipContent 
+                    active={active}
+                    payload={payload}
+                    formatter={(value) => formatEuro(Number(value))}
+                  />
+                ) : null
+              }
+            />
+            <ReferenceLine y={0} stroke="#000" />
+            <Bar 
+              dataKey="value" 
+              fill="var(--color-positive)"
+              className="fill-[var(--color-positive)] [&[value^='-']]:fill-[var(--color-negative)]"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex justify-center gap-8 mt-4">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-[#22c55e] mr-2"></div>
+            <span className="text-sm">Ajustements favorables</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-[#ef4444] mr-2"></div>
+            <span className="text-sm">Dépassements validés</span>
+          </div>
         </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-[#ef4444] mr-2"></div>
-          <span className="text-sm">Dépassements validés</span>
-        </div>
-      </div>
+      </>
     </ChartContainer>
   );
 };
