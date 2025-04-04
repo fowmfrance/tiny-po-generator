@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -18,7 +17,7 @@ const Sidebar = () => {
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
           alt="Logo" 
-          className="h-12 w-auto filter brightness-0 invert ml-1"
+          className="h-24 w-auto filter brightness-0 invert ml-1"
         />
       </div>
       
@@ -124,4 +123,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-
