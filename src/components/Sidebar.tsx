@@ -15,8 +15,17 @@ const Sidebar = () => {
   return (
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
       <div className="p-4 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold">Sapajoo</h1>
-        <p className="text-sm text-gray-300">Système de Bons de Commande</p>
+        <div className="flex items-center space-x-2">
+          <img 
+            src="/lovable-uploads/05950649-a2f8-4ab3-a057-d204deaaf513.png" 
+            alt="Sapajoo Logo" 
+            className="h-8 w-auto filter brightness-0 invert"
+          />
+          <div>
+            <h1 className="text-xl font-bold">Sapajoo</h1>
+            <p className="text-sm text-gray-300">Système de Bons de Commande</p>
+          </div>
+        </div>
       </div>
       
       <nav className="flex-1 p-4">
