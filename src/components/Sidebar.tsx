@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -14,11 +13,11 @@ import {
 const Sidebar = () => {
   return (
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
-      <div className="p-4 border-b border-sidebar-border flex justify-center">
+      <div className="p-4 flex justify-center">
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
           alt="Logo" 
-          className="h-10 w-auto filter brightness-0 invert"
+          className="h-16 w-auto filter brightness-0 invert"
         />
       </div>
       
