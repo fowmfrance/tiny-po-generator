@@ -29,8 +29,8 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   paymentProgress = 0
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
-      <div className="p-4">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow flex flex-col">
+      <div className="p-4 flex-grow">
         <div className="flex justify-between items-start mb-3">
           <div>
             <h3 className="text-lg font-medium">BC #{poNumber}</h3>
@@ -66,7 +66,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
         )}
       </div>
       
-      <div className="bg-gray-50 p-3 border-t border-gray-100">
+      <div className="bg-gray-50 p-3 border-t border-gray-100 mt-auto">
         <Link 
           to={`/purchase-orders/${id}`} 
           className="text-po-blue hover:text-blue-700 text-sm flex items-center justify-end"
