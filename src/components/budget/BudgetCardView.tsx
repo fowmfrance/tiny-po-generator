@@ -32,7 +32,7 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
       {budgets.map((budget) => (
         <Card 
           key={budget.id} 
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow flex flex-col"
           onClick={() => handleBudgetClick(budget)}
         >
           <CardHeader className="pb-2">
@@ -58,7 +58,7 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
               </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow">
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div>
                 <p className="text-sm text-gray-500">Initial</p>
@@ -89,7 +89,7 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
               )}
             </div>
           </CardContent>
-          <CardFooter className="pt-0" onClick={(e) => e.stopPropagation()}>
+          <CardFooter className="mt-auto pt-0" onClick={(e) => e.stopPropagation()}>
             <Button 
               variant="outline" 
               size="sm" 
@@ -107,3 +107,4 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
 };
 
 export default BudgetCardView;
+
