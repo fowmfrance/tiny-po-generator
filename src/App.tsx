@@ -19,6 +19,7 @@ import SupplierPortal from "./pages/SupplierPortal";
 import SupplierDashboard from "./pages/SupplierDashboard";
 import SupplierInvoiceCreate from "./pages/SupplierInvoiceCreate";
 import Reports from "./pages/Reports";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -29,20 +30,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          
           {/* Main Application Routes */}
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/budgets" element={<Budgets />} />
-            <Route path="/budgets/:budgetId" element={<BudgetDetails />} />
-            <Route path="/purchase-orders" element={<PurchaseOrders />} />
-            <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
-            <Route path="/purchase-orders/create" element={<CreatePO />} />
-            <Route path="/vendors" element={<Vendors />} />
-            <Route path="/vendors/:id" element={<VendorDetail />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
+          <Route path="/app" element={<Layout />}>
+            <Route path="" element={<Index />} />
+            <Route path="budgets" element={<Budgets />} />
+            <Route path="budgets/:budgetId" element={<BudgetDetails />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
+            <Route path="purchase-orders/create" element={<CreatePO />} />
+            <Route path="vendors" element={<Vendors />} />
+            <Route path="vendors/:id" element={<VendorDetail />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="settings" element={<Settings />} />
             {/* Placeholder routes for future implementation */}
-            <Route path="/invoices" element={<div className="p-6">Page des Factures (À venir)</div>} />
+            <Route path="invoices" element={<div className="p-6">Page des Factures (À venir)</div>} />
           </Route>
           
           {/* Supplier Portal Routes */}
