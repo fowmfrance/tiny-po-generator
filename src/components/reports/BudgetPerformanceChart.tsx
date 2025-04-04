@@ -85,7 +85,8 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
           <ReferenceLine y={0} stroke="#000" />
           <Bar 
             dataKey="value" 
-            fill={(data) => data.value >= 0 ? 'var(--color-positive)' : 'var(--color-negative)'}
+            fill="var(--color-positive)"
+            className="fill-[var(--color-positive)] [&[value^='-']]:fill-[var(--color-negative)]"
           />
         </BarChart>
       </ResponsiveContainer>

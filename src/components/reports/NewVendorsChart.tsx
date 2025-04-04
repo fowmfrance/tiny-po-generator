@@ -73,9 +73,10 @@ const NewVendorsChart: React.FC<NewVendorsChartProps> = ({ timeRange }) => {
             }
           />
           <Legend 
-            content={
-              (props) => <ChartLegendContent {...props} />
-            }
+            content={(props) => {
+              // Type assertion to handle the complexity of recharts types
+              return <ChartLegendContent {...props as any} />;
+            }}
           />
         </PieChart>
       </ResponsiveContainer>
