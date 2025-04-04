@@ -14,7 +14,7 @@ import {
 const Sidebar = () => {
   return (
     <div className="w-64 h-screen bg-sidebar flex flex-col text-white">
-      <div className="p-4 flex justify-center items-center">
+      <div className="p-4 flex justify-start items-center pl-4">
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
           alt="Logo" 
@@ -124,3 +124,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
