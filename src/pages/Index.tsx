@@ -60,7 +60,7 @@ const Index = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
           <p className="text-muted-foreground">
-            Bienvenue sur OrderFlow, votre système de gestion de bons de commande
+            Bienvenue sur Sapajoo, votre système de gestion de bons de commande
           </p>
         </div>
         <Link to="/purchase-orders/create">
