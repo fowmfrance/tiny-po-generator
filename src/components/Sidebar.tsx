@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -7,7 +8,7 @@ import {
   PieChart, 
   Settings, 
   Home,
-  DollarSign
+  Euro
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -46,7 +47,7 @@ const Sidebar = () => {
                 }`
               }
             >
-              <DollarSign className="w-5 h-5 mr-3" />
+              <Euro className="w-5 h-5 mr-3" />
               Budgets
             </NavLink>
           </li>
