@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { toast } from './ui/use-toast';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 const waitingListSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
@@ -52,29 +53,36 @@ const WaitingListForm = () => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full max-w-md">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <div className="flex gap-2 w-full">
+              <div className="flex gap-3 w-full">
                 <FormControl>
                   <Input 
                     placeholder="Votre adresse email" 
                     {...field} 
-                    className="flex-1 h-12"
+                    className="flex-1 h-12 rounded-lg bg-gray-50 border-gray-200 focus:bg-white focus:border-primary"
                   />
                 </FormControl>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="px-6 h-12"
+                  className="px-6 h-12 font-medium rounded-lg transition-all duration-300 hover:shadow-md"
                 >
-                  {isSubmitting ? "..." : "S'inscrire"}
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <span className="flex items-center">
+                      S'inscrire
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </span>
+                  )}
                 </Button>
               </div>
-              <FormMessage />
+              <FormMessage className="text-xs mt-1" />
             </FormItem>
           )}
         />
