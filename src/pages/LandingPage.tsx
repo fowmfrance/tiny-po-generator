@@ -35,10 +35,10 @@ const LandingPage = () => {
                 Ouverture Juin 2025
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 leading-tight">
-                Simplifiez la <span className="text-primary">gestion</span> de vos bons de commande
+                Simplifiez la <span className="text-primary">gestion</span> de vos budgets achats
               </h1>
               <p className="text-lg md:text-xl text-gray-600 mb-10 leading-relaxed">
-                Sapajoo transforme votre gestion de bons de commande en un processus fluide et intuitif. 
+                Sapajoo simplifie et sécurise votre processus de suivi de budgets achats avec une plateforme intuitive et complète. 
                 Rejoignez notre liste d'attente pour être parmi les premiers à y accéder.
               </p>
               
