@@ -1,117 +1,134 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Building, Lock, Mail } from 'lucide-react';
-
-// Mock vendor credentials for demonstration
-const mockVendorCredentials = [
-  { email: 'vendor@apple.com', vendorId: 'vendor-1', name: 'Apple Inc.' },
-  { email: 'vendor@microsoft.com', vendorId: 'vendor-2', name: 'Microsoft Corp' },
-  { email: 'vendor@dell.com', vendorId: 'vendor-3', name: 'Dell Technologies' },
-  { email: 'vendor@amazon.com', vendorId: 'vendor-4', name: 'Amazon Business' },
-  { email: 'vendor@samsung.com', vendorId: 'vendor-5', name: 'Samsung Electronics' },
-  { email: 'vendor@logitech.com', vendorId: 'vendor-6', name: 'Logitech' }
-];
+import { useNavigate } from 'react-router-dom';
+import { mockVendors } from './Vendors';
 
 const SupplierPortal = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if email exists in our mock vendor data
-    const vendor = mockVendorCredentials.find(v => v.email.toLowerCase() === email.toLowerCase());
-    
-    if (vendor && password) {
-      // Store vendor info in session storage for demonstration
-      sessionStorage.setItem('currentVendor', JSON.stringify(vendor));
+    setLoading(true);
+    setError('');
+
+    // For demonstration, using fixed credentials or checking against mock vendors
+    setTimeout(() => {
+      // Find the vendor with the provided email
+      const vendor = mockVendors.find(v => v.email.toLowerCase() === email.toLowerCase());
       
-      // Show success toast
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${vendor.name}!`,
-      });
-      
-      // Navigate to supplier dashboard
-      navigate('/supplier/dashboard');
-    } else {
-      // Show error toast
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "Invalid email or password. Please try again.",
-      });
-    }
+      if (vendor && password === 'password') {
+        // Success - navigate to the supplier dashboard with vendor ID
+        navigate(`/supplier/purchaseorders/${vendor.id}`);
+      } else {
+        // Show error message
+        setError('Email ou mot de passe incorrect.');
+      }
+      setLoading(false);
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-4">
-            <Building className="h-12 w-12 text-po-blue" />
-          </div>
-          <CardTitle className="text-2xl text-center">Supplier Portal</CardTitle>
-          <CardDescription className="text-center">
-            Log in to view your purchase orders and manage invoices
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="vendor@company.com" 
-                  className="pl-10"
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <img 
+          src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
+          alt="Sapajoo" 
+          className="mx-auto h-16 w-auto object-contain"
+        />
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Portail Fournisseur
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Accédez à vos bons de commande et gérez vos factures
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <form className="space-y-6" onSubmit={handleLogin}>
+            <div>
+              <Label htmlFor="email">
+                Email
+              </Label>
+              <div className="mt-1">
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
+                  placeholder="fournisseur@entreprise.com"
                 />
               </div>
-              <div className="text-xs text-muted-foreground">
-                For demo: try vendor@apple.com
-              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  className="pl-10"
+
+            <div>
+              <Label htmlFor="password">
+                Mot de passe
+              </Label>
+              <div className="mt-1">
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                 />
               </div>
-              <div className="text-xs text-muted-foreground">
-                For demo: any password will work
+            </div>
+
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
+
+            <div>
+              <Button 
+                type="submit" 
+                className="w-full bg-po-blue hover:bg-blue-600"
+                disabled={loading}
+              >
+                {loading ? 'Connexion en cours...' : 'Se connecter'}
+              </Button>
+            </div>
+            
+            <div className="text-sm text-center">
+              <a href="#" className="font-medium text-po-blue hover:text-blue-600">
+                Mot de passe oublié ?
+              </a>
+            </div>
+          </form>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Information
+                </span>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-po-blue hover:bg-blue-600">
-              Log in
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-500">
-            Need help? Contact your procurement team
-          </p>
-        </CardFooter>
-      </Card>
+            
+            <div className="mt-6 text-sm text-gray-500 text-center">
+              <p>Pour le test, utilisez:</p>
+              <p className="mt-1"><strong>Email:</strong> procurement@apple.com</p>
+              <p><strong>Mot de passe:</strong> password</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import SupplierPortal from "./pages/SupplierPortal";
 import SupplierDashboard from "./pages/SupplierDashboard";
 import SupplierInvoiceCreate from "./pages/SupplierInvoiceCreate";
+import SupplierPOView from "./pages/SupplierPOView";
 import Reports from "./pages/Reports";
 import LandingPage from "./pages/LandingPage";
 
@@ -53,6 +54,7 @@ const App = () => (
           <Route path="/supplier" element={<SupplierPortal />} />
           <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
           <Route path="/supplier/invoices/create" element={<SupplierInvoiceCreate />} />
+          <Route path="/supplier/purchaseorders/:id" element={<SupplierPOView />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
