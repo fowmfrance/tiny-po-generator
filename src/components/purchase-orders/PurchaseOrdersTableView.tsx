@@ -14,6 +14,8 @@ import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/services/notificationService';
+import { mockVendors } from '@/types/vendor';
 
 interface PurchaseOrdersTableViewProps {
   purchaseOrders: PurchaseOrder[];
@@ -24,16 +26,36 @@ export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = (
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { notifyPOSent } = useNotifications();
 
-  const handleSendPO = (poId: string, e: React.MouseEvent) => {
+  const handleSendPO = async (poId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
-    // In a real app, this would send the PO to the vendor
-    toast({
-      title: "Bon de commande envoyé",
-      description: `Le bon de commande a été envoyé avec succès.`,
-    });
+    // Find the PO
+    const po = purchaseOrders.find(p => p.id === poId);
+    if (!po) return;
+    
+    // Find the vendor
+    const vendor = mockVendors.find(v => v.vendorId === po.vendorId);
+    if (!vendor) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de trouver les informations du fournisseur.",
+      });
+      return;
+    }
+    
+    // Send the notification
+    const success = await notifyPOSent(po, vendor);
+    
+    if (success) {
+      toast({
+        title: "Bon de commande envoyé",
+        description: `Le bon de commande ${po.poNumber} a été envoyé à ${vendor.name}`,
+      });
+    }
   };
 
   return (

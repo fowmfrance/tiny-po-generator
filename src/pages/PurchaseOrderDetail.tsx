@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, Clock, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
+import { useToast } from '@/hooks/use-toast';
+import { mockVendors, Vendor } from '@/types/vendor';
+import { useNotifications, notifyPOStatusChange } from '@/services/notificationService';
 
 interface PurchaseOrder {
   id: string;
@@ -90,6 +94,9 @@ const PurchaseOrderDetail = () => {
   const navigate = useNavigate();
   const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const { toast } = useToast();
+  const { notifyPOSent } = useNotifications();
 
   useEffect(() => {
     const fetchPurchaseOrder = () => {
@@ -98,12 +105,45 @@ const PurchaseOrderDetail = () => {
       
       if (po) {
         setPurchaseOrder(po);
+        const vendorData = mockVendors.find(v => v.id === po.vendorId);
+        if (vendorData) {
+          setVendor(vendorData);
+        }
       }
       setLoading(false);
     };
 
     fetchPurchaseOrder();
   }, [id]);
+
+  const handleSendPO = async () => {
+    if (!purchaseOrder || !vendor) return;
+    
+    const success = await notifyPOSent(purchaseOrder, vendor);
+    
+    if (success) {
+      toast({
+        title: "Bon de commande envoyé",
+        description: `Le bon de commande ${purchaseOrder.poNumber} a été envoyé à ${vendor.name}`,
+      });
+    }
+  };
+
+  const handleStatusChange = async (newStatus: PurchaseOrder['status']) => {
+    if (!purchaseOrder || !vendor) return;
+    
+    setPurchaseOrder({
+      ...purchaseOrder,
+      status: newStatus
+    });
+    
+    await notifyPOStatusChange(purchaseOrder, vendor, newStatus);
+    
+    toast({
+      title: "Statut mis à jour",
+      description: `Le statut du bon de commande ${purchaseOrder.poNumber} a été mis à jour`,
+    });
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -167,6 +207,17 @@ const PurchaseOrderDetail = () => {
           <h1 className="text-2xl font-bold">Purchase Order #{purchaseOrder.poNumber}</h1>
           <p className="text-muted-foreground">Created on {purchaseOrder.date}</p>
         </div>
+        
+        {vendor && purchaseOrder.status !== 'draft' && (
+          <Button 
+            variant="outline" 
+            className="ml-auto flex items-center gap-2"
+            onClick={handleSendPO}
+          >
+            <Send className="h-4 w-4" />
+            Send to Supplier
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -197,6 +248,37 @@ const PurchaseOrderDetail = () => {
               </div>
             )}
           </CardContent>
+          <CardFooter className="flex flex-wrap gap-2">
+            {purchaseOrder.status === 'draft' && (
+              <Button size="sm" onClick={() => handleStatusChange('pending')}>
+                Submit for Approval
+              </Button>
+            )}
+            {purchaseOrder.status === 'pending' && (
+              <>
+                <Button size="sm" variant="outline" className="bg-red-50 text-red-600 border-red-200" 
+                  onClick={() => handleStatusChange('rejected')}>
+                  Reject
+                </Button>
+                <Button size="sm" className="bg-green-600" 
+                  onClick={() => handleStatusChange('approved')}>
+                  Approve
+                </Button>
+              </>
+            )}
+            {purchaseOrder.status === 'approved' && (
+              <Button size="sm" className="bg-blue-600" 
+                onClick={() => handleStatusChange('matched')}>
+                Mark as Matched
+              </Button>
+            )}
+            {purchaseOrder.status === 'matched' && (
+              <Button size="sm" className="bg-purple-600" 
+                onClick={() => handleStatusChange('paid')}>
+                Mark as Paid
+              </Button>
+            )}
+          </CardFooter>
         </Card>
 
         <Card>
