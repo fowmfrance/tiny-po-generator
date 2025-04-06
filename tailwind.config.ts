@@ -18,7 +18,6 @@ export default {
     },
     extend: {
       colors: {
-        // Custom color palette
         'po-primary': {
           DEFAULT: '#173288',  // Dark blue
           background: '#b8d4d8',  // Background color
@@ -27,7 +26,6 @@ export default {
             background: '#967cbd'  // Background zones of text
           }
         },
-        // Keeping existing color structure but adding custom colors
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -78,13 +76,21 @@ export default {
                     amber: '#f59e0b',
                     red: '#ef4444',
                     gray: '#6b7280',
+                },
+                landing: {
+                  DEFAULT: '#957bbc',
+                  footer: '#c5c1a8'
                 }
 			},
       backgroundColor: {
         DEFAULT: '#b8d4d8',
         primary: '#173288',
         secondary: '#83b8bc',
-        'text-zone': '#967cbd'
+        'text-zone': '#967cbd',
+        'landing': {
+          DEFAULT: '#957bbc',
+          footer: '#c5c1a8'
+        }
       },
 			borderRadius: {
 				lg: 'var(--radius)',

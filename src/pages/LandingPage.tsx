@@ -77,19 +77,16 @@ const LandingPage = () => {
       </section>
       
       {/* Features Section */}
-      <section className="py-24 px-4 md:px-8 lg:px-16 bg-white relative">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100 opacity-70 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-50 opacity-70 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
-        
+      <section className="py-24 px-4 md:px-8 lg:px-16 bg-landing text-white relative">
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-block bg-primary/10 text-primary font-medium rounded-full px-4 py-1 text-sm mb-4">
+            <div className="inline-block bg-white/20 font-medium rounded-full px-4 py-1 text-sm mb-4">
               Fonctionnalités
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold">
+            <h2 className="text-3xl md:text-4xl font-bold text-white">
               Transformez votre gestion administrative
             </h2>
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
+            <p className="text-white/80 mt-4 max-w-2xl mx-auto">
               Découvrez comment Sapajoo peut révolutionner votre workflow et vous faire gagner du temps
             </p>
           </div>
@@ -144,18 +141,18 @@ const LandingPage = () => {
       </section>
       
       {/* Testimonial Section */}
-      <section className="py-20 px-4 md:px-8 lg:px-16 bg-blue-50">
+      <section className="py-20 px-4 md:px-8 lg:px-16 bg-landing text-white">
         <div className="container mx-auto">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex justify-center mb-8">
-              <div className="inline-block bg-primary/10 text-primary font-medium rounded-full px-4 py-1 text-sm">
+              <div className="inline-block bg-white/20 font-medium rounded-full px-4 py-1 text-sm">
                 Témoignages
               </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-8 text-white">
               Ce que nos bêta-testeurs disent
             </h2>
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 relative">
+            <div className="bg-white/10 p-8 rounded-2xl border border-white/20">
               <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-primary text-white rounded-full p-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M10 10.5C10 9 9 8.5 8 8.5C6.5 8.5 5.5 10 5.5 12C5.5 15 7.5 16.5 10 16.5V14.5C8.5 14.5 7.5 13.5 7.5 12C7.5 11 8 10.5 8.5 10.5C9 10.5 9 11 9 11.5H10Z" fill="currentColor"/>
@@ -209,7 +206,7 @@ const LandingPage = () => {
       </section>
       
       {/* Footer */}
-      <footer className="py-12 px-4 md:px-8 lg:px-16 bg-gray-900 text-gray-300">
+      <footer className="py-12 px-4 md:px-8 lg:px-16 bg-landing-footer text-gray-800">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             <div className="md:col-span-2">
