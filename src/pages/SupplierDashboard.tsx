@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, ChevronLeft, FileText, Mail, Plus, ArrowDown, ArrowUp } from 'lucide-react';
-import { mockVendors } from '@/pages/Vendors';
+import { mockVendors } from '@/types/vendor';
 import { mockPurchaseOrders } from '@/pages/PurchaseOrders';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

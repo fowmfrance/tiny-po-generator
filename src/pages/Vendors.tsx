@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { UserPlus, Plus, Search } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
-import { mockVendors } from '@/types/vendor';
+import { mockVendors, Vendor } from '@/types/vendor';
 
 const Vendors = () => {
   const [searchTerm, setSearchTerm] = useState('');

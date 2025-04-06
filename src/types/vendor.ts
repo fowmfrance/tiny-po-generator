@@ -12,7 +12,7 @@ export interface Vendor {
   country?: string;
 }
 
-// Mock data for demonstration - Export this for use in other components
+// Mock data for demonstration
 export const mockVendors: Vendor[] = [
   {
     id: '1',

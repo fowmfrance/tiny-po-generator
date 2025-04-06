@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import {
   CheckCircle,
   Clock as ClockIcon
 } from 'lucide-react';
-import { mockVendors, Vendor } from '@/pages/Vendors';
+import { mockVendors, Vendor } from '@/types/vendor';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ import {
   DollarSign,
   Package
 } from 'lucide-react';
-import { mockVendors } from './Vendors';
+import { mockVendors } from '@/types/vendor';
 import { mockPurchaseOrders } from './PurchaseOrders';
 import { Progress } from '@/components/ui/progress';
 
