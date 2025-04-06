@@ -1,38 +1,46 @@
-
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
 
 export default {
-	darkMode: ["class"],
-	content: [
-		"./pages/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./app/**/*.{ts,tsx}",
-		"./src/**/*.{ts,tsx}",
-	],
-	prefix: "",
-	theme: {
-		container: {
-			center: true,
-			padding: '2rem',
-			screens: {
-				'2xl': '1400px'
-			}
-		},
-		extend: {
-			colors: {
-				border: 'hsl(var(--border))',
-				input: 'hsl(var(--input))',
-				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
-				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
-				},
-				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
-				},
+  darkMode: ["class"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        // Custom color palette
+        'po-primary': {
+          DEFAULT: '#173288',  // Dark blue
+          background: '#b8d4d8',  // Background color
+          button: '#83b8bc',  // Button color
+          text: {
+            background: '#967cbd'  // Background zones of text
+          }
+        },
+        // Keeping existing color structure but adding custom colors
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: '#173288',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: '#83b8bc',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))'
@@ -72,6 +80,12 @@ export default {
                     gray: '#6b7280',
                 }
 			},
+      backgroundColor: {
+        DEFAULT: '#b8d4d8',
+        primary: '#173288',
+        secondary: '#83b8bc',
+        'text-zone': '#967cbd'
+      },
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -88,7 +102,7 @@ export default {
 				},
 				'accordion-up': {
 					from: {
-						height: 'var(--radix-accordion-content-height)'
+						height: '0'
 					},
 					to: {
 						height: '0'
@@ -102,4 +116,4 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+} satisfies Config
