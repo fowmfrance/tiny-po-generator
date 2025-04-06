@@ -79,7 +79,8 @@ export default {
                 },
                 landing: {
                   DEFAULT: '#957bbc',
-                  footer: '#c5c1a8'
+                  footer: '#c5c1a8',
+                  features: '#19348a'  // New color for features section
                 }
 			},
       backgroundColor: {
@@ -89,7 +90,8 @@ export default {
         'text-zone': '#967cbd',
         'landing': {
           DEFAULT: '#957bbc',
-          footer: '#c5c1a8'
+          footer: '#c5c1a8',
+          features: '#19348a'  // New background color for features section
         }
       },
 			borderRadius: {
