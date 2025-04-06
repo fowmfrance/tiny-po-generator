@@ -36,8 +36,8 @@ export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = (
     const po = purchaseOrders.find(p => p.id === poId);
     if (!po) return;
     
-    // Find the vendor
-    const vendor = mockVendors.find(v => v.vendorId === po.vendorId);
+    // Find the vendor - using id instead of vendorId to match the Vendor interface
+    const vendor = mockVendors.find(v => v.id === po.vendorId);
     if (!vendor) {
       toast({
         variant: "destructive",
