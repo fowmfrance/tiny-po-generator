@@ -1,5 +1,6 @@
 
 import { mockPurchaseOrders } from '@/pages/PurchaseOrders';
+import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
 
 export interface Invoice {
   id: string;
@@ -20,10 +21,12 @@ export interface PurchaseOrderWithInvoices {
   date: string;
   amount: number;
   currency: string;
-  status: string;
+  status: PurchaseOrderStatus;
   items: { id: string; name: string; quantity: number; unitPrice: number }[];
   hasInvoice?: boolean;
   invoices?: Invoice[];
+  vendor?: string;
+  paymentProgress?: number;
 }
 
 export const mockInvoices: Invoice[] = [
@@ -146,4 +149,11 @@ export const additionalMockPOs: PurchaseOrderWithInvoices[] = [
   }
 ];
 
-export const extendedMockPurchaseOrders: PurchaseOrderWithInvoices[] = [...mockPurchaseOrders as PurchaseOrderWithInvoices[], ...additionalMockPOs];
+// Cast mockPurchaseOrders to PurchaseOrderWithInvoices[] after adding required properties
+export const extendedMockPurchaseOrders: PurchaseOrderWithInvoices[] = [
+  ...((mockPurchaseOrders as any[]).map(po => ({
+    ...po,
+    items: po.items || [] // Add empty items array if it doesn't exist
+  })) as PurchaseOrderWithInvoices[]),
+  ...additionalMockPOs
+];

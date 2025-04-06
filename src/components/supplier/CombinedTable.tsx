@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { PurchaseOrderWithInvoices } from '@/types/supplier';
+import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
 
 interface CombinedTableProps {
   data: PurchaseOrderWithInvoices[];
@@ -86,12 +87,12 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
               {po.currency} {po.amount.toLocaleString()}
             </TableCell>
             <TableCell>
-              <StatusBadge status={po.status} />
+              <StatusBadge status={po.status as PurchaseOrderStatus} />
             </TableCell>
             <TableCell>
               {po.hasInvoice ? (
                 <div className="space-y-1">
-                  {po.invoices.map((inv: any) => (
+                  {po.invoices?.map((inv) => (
                     <div key={inv.id} className="text-sm">
                       {inv.invoiceNumber}
                     </div>
@@ -104,7 +105,7 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
             <TableCell>
               {po.hasInvoice ? (
                 <div className="space-y-1">
-                  {po.invoices.map((inv: any) => (
+                  {po.invoices?.map((inv) => (
                     <div key={inv.id}>
                       {inv.status === 'paid' ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
