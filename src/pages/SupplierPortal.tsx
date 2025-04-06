@@ -1,13 +1,17 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { mockVendors } from '@/types/vendor';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const SupplierPortal = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [poNumber, setPoNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -33,6 +37,25 @@ const SupplierPortal = () => {
     }, 1000);
   };
 
+  const handleGuestSubmission = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    // Validate PO number
+    if (!poNumber) {
+      setError('Veuillez saisir le numéro de bon de commande.');
+      setLoading(false);
+      return;
+    }
+
+    // For demonstration, navigate to guest invoice submission page
+    setTimeout(() => {
+      navigate(`/supplier/guest-invoice?poNumber=${poNumber}`);
+      setLoading(false);
+    }, 1000);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -51,62 +74,108 @@ const SupplierPortal = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleLogin}>
-            <div>
-              <Label htmlFor="email">
-                Email
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="fournisseur@entreprise.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="password">
-                Mot de passe
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="text-red-500 text-sm">{error}</div>
-            )}
-
-            <div>
-              <Button 
-                type="submit" 
-                className="w-full bg-po-blue hover:bg-blue-600"
-                disabled={loading}
-              >
-                {loading ? 'Connexion en cours...' : 'Se connecter'}
-              </Button>
-            </div>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Connexion</TabsTrigger>
+              <TabsTrigger value="guest">Invité</TabsTrigger>
+            </TabsList>
             
-            <div className="text-sm text-center">
-              <a href="#" className="font-medium text-po-blue hover:text-blue-600">
-                Mot de passe oublié ?
-              </a>
-            </div>
-          </form>
+            <TabsContent value="login">
+              <form className="space-y-6" onSubmit={handleLogin}>
+                <div>
+                  <Label htmlFor="email">
+                    Email
+                  </Label>
+                  <div className="mt-1">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="fournisseur@entreprise.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="password">
+                    Mot de passe
+                  </Label>
+                  <div className="mt-1">
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-red-500 text-sm">{error}</div>
+                )}
+
+                <div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-po-blue hover:bg-blue-600"
+                    disabled={loading}
+                  >
+                    {loading ? 'Connexion en cours...' : 'Se connecter'}
+                  </Button>
+                </div>
+                
+                <div className="text-sm text-center">
+                  <a href="#" className="font-medium text-po-blue hover:text-blue-600">
+                    Mot de passe oublié ?
+                  </a>
+                </div>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="guest">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Soumettre ma facture sans créer d'espace fournisseur
+                </p>
+                
+                <form onSubmit={handleGuestSubmission} className="space-y-6">
+                  <div>
+                    <Label htmlFor="poNumber">
+                      Numéro de bon de commande
+                    </Label>
+                    <div className="mt-1">
+                      <Input
+                        id="poNumber"
+                        value={poNumber}
+                        onChange={(e) => setPoNumber(e.target.value)}
+                        placeholder="Ex: 2023-001"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  {error && (
+                    <div className="text-red-500 text-sm">{error}</div>
+                  )}
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-po-blue hover:bg-blue-600"
+                    disabled={loading}
+                  >
+                    {loading ? 'Recherche en cours...' : 'Continuer'}
+                  </Button>
+                </form>
+              </div>
+            </TabsContent>
+          </Tabs>
           
           <div className="mt-6">
             <div className="relative">
@@ -124,6 +193,7 @@ const SupplierPortal = () => {
               <p>Pour le test, utilisez:</p>
               <p className="mt-1"><strong>Email:</strong> procurement@apple.com</p>
               <p><strong>Mot de passe:</strong> password</p>
+              <p className="mt-1"><strong>Numéro BC:</strong> 2023-001</p>
             </div>
           </div>
         </div>
