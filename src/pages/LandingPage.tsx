@@ -1,7 +1,7 @@
 import React from 'react';
 import WaitingListForm from '@/components/WaitingListForm';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Check, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 const LandingPage = () => {
@@ -177,7 +177,7 @@ const LandingPage = () => {
       </section>
       
       {/* CTA Section */}
-      <section className="py-24 px-4 md:px-8 lg:px-16 bg-gradient-to-br from-blue-600 to-blue-800 text-white relative overflow-hidden">
+      <section className="py-24 px-4 md:px-8 lg:px-16 bg-landing-cta text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/placeholder.svg')] bg-center opacity-5 mix-blend-overlay"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400 opacity-20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-300 opacity-20 rounded-full blur-3xl"></div>
