@@ -167,7 +167,7 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
       };
       
       // Send the data
-      console.log(`%c [CODA WEBHOOK] Sending XHR payload with API token:`, "background: #004d99; color: #fff; padding: 2px 5px;", jsonPayload);
+      console.log("%c [CODA WEBHOOK] Sending XHR payload with API token:", "background: #004d99; color: #fff; padding: 2px 5px;", jsonPayload);
       xhr.send(jsonPayload);
       
       console.log("%c [CODA WEBHOOK] XHR request sent", "background: #004d99; color: #fff; padding: 2px 5px;");
