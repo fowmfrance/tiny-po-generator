@@ -13,7 +13,7 @@ function App() {
         <img 
           src="/lovable-uploads/e108d857-cf1f-487c-8ddf-e170435be97a.png" 
           alt="Logo Sapajoo" 
-          className="h-96 w-auto object-contain" // Augmenté à 500% (h-24 → h-96)
+          className="h-96 w-auto object-contain"
         />
       </div>
       <Routes>

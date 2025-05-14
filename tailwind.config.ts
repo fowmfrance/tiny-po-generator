@@ -25,8 +25,8 @@ export default {
       colors: {
         'po-primary': {
           DEFAULT: '#173288',  // Dark blue
-          background: '#b8d4d8',  // Background color
-          button: '#83b8bc',  // Button color
+          background: '#b8d4d8',  // Background color - keeping this as it's not green
+          button: '#83b8bc',  // Button color - keeping this as it's not green
           text: {
             background: '#967cbd'  // Background zones of text
           }
