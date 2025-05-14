@@ -9,9 +9,9 @@ function App() {
     <Router>
       <div className="w-full flex justify-center pt-6">
         <img 
-          src="/lovable-uploads/efe8955a-c370-4bed-ba41-e64efd80f9e6.png" 
+          src="/lovable-uploads/e108d857-cf1f-487c-8ddf-e170435be97a.png" 
           alt="Logo Sapajoo" 
-          className="h-24 w-auto object-contain"
+          className="h-72 w-auto object-contain" // Augmenté à 300% (h-24 → h-72)
         />
       </div>
       <Routes>
