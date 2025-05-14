@@ -45,11 +45,13 @@ const SignupForm = () => {
     setSubmissionError(null);
     
     // Log the form values to help with debugging
-    console.log("Form submission started with values:", values);
+    console.log("[FORM] Form submission started with values:", JSON.stringify(values));
     
     try {
       // Send data to Coda with the specific column mapping
+      console.log("[FORM] Calling submitToCoda...");
       const success = await submitToCoda(values);
+      console.log("[FORM] submitToCoda result:", success);
       
       if (success) {
         // Show confirmation
@@ -64,7 +66,7 @@ const SignupForm = () => {
         throw new Error("La requête a échoué");
       }
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error("[FORM] Form submission error:", error);
       setSubmissionError("Une erreur est survenue lors de l'envoi des données. Veuillez réessayer.");
       toast({
         title: "Erreur",

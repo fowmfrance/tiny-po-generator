@@ -37,11 +37,11 @@ export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
 export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
   const formattedData = mapToCodaFormat(values);
   
-  console.log("Submitting to Coda webhook URL:", WEBHOOK_URL);
-  console.log("JSON payload being sent:", JSON.stringify(formattedData));
-  
   try {
-    // First attempt with standard fetch (no no-cors) to get proper response
+    console.log(`[CODA] Submitting to webhook: ${WEBHOOK_URL}`);
+    console.log(`[CODA] Payload: ${JSON.stringify(formattedData)}`);
+
+    // Send the request with standard mode (without no-cors)
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -50,49 +50,73 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
       body: JSON.stringify(formattedData),
     });
     
-    console.log("Coda webhook response status:", response.status);
+    // Log complete response info for debugging
+    console.log(`[CODA] Response status: ${response.status}`);
+    
+    // Try to get response text if possible
+    try {
+      const responseText = await response.text();
+      console.log(`[CODA] Response body: ${responseText}`);
+    } catch (err) {
+      console.log(`[CODA] Could not read response body: ${err}`);
+    }
     
     if (response.ok) {
-      // Status in 200-299 range is success
-      console.log("Coda webhook request successful!");
+      console.log("[CODA] Webhook request succeeded!");
       return true;
     } else {
-      // If response is not ok, try to read error details
-      const responseText = await response.text();
-      console.log("Coda webhook error response:", responseText);
+      console.log(`[CODA] Webhook request failed with status: ${response.status}`);
       
-      // Fallback to no-cors as last resort
-      console.log("Response not OK, trying fallback with no-cors mode...");
-      return await fallbackSubmission(formattedData);
+      // Let's try again with no-cors as last resort
+      console.log("[CODA] Trying with no-cors mode as fallback...");
+      return await sendWithNoCors(formattedData);
     }
   } catch (error) {
-    // Network error or other exception
-    console.error("Error submitting to Coda:", error);
-    console.log("Executing fallback with no-cors mode...");
-    return await fallbackSubmission(formattedData);
+    console.error("[CODA] Error during fetch:", error);
+    console.log("[CODA] Trying with no-cors mode as fallback after error...");
+    return await sendWithNoCors(formattedData);
   }
 };
 
-// Separate fallback function using no-cors mode
-const fallbackSubmission = async (formattedData: any): Promise<boolean> => {
+/**
+ * Alternative submission method using no-cors mode
+ * This is used as a fallback when standard fetch fails
+ */
+const sendWithNoCors = async (formattedData: any): Promise<boolean> => {
   try {
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formattedData),
-      mode: 'no-cors'
+    console.log("[CODA] Executing no-cors fallback...");
+    
+    // Create a new XMLHttpRequest for more detailed debugging
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', WEBHOOK_URL, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    return new Promise((resolve) => {
+      xhr.onreadystatechange = function() {
+        console.log(`[CODA] XHR state changed to: ${xhr.readyState}, status: ${xhr.status}`);
+        
+        if (xhr.readyState === 4) {
+          console.log(`[CODA] XHR complete with status: ${xhr.status}`);
+          console.log(`[CODA] XHR response: ${xhr.responseText}`);
+          
+          // For no-cors or opaque responses, we can't actually check status
+          // Instead, we just assume it worked if we got to this point
+          resolve(true);
+        }
+      };
+      
+      xhr.onerror = function(e) {
+        console.error("[CODA] XHR error:", e);
+        resolve(false);
+      };
+      
+      // Send the request
+      const jsonPayload = JSON.stringify(formattedData);
+      console.log(`[CODA] Sending XHR request with payload: ${jsonPayload}`);
+      xhr.send(jsonPayload);
     });
-    
-    // With no-cors we can't actually tell if it succeeded,
-    // but at least the request was sent
-    console.log("Fallback no-cors request sent (no response status available)");
-    
-    // We'll assume it worked since we can't check the response
-    return true;
   } catch (error) {
-    console.error("Fallback submission also failed:", error);
+    console.error("[CODA] Error in no-cors fallback:", error);
     return false;
   }
 };

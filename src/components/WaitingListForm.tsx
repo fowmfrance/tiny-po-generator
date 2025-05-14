@@ -33,7 +33,7 @@ const WaitingListForm = () => {
     setSubmissionError(null);
     
     try {
-      console.log('Email submitted:', values.email);
+      console.log('[WAITING_LIST] Email submitted:', values.email);
       
       // Format the data in a way compatible with submitToCoda
       const formattedValues = {
@@ -48,7 +48,9 @@ const WaitingListForm = () => {
         consent: true
       };
       
+      console.log('[WAITING_LIST] Calling submitToCoda with formatted values:', JSON.stringify(formattedValues));
       const success = await submitToCoda(formattedValues);
+      console.log('[WAITING_LIST] submitToCoda result:', success);
       
       if (success) {
         toast({
@@ -61,7 +63,7 @@ const WaitingListForm = () => {
         throw new Error("La requête a échoué");
       }
     } catch (error) {
-      console.error("Error submitting email:", error);
+      console.error("[WAITING_LIST] Error submitting email:", error);
       setSubmissionError("Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.");
       toast({
         title: "Erreur",
