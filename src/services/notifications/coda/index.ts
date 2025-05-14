@@ -1,62 +1,34 @@
 
 import { SignUpValues } from '@/schemas/signupSchema';
-import { testCodaAccess } from './utils';
-import { submitToCodaApi, submitViaFormWebhook } from './apiSubmission';
+import { submitToCodaApi } from './apiSubmission';
 
 // Re-export functions for backwards compatibility
-export { testCodaAccess } from './utils';
 export { mapToCodaApiFormat, mapToCodaFormFormat } from './dataMappers';
-export { submitToCodaApi, submitViaFormWebhook } from './apiSubmission';
-export { clearExistingRows } from './utils';
+export { submitToCodaApi } from './apiSubmission';
 
 /**
- * Submits form data to Coda, trying multiple methods like in the Python script
- * @param values Form values from signup form
- * @returns Promise resolving with the submission result
+ * Simple submission to Coda API - follows Python implementation pattern
  */
 export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
   console.log("%c ================= CODA SUBMISSION STARTING =================", 
     "background: #0066ff; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
   
   try {
-    // Test API access first
-    console.log("%c [CODA] Testing API access...", "color: #2196f3;");
-    const hasAccess = await testCodaAccess();
+    // Use direct API submission only - matching the Python implementation
+    console.log("%c [CODA] Submitting data to Coda table...", "color: #2196f3;");
+    const success = await submitToCodaApi(values);
     
-    if (!hasAccess) {
-      console.warn("%c [CODA] API access failed, will try form webhook...", "color: #ff9800;");
-    } else {
-      // Clear existing rows if needed (optional)
-      // await clearExistingRows();
-      
-      // Try direct API submission
-      console.log("%c [CODA] Trying direct API submission...", "color: #2196f3;");
-      const apiSuccess = await submitToCodaApi(values);
-      
-      if (apiSuccess) {
-        console.log("%c ================= CODA API SUBMISSION SUCCESSFUL =================", 
-          "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
-        return true;
-      }
-      
-      console.warn("%c [CODA] API submission failed, trying fallback method...", "color: #ff9800;");
-    }
-    
-    // If API fails, try form webhook
-    console.log("%c [CODA] Trying form webhook as fallback...", "color: #ff9800;");
-    const formSuccess = await submitViaFormWebhook(values);
-    
-    if (formSuccess) {
-      console.log("%c ================= CODA FORM SUBMISSION COMPLETED =================", 
-        "background: #FF9800; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+    if (success) {
+      console.log("%c ================= CODA SUBMISSION SUCCESSFUL =================", 
+        "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
       return true;
+    } else {
+      console.error("%c ================= CODA SUBMISSION FAILED =================", 
+        "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+      return false;
     }
-    
-    console.error("%c ================= CODA SUBMISSION FAILED =================", 
-      "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
-    return false;
   } catch (error) {
-    console.error("%c [CODA] Critical error in submission process:", 
+    console.error("%c [CODA] Error in submission process:", 
       "background: #cc0000; color: #fff; padding: 2px 5px;", error);
     console.log("%c ================= CODA SUBMISSION FAILED =================", 
       "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");

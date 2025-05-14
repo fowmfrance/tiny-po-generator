@@ -3,8 +3,7 @@ import { SignUpValues } from '@/schemas/signupSchema';
 
 /**
  * Maps form values to the format expected by Coda API
- * @param values Form values from signup form
- * @returns Formatted data for Coda API
+ * Simplified to match Python implementation
  */
 export const mapToCodaApiFormat = (values: SignUpValues): any => {
   // Format current date
@@ -22,7 +21,7 @@ export const mapToCodaApiFormat = (values: SignUpValues): any => {
         { column: "Revenue", value: values.revenue },
         { column: "Suppliers Count", value: values.suppliersCount },
         { column: "Current Tool", value: values.currentTool },
-        { column: "Consent", value: values.consent },
+        { column: "Consent", value: values.consent ? "Yes" : "No" },
         { column: "Date Submitted", value: currentDate }
       ]
     }]
@@ -30,10 +29,9 @@ export const mapToCodaApiFormat = (values: SignUpValues): any => {
 };
 
 /**
- * Maps form values for the form submission endpoint
+ * Legacy mapping function - kept for backward compatibility
  */
 export const mapToCodaFormFormat = (values: SignUpValues): Record<string, any> => {
-  // Format the data for the standard Coda form submission
   return {
     firstName: values.firstName,
     lastName: values.lastName,
