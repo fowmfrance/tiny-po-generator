@@ -2,7 +2,7 @@
 import { TemplateIds } from './types';
 
 // Coda API configuration
-export const CODA_API_TOKEN = '336173f4-9c5a-4f15-8e4a-089cd44cc9a9'; // Updated token
+export const CODA_API_TOKEN = '56dbe324-55cb-44e8-a5f0-4ff96cd28a03'; // Updated token
 export const CODA_DOC_ID = 'rHPklOH20m'; // Updated Doc ID
 export const CODA_TABLE_ID = 'grid-f5SX6StSC4'; // Updated Table ID
 export const CODA_API_URL = 'https://coda.io/apis/v1';
