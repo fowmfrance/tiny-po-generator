@@ -1,8 +1,12 @@
 
-// Re-export all notification functions and hooks
-export * from './types';
-export * from './notificationApi';
-export * from './poNotifications';
+// Export all notification services
 export * from './approvalNotifications';
+export * from './poNotifications';
 export * from './vendorNotifications';
-export * from './useNotifications';
+export * from './notificationApi';
+export * from './codaService';
+export * from './constants';
+export * from './types';
+
+// Re-export the hook
+export { default as useNotifications } from './useNotifications';
