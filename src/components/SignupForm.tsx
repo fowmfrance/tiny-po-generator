@@ -17,7 +17,10 @@ import {
   CurrentToolField,
   ConsentField
 } from './signup/FormFields';
-import { sendMockNotification } from '@/services/notifications/notificationApi';
+
+// This can be configured in your settings or environment
+const WEBHOOK_URL = "https://coda.io/apis/v1/webhooks/YOUR_WEBHOOK_ID";
+// For Airtable, the webhook URL would look like: https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,16 +44,21 @@ const SignupForm = () => {
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
     try {
-      // Send notification using Supersend mock implementation
-      const emailSubject = `Nouvelle inscription liste d'attente: ${values.firstName} ${values.lastName} de ${values.company}`;
-      
-      await sendMockNotification('vendor_invited', {
-        email: 'hello@sapajoo.fr',
-        name: 'Sapajoo Team'
-      }, {
-        subject: emailSubject,
-        formData: values,
-        date: new Date().toISOString()
+      // Prepare the data to be sent to the webhook
+      const formData = {
+        ...values,
+        submittedAt: new Date().toISOString(),
+        source: window.location.href
+      };
+
+      // Send data to Coda/Airtable webhook
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+        mode: 'no-cors' // This might be needed for cross-origin requests
       });
       
       // Show confirmation
