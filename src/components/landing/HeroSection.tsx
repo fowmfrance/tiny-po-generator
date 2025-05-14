@@ -9,7 +9,7 @@ const HeroSection = () => {
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
           <div className="flex-1 max-w-2xl">
             <div className="inline-block bg-accent text-primary font-medium rounded-full px-6 py-2 text-sm mb-8">
-              Très prochainement!
+              Bientôt!
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 text-primary leading-tight">
               Reprenez la main sur la gestion de vos achats
@@ -26,7 +26,7 @@ const HeroSection = () => {
             <div className="relative rounded-2xl overflow-hidden shadow-xl">
               <AspectRatio ratio={16/9} className="bg-muted">
                 <img 
-                  src="/lovable-uploads/05950649-a2f8-4ab3-a057-d204deaaf513.png" 
+                  src="/lovable-uploads/a198a451-2774-4214-9a03-acf2d7dc0877.png" 
                   alt="Tableau de bord Sapajoo" 
                   className="w-full h-full object-cover"
                 />

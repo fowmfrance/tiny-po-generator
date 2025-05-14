@@ -5,61 +5,53 @@ import { Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
-    <footer className="py-8 px-4 md:px-8 lg:px-16 bg-primary text-white">
+    <footer className="bg-gray-100 py-10 px-4 md:px-8">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Column 1 */}
-          <div className="md:col-span-1">
-            <p className="text-white mb-4 max-w-md italic">
-              Sapajoo, la plateforme de gestion des achats pensée pour les PME
+          <div>
+            <h4 className="font-semibold text-lg mb-4">À propos</h4>
+            <p className="text-gray-600 mb-4">
+              Sapajoo est une plateforme complète de gestion des bons de commande 
+              et de suivi des budgets pour les entreprises.
             </p>
-            <p className="text-white">Bientôt!</p>
           </div>
           
           {/* Column 2 */}
-          <div className="flex justify-center">
-            <div>
-              <h3 className="font-bold text-white mb-3 text-center">Liens</h3>
-              <ul className="space-y-2 text-center">
-                <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Accueil</Link></li>
-                <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Fonctionnalités</Link></li>
-              </ul>
-            </div>
+          <div>
+            <h4 className="font-semibold text-lg mb-4">Liens</h4>
+            <ul className="space-y-2">
+              <li><Link to="/" className="text-gray-600 hover:text-blue-600">Accueil</Link></li>
+              <li><Link to="/features" className="text-gray-600 hover:text-blue-600">Fonctionnalités</Link></li>
+              <li><Link to="/pricing" className="text-gray-600 hover:text-blue-600">Tarifs</Link></li>
+              <li><Link to="/dashboard" className="text-gray-600 hover:text-blue-600">Connexion</Link></li>
+            </ul>
           </div>
           
           {/* Column 3 */}
           <div>
-            <h3 className="font-bold text-white mb-3">Contact</h3>
-            <ul className="space-y-2">
-              <li className="text-white">contact@sapajoo.fr</li>
-              <li className="text-white flex items-center">
-                Made with <span className="mx-1 text-white">❤️</span> in Paris
-              </li>
-              <li>
-                <a 
-                  href="https://www.linkedin.com/company/106470208/"
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-white hover:text-gray-200 transition-colors flex items-center"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="h-4 w-4 mr-2" /> LinkedIn
-                </a>
-              </li>
-            </ul>
+            <h4 className="font-semibold text-lg mb-4">Contact</h4>
+            <p className="text-gray-600 mb-2">support@sapajoo.com</p>
+            <p className="text-gray-600 mb-4">+33 1 23 45 67 89</p>
+            <div className="flex items-center">
+              <a 
+                href="https://www.linkedin.com/company/sapajoo" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-blue-600 flex items-center"
+              >
+                <Linkedin className="w-5 h-5 mr-2" />
+                Suivez-nous sur LinkedIn
+              </a>
+            </div>
           </div>
         </div>
         
-        <div className="mt-6 pt-4 border-t border-white/20 flex items-center justify-center text-xs">
-          <div className="text-white text-xs mr-4">
-            &copy; {new Date().getFullYear()} FOWM. Tous droits réservés.
-          </div>
-          
-          <div className="text-center">
-            <Link to="/mentions-legales" className="text-white hover:text-gray-200 transition-colors text-xs">
-              Mentions légales
-            </Link>
-          </div>
+        {/* Centered Legal Links */}
+        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          <Link to="/mentions-legales" className="text-gray-600 hover:text-blue-600">
+            Mentions Légales
+          </Link>
         </div>
       </div>
     </footer>
