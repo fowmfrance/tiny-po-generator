@@ -18,9 +18,8 @@ import {
   ConsentField
 } from './signup/FormFields';
 
-// This can be configured in your settings or environment
-const WEBHOOK_URL = "https://coda.io/apis/v1/webhooks/YOUR_WEBHOOK_ID";
-// For Airtable, the webhook URL would look like: https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME
+// Coda webhook URL for automation
+const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/grid-auto-k4YJ1sag6a";
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +50,7 @@ const SignupForm = () => {
         source: window.location.href
       };
 
-      // Send data to Coda/Airtable webhook
+      // Send data to Coda webhook
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: {
