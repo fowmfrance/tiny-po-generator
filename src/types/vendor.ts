@@ -16,9 +16,9 @@ export interface Vendor {
 export const mockVendors: Vendor[] = [
   {
     id: '1',
-    name: 'Apple Inc.',
+    name: 'KLP Design ✏️',
     category: 'Technologie',
-    email: 'procurement@apple.com',
+    email: 'contact@klpdesign.com',
     phone: '+1 (800) 275-2273',
     status: 'active',
     totalPOs: 12,
@@ -28,9 +28,9 @@ export const mockVendors: Vendor[] = [
   },
   {
     id: '2',
-    name: 'Microsoft Corp',
+    name: 'DJ Bob 🎵',
     category: 'Logiciel',
-    email: 'vendor@microsoft.com',
+    email: 'booking@djbob.com',
     phone: '+1 (800) 642-7676',
     status: 'active',
     totalPOs: 8,
@@ -40,9 +40,9 @@ export const mockVendors: Vendor[] = [
   },
   {
     id: '3',
-    name: 'Dell Technologies',
+    name: 'Orlando Traiteur 🍽️',
     category: 'Matériel',
-    email: 'sales@dell.com',
+    email: 'contact@orlando-traiteur.com',
     phone: '+1 (800) 624-9897',
     status: 'active',
     totalPOs: 5,

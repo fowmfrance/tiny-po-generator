@@ -22,7 +22,7 @@ const RecentPurchaseOrders = () => {
     {
       id: '1',
       poNumber: '2023-001',
-      vendor: 'Apple Inc.',
+      vendor: 'KLP Design ✏️',
       vendorId: 'v1',
       amount: 5000,
       currency: 'EUR',
@@ -33,7 +33,7 @@ const RecentPurchaseOrders = () => {
     {
       id: '2',
       poNumber: '2023-002',
-      vendor: 'Microsoft Corp',
+      vendor: 'DJ Bob 🎵',
       vendorId: 'v2',
       amount: 3500,
       currency: 'EUR',
@@ -44,7 +44,7 @@ const RecentPurchaseOrders = () => {
     {
       id: '3',
       poNumber: '2023-003',
-      vendor: 'Dell Technologies',
+      vendor: 'Orlando Traiteur 🍽️',
       vendorId: 'v3',
       amount: 2800,
       currency: 'EUR',
