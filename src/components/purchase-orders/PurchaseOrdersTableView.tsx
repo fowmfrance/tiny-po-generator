@@ -14,7 +14,7 @@ import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications } from '@/services/notificationService';
+import { useNotifications } from '@/services/notifications';
 import { mockVendors } from '@/types/vendor';
 
 interface PurchaseOrdersTableViewProps {
