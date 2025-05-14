@@ -1,5 +1,6 @@
 
 import { SignUpValues } from '@/schemas/signupSchema';
+import { CODA_API_TOKEN } from './constants';
 
 // Coda webhook URL for automation - direct grid webhook
 const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/grid-auto-k4YJ1sag6a";
@@ -59,61 +60,52 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
     console.log("%c [CODA WEBHOOK] JSON Payload:", "background: #004d99; color: #fff; padding: 2px 5px;", jsonPayload);
     console.log("%c [CODA WEBHOOK] Simple Payload:", "background: #004d99; color: #fff; padding: 2px 5px;", simplePayload);
     
-    // First attempt: Direct webhook POST with JSON
+    // First attempt: Direct webhook POST with JSON and API token
     try {
-      console.log("%c [CODA WEBHOOK] Attempting direct POST with JSON...", "background: #004d99; color: #fff; padding: 2px 5px;");
+      console.log("%c [CODA WEBHOOK] Attempting direct POST with JSON and API token...", "background: #004d99; color: #fff; padding: 2px 5px;");
       
       const response = await fetch(`${WEBHOOK_URL}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CODA_API_TOKEN}`
         },
-        mode: 'no-cors', // Add this to handle CORS
         body: jsonPayload
       });
       
-      console.log("%c [CODA WEBHOOK] Direct POST response:", "background: #006600; color: #fff; padding: 2px 5px;", "Can't display actual response due to no-cors");
+      if (response.ok) {
+        console.log("%c [CODA WEBHOOK] Direct POST successful!", "background: #006600; color: #fff; padding: 2px 5px;");
+        return true;
+      } else {
+        console.error("%c [CODA WEBHOOK] Direct POST failed with status:", "background: #cc0000; color: #fff; padding: 2px 5px;", response.status);
+      }
     } catch (fetchError) {
       console.error("%c [CODA WEBHOOK] Direct POST error:", "background: #cc0000; color: #fff; padding: 2px 5px;", fetchError);
     }
 
-    // Second attempt: GET request with URL parameters (often more permissive for webhooks)
+    // Second attempt: GET request with URL parameters and API token
     try {
-      console.log("%c [CODA WEBHOOK] Attempting GET with URL parameters...", "background: #004d99; color: #fff; padding: 2px 5px;");
+      console.log("%c [CODA WEBHOOK] Attempting GET with URL parameters and API token...", "background: #004d99; color: #fff; padding: 2px 5px;");
       
       const getResponse = await fetch(`${WEBHOOK_URL}?${simplePayload}`, {
         method: 'GET',
-        mode: 'no-cors', // Add this to handle CORS
+        headers: {
+          'Authorization': `Bearer ${CODA_API_TOKEN}`
+        }
       });
       
-      console.log("%c [CODA WEBHOOK] GET response:", "background: #006600; color: #fff; padding: 2px 5px;", "Can't display actual response due to no-cors");
+      if (getResponse.ok) {
+        console.log("%c [CODA WEBHOOK] GET request successful!", "background: #006600; color: #fff; padding: 2px 5px;");
+        return true;
+      } else {
+        console.error("%c [CODA WEBHOOK] GET request failed with status:", "background: #cc0000; color: #fff; padding: 2px 5px;", getResponse.status);
+      }
     } catch (getError) {
       console.error("%c [CODA WEBHOOK] GET error:", "background: #cc0000; color: #fff; padding: 2px 5px;", getError);
     }
     
-    // Third attempt: Using Image method (a classic technique that works across domains without CORS issues)
-    try {
-      console.log("%c [CODA WEBHOOK] Attempting Image method...", "background: #004d99; color: #fff; padding: 2px 5px;");
-      
-      const img = new Image();
-      img.src = `${WEBHOOK_URL}?${simplePayload}&nocache=${new Date().getTime()}`;
-      img.style.display = 'none';
-      document.body.appendChild(img);
-      
-      // Remove the image after 3 seconds
-      setTimeout(() => {
-        if (document.body.contains(img)) {
-          document.body.removeChild(img);
-        }
-      }, 3000);
-      
-      console.log("%c [CODA WEBHOOK] Image method attempt executed", "background: #006600; color: #fff; padding: 2px 5px;");
-    } catch (imgError) {
-      console.error("%c [CODA WEBHOOK] Image method error:", "background: #cc0000; color: #fff; padding: 2px 5px;", imgError);
-    }
-    
-    // Fourth attempt: XMLHttpRequest as backup with detailed error reporting
-    console.log("%c [CODA WEBHOOK] Now attempting XMLHttpRequest as backup...", "background: #004d99; color: #fff; padding: 2px 5px;");
+    // Third attempt: Using XMLHttpRequest with API token
+    console.log("%c [CODA WEBHOOK] Now attempting XMLHttpRequest with API token...", "background: #004d99; color: #fff; padding: 2px 5px;");
     
     // Return a new Promise that wraps the XHR request
     return new Promise((resolve) => {
@@ -135,7 +127,7 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
           if (xhr.responseText) {
             console.log(`%c [CODA WEBHOOK] Response text:`, "background: #006600; color: #fff; padding: 2px 5px;", xhr.responseText);
           } else {
-            console.log(`%c [CODA WEBHOOK] No response text available (likely due to CORS)`, "background: #cc0000; color: #fff; padding: 2px 5px;");
+            console.log(`%c [CODA WEBHOOK] No response text available`, "background: #cc0000; color: #fff; padding: 2px 5px;");
           }
           
           // Check for specific status codes and report them
@@ -149,9 +141,8 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
           
           console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED =================", "background: #0066ff; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
           
-          // For XHR with no-cors, we can't rely on status codes
-          // So we assume success if we got to this point
-          resolve(true);
+          // For XHR, we can check the status code
+          resolve(xhr.status >= 200 && xhr.status < 300);
         }
       };
       
@@ -160,13 +151,13 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
         console.error("%c [CODA WEBHOOK] XHR error event:", "background: #cc0000; color: #fff; padding: 2px 5px;", e);
         console.log("%c ================= CODA WEBHOOK REQUEST FAILED =================", "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
         // Even with an error, we'll mark as success to avoid blocking the user
-        // since Coda could still receive the data despite client-side errors
         resolve(true);
       };
       
       // Open the request
       xhr.open('POST', WEBHOOK_URL, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', `Bearer ${CODA_API_TOKEN}`);
       
       // Add a timeout handler
       xhr.timeout = 10000; // 10 seconds
@@ -176,7 +167,7 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
       };
       
       // Send the data
-      console.log(`%c [CODA WEBHOOK] Sending XHR payload:`, "background: #004d99; color: #fff; padding: 2px 5px;", jsonPayload);
+      console.log(`%c [CODA WEBHOOK] Sending XHR payload with API token:`, "background: #004d99; color: #fff; padding: 2px 5px;", jsonPayload);
       xhr.send(jsonPayload);
       
       console.log("%c [CODA WEBHOOK] XHR request sent", "background: #004d99; color: #fff; padding: 2px 5px;");
