@@ -41,7 +41,7 @@ const HeroSection = () => {
               <AspectRatio ratio={16/9} className="bg-muted">
                 <img 
                   src="/lovable-uploads/05950649-a2f8-4ab3-a057-d204deaaf513.png" 
-                  alt="Aperçu du tableau de bord Sapajoo" 
+                  alt="Tableau de bord Sapajoo" 
                   className="w-full h-full object-cover"
                 />
               </AspectRatio>
