@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 const HeroSection = () => {
   return (
@@ -36,12 +37,14 @@ const HeroSection = () => {
           </div>
           
           <div className="flex-1 relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-marie">
-              <img 
-                src="/placeholder.svg" 
-                alt="Aperçu Sapajoo" 
-                className="w-full object-cover"
-              />
+            <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              <AspectRatio ratio={16/9} className="bg-muted">
+                <img 
+                  src="/lovable-uploads/05950649-a2f8-4ab3-a057-d204deaaf513.png" 
+                  alt="Aperçu du tableau de bord Sapajoo" 
+                  className="w-full h-full object-cover"
+                />
+              </AspectRatio>
             </div>
           </div>
         </div>
