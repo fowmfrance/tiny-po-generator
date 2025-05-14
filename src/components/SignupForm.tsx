@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +16,7 @@ import {
   CurrentToolField,
   ConsentField
 } from './signup/FormFields';
-import { submitToCoda } from '@/services/notifications/codaService';
+import { submitToCoda } from '@/services/notificationService';
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,8 +45,7 @@ const SignupForm = () => {
     
     try {
       // Send data to Coda with the specific column mapping
-      const response = await submitToCoda(values);
-      console.log("Response from Coda webhook:", response);
+      await submitToCoda(values);
       
       // Show confirmation
       setShowConfirmation(true);
