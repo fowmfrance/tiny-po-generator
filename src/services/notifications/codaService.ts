@@ -11,7 +11,6 @@ const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/gr
  */
 export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
   // Create a properly formatted object for Coda with explicit column IDs
-  // Note: Some Coda webhooks expect data in a specific format, often wrapped in a 'row' object
   const formattedData = {
     row: {
       "c-3Dp2s_RPJJ": values.firstName,
@@ -36,7 +35,7 @@ export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
  * @param values Form values from signup form
  * @returns Promise resolving with the submission result
  */
-export const submitToCoda = async (values: SignUpValues): Promise<Response> => {
+export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
   const formattedData = mapToCodaFormat(values);
   
   // Add debugging logs
@@ -44,21 +43,46 @@ export const submitToCoda = async (values: SignUpValues): Promise<Response> => {
   console.log("JSON payload being sent:", JSON.stringify(formattedData));
   
   try {
-    // Using 'no-cors' mode because most webhook endpoints don't support CORS
-    // This prevents JavaScript from seeing the response details but still allows the request to be sent
+    // Using a direct fetch without 'no-cors' to see actual response
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(formattedData),
-      mode: 'no-cors' // Changed back to 'no-cors' as this is typically required for cross-origin webhook requests
+      // Removed 'no-cors' mode to get proper response
     });
     
-    console.log("Request sent to Coda webhook");
-    return response;
+    console.log("Coda webhook response status:", response.status);
+    
+    // Attempt to get response text for better debugging
+    try {
+      const responseText = await response.text();
+      console.log("Coda webhook response:", responseText);
+    } catch (e) {
+      console.log("Couldn't read response text:", e);
+    }
+    
+    // Consider success if status is 2xx
+    return response.status >= 200 && response.status < 300;
   } catch (error) {
     console.error("Error submitting to Coda:", error);
-    throw error;
+    // If there's a CORS error, attempt again with no-cors
+    console.log("Retrying with no-cors mode as fallback...");
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formattedData),
+        mode: 'no-cors'
+      });
+      console.log("Fallback request sent (no response available in no-cors mode)");
+      return true; // Assume success since we can't check status in no-cors
+    } catch (fallbackError) {
+      console.error("Fallback request also failed:", fallbackError);
+      return false;
+    }
   }
 };

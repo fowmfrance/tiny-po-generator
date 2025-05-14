@@ -8,6 +8,7 @@ import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { toast } from './ui/use-toast';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { submitToCoda } from '@/services/notificationService';
 
 const waitingListSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
@@ -28,22 +29,38 @@ const WaitingListForm = () => {
   const onSubmit = async (values: WaitingListValues) => {
     setIsSubmitting(true);
     try {
-      // This is where you would integrate with your email collection service
       console.log('Email submitted:', values.email);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Format the data in a way compatible with submitToCoda
+      const formattedValues = {
+        firstName: '',
+        lastName: '',
+        email: values.email,
+        company: '',
+        jobTitle: '',
+        revenue: '',
+        suppliersCount: '',
+        currentTool: '',
+        consent: true
+      };
       
-      toast({
-        title: "Inscription réussie !",
-        description: "Vous êtes maintenant sur notre liste d'attente. Nous vous contacterons bientôt.",
-      });
+      const success = await submitToCoda(formattedValues);
       
-      form.reset();
+      if (success) {
+        toast({
+          title: "Inscription réussie !",
+          description: "Vous êtes maintenant sur notre liste d'attente. Nous vous contacterons bientôt.",
+        });
+        
+        form.reset();
+      } else {
+        throw new Error("La requête a échoué");
+      }
     } catch (error) {
+      console.error("Error submitting email:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue. Veuillez réessayer.",
+        description: "Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {

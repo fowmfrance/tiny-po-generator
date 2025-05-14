@@ -45,21 +45,25 @@ const SignupForm = () => {
     
     try {
       // Send data to Coda with the specific column mapping
-      await submitToCoda(values);
+      const success = await submitToCoda(values);
       
-      // Show confirmation
-      setShowConfirmation(true);
-      form.reset();
-      
-      toast({
-        title: "Formulaire envoyé",
-        description: "Votre demande a bien été reçue. Merci!",
-      });
+      if (success) {
+        // Show confirmation
+        setShowConfirmation(true);
+        form.reset();
+        
+        toast({
+          title: "Formulaire envoyé",
+          description: "Votre demande a bien été reçue. Merci!",
+        });
+      } else {
+        throw new Error("La requête a échoué");
+      }
     } catch (error) {
       console.error("Form submission error:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue. Veuillez réessayer.",
+        description: "Une erreur est survenue lors de l'envoi des données. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
