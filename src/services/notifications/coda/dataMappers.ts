@@ -3,26 +3,26 @@ import { SignUpValues } from '@/schemas/signupSchema';
 
 /**
  * Maps form values to the format expected by Coda API
- * Simplified to match Python implementation
+ * Using the correct column names from the Coda table
  */
 export const mapToCodaApiFormat = (values: SignUpValues): any => {
   // Format current date
   const currentDate = new Date().toISOString();
   
-  // Create properly formatted cells for the Coda API
+  // Create properly formatted cells for the Coda API, using actual column names from the table
   return {
     rows: [{
       cells: [
-        { column: "First Name", value: values.firstName },
-        { column: "Last Name", value: values.lastName },
-        { column: "Email", value: values.email },
-        { column: "Company", value: values.company },
-        { column: "Job Title", value: values.jobTitle },
-        { column: "Revenue", value: values.revenue },
-        { column: "Suppliers Count", value: values.suppliersCount },
-        { column: "Current Tool", value: values.currentTool },
-        { column: "Consent", value: values.consent ? "Yes" : "No" },
-        { column: "Date Submitted", value: currentDate }
+        { column: "firstname", value: values.firstName },
+        { column: "lastname", value: values.lastName },
+        { column: "email", value: values.email },
+        { column: "company", value: values.company },
+        { column: "jobtitle", value: values.jobTitle },
+        { column: "revenue", value: values.revenue },
+        { column: "supplierscount", value: values.suppliersCount },
+        { column: "currenttool", value: values.currentTool },
+        { column: "consent", value: values.consent ? "Yes" : "No" },
+        { column: "datesubmitted", value: currentDate }
       ]
     }]
   };

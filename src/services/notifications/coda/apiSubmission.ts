@@ -2,9 +2,10 @@
 import { SignUpValues } from '@/schemas/signupSchema';
 import { CODA_API_TOKEN, CODA_API_URL, CODA_DOC_ID, CODA_TABLE_ID } from '../constants';
 import { mapToCodaApiFormat } from './dataMappers';
+import axios from 'axios';
 
 /**
- * Submits data directly to Coda API table - simplified approach that matches Python implementation
+ * Submits data directly to Coda API table using axios for consistency
  */
 export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> => {
   try {
@@ -20,15 +21,11 @@ export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> =>
     // Format data for API
     const payload = mapToCodaApiFormat(values);
     
-    console.log("%c [CODA API] Submitting data to Coda table...", "color: #2196f3;");
+    console.log("%c [CODA API] Submitting data to Coda table with POST...", "color: #2196f3;");
     console.log("%c [CODA API] URL:", "color: #2196f3;", url);
     console.log("%c [CODA API] Payload:", "color: #2196f3;", payload);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload)
-    });
+    const response = await axios.post(url, payload, { headers });
     
     console.log("%c [CODA API] Response status:", "color: #2196f3;", response.status);
     
@@ -36,14 +33,17 @@ export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> =>
       console.log("%c [CODA API] Data successfully added to table!", "color: #4caf50;");
       return true;
     } else {
-      const errorData = await response.json();
-      console.error("%c [CODA API] Submission failed:", "color: #f44336;", response.status, errorData);
+      console.error("%c [CODA API] Submission failed:", "color: #f44336;", response.status, response.data);
       return false;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("%c [CODA API] Error during submission:", "color: #f44336;", error);
+    
+    // Log more detailed error information if available
+    if (error.response) {
+      console.error("%c [CODA API] Error response data:", "color: #f44336;", error.response.data);
+    }
+    
     return false;
   }
 };
-
-// Removed webhook submission method to simplify the approach

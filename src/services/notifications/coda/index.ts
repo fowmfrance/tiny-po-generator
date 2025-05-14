@@ -17,20 +17,26 @@ export const testCodaAccess = async (): Promise<boolean> => {
   try {
     console.log("%c [CODA] Testing API access using axios...", "color: #2196f3;");
     
-    // Test the tables endpoint directly with axios as suggested
+    // Try to get the document info rather than tables list (which might have more restricted permissions)
     try {
       const response = await axios.get(
-        `https://coda.io/apis/v1/docs/rHPklOH20m/tables`,
+        `${CODA_API_URL}/docs/${CODA_DOC_ID}`,
         {
           headers: {
-            'Authorization': `Bearer 336173f4-9c5a-4f15-8e4a-089cd44cc9a9`
+            'Authorization': `Bearer ${CODA_API_TOKEN}`
           }
         }
       );
-      console.log("%c [CODA API] Tables response data:", "color: #2196f3;", response.data);
+      console.log("%c [CODA API] Document access successful:", "color: #2196f3;", response.data);
       return true;
-    } catch (error) {
-      console.error("%c [CODA API] Error accessing tables:", "color: #f44336;", error);
+    } catch (error: any) {
+      console.error("%c [CODA API] Error accessing document:", "color: #f44336;", error);
+      
+      // Log more detailed error information if available
+      if (error.response) {
+        console.error("%c [CODA API] Error response data:", "color: #f44336;", error.response.data);
+      }
+      
       return false;
     }
   } catch (error) {
