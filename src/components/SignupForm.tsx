@@ -40,9 +40,14 @@ const SignupForm = () => {
 
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
+    
+    // Log the form values to help with debugging
+    console.log("Form submitted with values:", values);
+    
     try {
       // Send data to Coda with the specific column mapping
-      await submitToCoda(values);
+      const response = await submitToCoda(values);
+      console.log("Response from Coda webhook:", response);
       
       // Show confirmation
       setShowConfirmation(true);
@@ -53,12 +58,12 @@ const SignupForm = () => {
         description: "Votre demande a bien été reçue. Merci!",
       });
     } catch (error) {
+      console.error("Form submission error:", error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue. Veuillez réessayer.",
         variant: "destructive",
       });
-      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }

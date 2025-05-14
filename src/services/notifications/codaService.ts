@@ -23,23 +23,26 @@ const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/gr
  * @returns Mapped data ready for Coda
  */
 export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
-  return {
-    tableId: CODA_TABLE_ID,
-    cells: [
-      { column: CODA_COLUMN_IDS.firstName, value: values.firstName },
-      { column: CODA_COLUMN_IDS.lastName, value: values.lastName },
-      { column: CODA_COLUMN_IDS.email, value: values.email },
-      { column: CODA_COLUMN_IDS.company, value: values.company },
-      { column: CODA_COLUMN_IDS.jobTitle, value: values.jobTitle },
-      { column: CODA_COLUMN_IDS.revenue, value: values.revenue },
-      { column: CODA_COLUMN_IDS.suppliersCount, value: values.suppliersCount },
-      { column: CODA_COLUMN_IDS.currentTool, value: values.currentTool }
-    ],
-    metadata: {
-      submittedAt: new Date().toISOString(),
-      source: typeof window !== 'undefined' ? window.location.href : 'unknown'
-    }
+  // Create a simpler flat object structure which is more compatible with most webhooks
+  const formattedData = {
+    // Map form values directly to the expected column names
+    firstName: values.firstName,
+    lastName: values.lastName,
+    email: values.email,
+    company: values.company,
+    jobTitle: values.jobTitle,
+    revenue: values.revenue,
+    suppliersCount: values.suppliersCount,
+    currentTool: values.currentTool,
+    // Add metadata
+    submittedAt: new Date().toISOString(),
+    source: typeof window !== 'undefined' ? window.location.href : 'unknown'
   };
+  
+  // Log the data being sent for debugging
+  console.log("Sending to Coda:", formattedData);
+  
+  return formattedData;
 };
 
 /**
@@ -49,6 +52,9 @@ export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
  */
 export const submitToCoda = async (values: SignUpValues): Promise<Response> => {
   const formattedData = mapToCodaFormat(values);
+  
+  // Add debugging logs
+  console.log("Submitting to Coda webhook URL:", WEBHOOK_URL);
   
   return fetch(WEBHOOK_URL, {
     method: 'POST',
