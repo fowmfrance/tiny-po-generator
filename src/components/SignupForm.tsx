@@ -17,9 +17,7 @@ import {
   CurrentToolField,
   ConsentField
 } from './signup/FormFields';
-
-// Coda webhook URL for automation
-const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/grid-auto-k4YJ1sag6a";
+import { submitToCoda } from '@/services/notifications/codaService';
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,22 +41,8 @@ const SignupForm = () => {
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
     try {
-      // Prepare the data to be sent to the webhook
-      const formData = {
-        ...values,
-        submittedAt: new Date().toISOString(),
-        source: window.location.href
-      };
-
-      // Send data to Coda webhook
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-        mode: 'no-cors' // This might be needed for cross-origin requests
-      });
+      // Send data to Coda with the specific column mapping
+      await submitToCoda(values);
       
       // Show confirmation
       setShowConfirmation(true);
