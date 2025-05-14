@@ -30,7 +30,7 @@ const HeroSection = () => {
                   <img 
                     src="/lovable-uploads/41f94066-11be-48b2-bf11-fcf946feb3af.png" 
                     alt="Tableau de bord Sapajoo" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </AspectRatio>
