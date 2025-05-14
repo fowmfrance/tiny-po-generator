@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FooterSection from '@/components/landing/FooterSection';
@@ -26,9 +25,6 @@ const MentionsLegales = () => {
           
           <div className="flex justify-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-primary">Mentions Légales</h1>
-            <div className="inline-block bg-[#39FF14] text-white rounded-full px-4 py-1 ml-4 transform rotate-45">
-              <span className="font-bold">Bientôt!</span>
-            </div>
           </div>
           
           <div className="prose max-w-none text-gray-700 space-y-6">

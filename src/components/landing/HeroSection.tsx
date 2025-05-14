@@ -8,7 +8,7 @@ const HeroSection = () => {
       <div className="container mx-auto">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
           <div className="flex-1 max-w-2xl">
-            <div className="inline-block bg-[#39FF14] text-primary font-medium rounded-full px-6 py-2 text-sm mb-8 transform rotate-[5deg]">
+            <div className="inline-block bg-[#39FF14] text-white font-bold rounded-full px-6 py-2 text-sm mb-8 transform rotate-[5deg]">
               Bientôt!
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 text-primary leading-tight">
