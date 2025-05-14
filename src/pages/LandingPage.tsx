@@ -18,7 +18,7 @@ const LandingPage = () => {
                   className="h-10 w-10 object-contain"
                 />
               </div>
-              <h2 className="ml-3 font-serif font-bold text-2xl tracking-tight">Sapajoo</h2>
+              <h2 className="ml-3 font-bold text-2xl tracking-tight">Sapajoo</h2>
             </div>
             <button className="text-primary font-medium hover:text-primary/80 transition-colors">
               Connexion
@@ -30,7 +30,7 @@ const LandingPage = () => {
               <div className="inline-block bg-accent text-primary font-medium rounded-full px-6 py-2 text-sm mb-8">
                 Ouverture Juin 2025
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-8 text-primary leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 text-primary leading-tight">
                 Simplifiez la gestion de vos budgets achats
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-10 leading-relaxed">
@@ -56,7 +56,7 @@ const LandingPage = () => {
       <section className="py-20 px-4 md:px-8 lg:px-16 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
               Fonctionnalités principales
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
@@ -100,7 +100,7 @@ const LandingPage = () => {
               <div key={index} className="flex items-start gap-4 p-2">
                 <div className="text-3xl">{feature.icon}</div>
                 <div>
-                  <h3 className="font-serif font-semibold text-xl mb-2 text-primary">{feature.title}</h3>
+                  <h3 className="font-semibold text-xl mb-2 text-primary">{feature.title}</h3>
                   <p className="text-gray-600">{feature.description}</p>
                 </div>
               </div>
@@ -113,7 +113,7 @@ const LandingPage = () => {
       <section className="py-20 px-4 md:px-8 lg:px-16 bg-accent">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
               Comment ça marche
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
@@ -141,7 +141,7 @@ const LandingPage = () => {
             ].map((step, index) => (
               <div key={index} className="flex flex-col items-center p-6 bg-white rounded-lg shadow-marie">
                 <div className="text-4xl mb-4">{step.icon}</div>
-                <h3 className="font-serif font-semibold text-xl mb-3 text-primary">{step.title}</h3>
+                <h3 className="font-semibold text-xl mb-3 text-primary">{step.title}</h3>
                 <p className="text-gray-600 text-center">{step.description}</p>
               </div>
             ))}
@@ -149,40 +149,12 @@ const LandingPage = () => {
         </div>
       </section>
       
-      {/* Testimonial Section */}
-      <section className="py-20 px-4 md:px-8 lg:px-16 bg-white">
-        <div className="container mx-auto">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6 text-primary">
-                Ce que nos clients disent
-              </h2>
-            </div>
-            
-            <div className="bg-accent p-10 rounded-xl shadow-marie">
-              <p className="text-xl text-gray-700 italic mb-8 font-serif">
-                "Sapajoo a complètement transformé notre gestion des commandes. Nous économisons environ 15 heures par semaine sur les tâches administratives."
-              </p>
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-14 h-14 bg-gray-200 rounded-full"></div>
-                </div>
-                <div className="ml-4">
-                  <p className="font-serif font-semibold text-primary">Sophie Martin</p>
-                  <p className="text-gray-500 text-sm">Responsable Achats, Entreprise XYZ</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
       {/* Signup Form Section */}
-      <section className="py-20 px-4 md:px-8 lg:px-16 bg-accent">
+      <section className="py-20 px-4 md:px-8 lg:px-16 bg-white">
         <div className="container mx-auto">
           <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-marie p-8 md:p-12">
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6 text-primary">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-primary">
                 Rejoignez notre liste d'attente
               </h2>
               <p className="text-gray-600">
@@ -208,7 +180,7 @@ const LandingPage = () => {
                     className="h-8 w-8 object-contain"
                   />
                 </div>
-                <span className="ml-3 font-serif font-bold text-xl text-primary">Sapajoo</span>
+                <span className="ml-3 font-bold text-xl text-primary">Sapajoo</span>
               </div>
               <p className="text-gray-600 mb-6 max-w-md">
                 Simplifiez votre processus d'achat et de gestion des bons de commande avec notre plateforme innovante.
@@ -216,7 +188,7 @@ const LandingPage = () => {
             </div>
             
             <div>
-              <h3 className="font-serif font-bold text-primary mb-4">Liens</h3>
+              <h3 className="font-bold text-primary mb-4">Liens</h3>
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-600 hover:text-primary transition-colors">Accueil</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-primary transition-colors">Fonctionnalités</a></li>
@@ -226,7 +198,7 @@ const LandingPage = () => {
             </div>
             
             <div>
-              <h3 className="font-serif font-bold text-primary mb-4">Contact</h3>
+              <h3 className="font-bold text-primary mb-4">Contact</h3>
               <ul className="space-y-2">
                 <li className="text-gray-600">contact@sapajoo.com</li>
                 <li className="text-gray-600">+33 1 23 45 67 89</li>
