@@ -8,9 +8,9 @@ const HeroSection = () => {
       <div className="container mx-auto">
         <div className="flex justify-center items-center mb-16">
           <img 
-            src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
+            src="/lovable-uploads/efe8955a-c370-4bed-ba41-e64efd80f9e6.png" 
             alt="Logo Sapajoo" 
-            className="h-16 w-auto object-contain"
+            className="h-32 w-auto object-contain"
           />
         </div>
         
