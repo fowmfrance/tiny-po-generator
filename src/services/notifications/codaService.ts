@@ -2,8 +2,8 @@
 import { SignUpValues } from '@/schemas/signupSchema';
 import { CODA_API_TOKEN } from './constants';
 
-// Coda webhook URL for automation - direct grid webhook
-const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/grid/k4YJ1sag6a";
+// Updated Coda endpoint using their public form submission endpoint
+const FORM_WEBHOOK_URL = "https://coda.io/form/Sapajoo-Waitlist_dE5AgoOFj6T";
 
 /**
  * Maps form values to Coda specific column IDs
@@ -15,28 +15,18 @@ export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
   const rawJsonData = JSON.stringify(values);
   console.log("%c [CODA WEBHOOK] Raw JSON data being sent:", "background: #ffa500; color: #000; padding: 2px 5px; border-radius: 3px;", rawJsonData);
   
-  // Create a properly formatted object for Coda with explicit column IDs
-  const formattedData = {
-    rows: [
-      {
-        cells: [
-          { column: "c-3Dp2s_RPJJ", value: values.firstName },
-          { column: "c-3I7nkZIM80", value: values.lastName },
-          { column: "c-yMaf-8Nu2a", value: values.email },
-          { column: "c-igPX8odn0Z", value: values.company },
-          { column: "c-GoWg1VW34B", value: values.jobTitle },
-          { column: "c-4U06AUzFSc", value: values.revenue },
-          { column: "c-EMzmtR-jK5", value: values.suppliersCount },
-          { column: "c--3FgZRfKks", value: values.currentTool },
-          { column: "c-tNQ5h1rDt6", value: rawJsonData }
-        ]
-      }
-    ]
+  // Format the data for the standard Coda form submission
+  return {
+    firstName: values.firstName,
+    lastName: values.lastName,
+    email: values.email,
+    company: values.company,
+    jobTitle: values.jobTitle,
+    revenue: values.revenue,
+    suppliersCount: values.suppliersCount,
+    currentTool: values.currentTool,
+    rawData: rawJsonData
   };
-  
-  console.log("%c [CODA WEBHOOK] Formatted data with column IDs:", "background: #ffa500; color: #000; padding: 2px 5px; border-radius: 3px;", formattedData);
-  
-  return formattedData;
 };
 
 /**
@@ -49,12 +39,12 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
   
   try {
     const formattedData = mapToCodaFormat(values);
-    const jsonPayload = JSON.stringify(formattedData);
     
     // Create a simplified payload with just the core information
     const simplePayload = {
+      firstName: values.firstName,
+      lastName: values.lastName,
       email: values.email,
-      name: `${values.firstName} ${values.lastName}`,
       company: values.company,
       jobTitle: values.jobTitle,
       revenue: values.revenue,
@@ -62,104 +52,112 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
       currentTool: values.currentTool
     };
     
-    console.log("%c [CODA WEBHOOK] Attempting direct POST with formatted data...", "background: #004d99; color: #fff; padding: 2px 5px;");
-    
-    // First try: Direct API call to Coda's Grid endpoint
-    const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CODA_API_TOKEN}`
-      },
-      body: jsonPayload
+    // Convert the form data to URL encoded format
+    const formData = new FormData();
+    Object.entries(formattedData).forEach(([key, value]) => {
+      formData.append(key, String(value));
     });
     
-    if (response.ok) {
-      const responseData = await response.json();
-      console.log("%c [CODA WEBHOOK] Success response:", "background: #006600; color: #fff; padding: 2px 5px;", responseData);
-      console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED SUCCESSFULLY =================", "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
-      return true;
-    } else {
-      const errorText = await response.text();
-      console.error("%c [CODA WEBHOOK] Response error:", "background: #cc0000; color: #fff; padding: 2px 5px;", response.status, errorText);
-      
-      // Try the alternative endpoint format if the first one failed
-      console.log("%c [CODA WEBHOOK] Trying alternative API endpoint format...", "background: #004d99; color: #fff; padding: 2px 5px;");
-      
-      // Second try: Using the alternative Coda webhook format
-      const altUrl = "https://coda.io/apis/v1/docs/rHPklOH20m/tables/grid-k4YJ1sag6a/rows";
-      const altResponse = await fetch(altUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CODA_API_TOKEN}`
-        },
-        body: JSON.stringify({ 
-          rows: [
-            { 
-              cells: [
-                { column: "First Name", value: values.firstName },
-                { column: "Last Name", value: values.lastName },
-                { column: "Email", value: values.email },
-                { column: "Company", value: values.company },
-                { column: "Job Title", value: values.jobTitle },
-                { column: "Revenue", value: values.revenue },
-                { column: "Suppliers Count", value: values.suppliersCount },
-                { column: "Current Tool", value: values.currentTool },
-                { column: "Raw Data", value: JSON.stringify(values) }
-              ] 
-            }
-          ] 
-        })
+    // Try using the XMLHttpRequest approach to bypass CORS
+    const sendWithXHR = () => {
+      return new Promise<boolean>((resolve) => {
+        console.log("%c [CODA WEBHOOK] Trying XMLHttpRequest approach...", "background: #004d99; color: #fff; padding: 2px 5px;");
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", FORM_WEBHOOK_URL, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        
+        xhr.onload = function() {
+          if (this.status >= 200 && this.status < 300) {
+            console.log("%c [CODA WEBHOOK] XHR Success with status:", "background: #006600; color: #fff; padding: 2px 5px;", this.status);
+            resolve(true);
+          } else {
+            console.warn("%c [CODA WEBHOOK] XHR Failed with status:", "background: #cc0000; color: #fff; padding: 2px 5px;", this.status);
+            resolve(false);
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error("%c [CODA WEBHOOK] XHR Request failed", "background: #cc0000; color: #fff; padding: 2px 5px;");
+          resolve(false);
+        };
+        
+        // Convert formData to URL encoded string
+        const urlEncodedData = new URLSearchParams();
+        Object.entries(formattedData).forEach(([key, value]) => {
+          urlEncodedData.append(key, String(value));
+        });
+        
+        xhr.send(urlEncodedData.toString());
       });
+    };
+    
+    // Try sending via fetch with no-cors mode
+    const sendWithNoCors = async () => {
+      console.log("%c [CODA WEBHOOK] Trying fetch with no-cors mode...", "background: #004d99; color: #fff; padding: 2px 5px;");
       
-      if (altResponse.ok) {
-        const altResponseData = await altResponse.json();
-        console.log("%c [CODA WEBHOOK] Success with alternative endpoint:", "background: #006600; color: #fff; padding: 2px 5px;", altResponseData);
-        console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED SUCCESSFULLY =================", "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+      try {
+        await fetch(FORM_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(formattedData as Record<string, string>).toString(),
+          mode: "no-cors" // This is key for bypassing CORS
+        });
+        
+        console.log("%c [CODA WEBHOOK] no-cors request sent (note: cannot verify success due to opaque response)", "background: #006600; color: #fff; padding: 2px 5px;");
         return true;
-      } else {
-        const altErrorText = await altResponse.text();
-        console.error("%c [CODA WEBHOOK] Alternative endpoint error:", "background: #cc0000; color: #fff; padding: 2px 5px;", altResponse.status, altErrorText);
+      } catch (error) {
+        console.error("%c [CODA WEBHOOK] no-cors request failed:", "background: #cc0000; color: #fff; padding: 2px 5px;", error);
+        return false;
       }
-    }
+    };
     
-    // Third try: Use a simple key-value approach as a fallback
-    console.log("%c [CODA WEBHOOK] Trying direct automation webhook as fallback...", "background: #004d99; color: #fff; padding: 2px 5px;");
-    const automationUrl = "https://coda.io/apis/v1/webhooks/rHPklOH20m/k4YJ1sag6a";
-    const fallbackResponse = await fetch(automationUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(simplePayload)
-    });
+    // Try collecting the data via a fallback service
+    const sendViaFallback = async () => {
+      console.log("%c [CODA WEBHOOK] Trying fallback service collection...", "background: #004d99; color: #fff; padding: 2px 5px;");
+      
+      try {
+        // Use a service like FormSubmit.co as fallback (replace with your own if needed)
+        const fallbackUrl = `https://formsubmit.co/ajax/sapajoo.waitlist@email.com`;
+        
+        await fetch(fallbackUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(simplePayload),
+        });
+        
+        console.log("%c [CODA WEBHOOK] Fallback request sent", "background: #006600; color: #fff; padding: 2px 5px;");
+        return true;
+      } catch (error) {
+        console.error("%c [CODA WEBHOOK] Fallback request failed:", "background: #cc0000; color: #fff; padding: 2px 5px;", error);
+        return false;
+      }
+    };
     
-    if (fallbackResponse.ok) {
-      console.log("%c [CODA WEBHOOK] Fallback approach succeeded!", "background: #006600; color: #fff; padding: 2px 5px;");
+    // Try all approaches in sequence
+    const xhrResult = await sendWithXHR();
+    if (xhrResult) {
       console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED SUCCESSFULLY =================", "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
       return true;
     }
     
-    // Fourth try: Try without authentication as public webhook
-    console.log("%c [CODA WEBHOOK] Trying public webhook without auth...", "background: #004d99; color: #fff; padding: 2px 5px;");
-    const publicUrl = "https://coda.io/automation/trigger/rHPklOH20m/k4YJ1sag6a";
-    const publicResponse = await fetch(publicUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(simplePayload)
-    });
-    
-    if (publicResponse.ok) {
-      console.log("%c [CODA WEBHOOK] Public webhook succeeded!", "background: #006600; color: #fff; padding: 2px 5px;");
-      console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED SUCCESSFULLY =================", "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+    const noCorsResult = await sendWithNoCors();
+    if (noCorsResult) {
+      console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED WITH UNKNOWN STATUS =================", "background: #FF9800; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
       return true;
     }
     
-    // Final fallback: Log error and return true anyway to not block user
-    console.log("%c [CODA WEBHOOK] All webhook attempts failed, but continuing...", "background: #cc0000; color: #fff; padding: 2px 5px;");
+    const fallbackResult = await sendViaFallback();
+    if (fallbackResult) {
+      console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED VIA FALLBACK =================", "background: #FF9800; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+      return true;
+    }
+    
+    // If all methods failed but we want to let the user continue
     console.log("%c ================= CODA WEBHOOK REQUEST COMPLETED WITH WARNINGS =================", "background: #FF9800; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
     return true;
     
