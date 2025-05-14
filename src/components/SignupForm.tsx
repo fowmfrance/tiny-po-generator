@@ -17,7 +17,7 @@ import {
   CurrentToolField,
   ConsentField
 } from './signup/FormFields';
-import { submitToCoda } from '@/services/notificationService';
+import { submitToCoda, testCodaAccess } from '@/services/notificationService';
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +46,12 @@ const SignupForm = () => {
     console.log("%c [FORM DATA]", "color: #4caf50; font-weight: bold;", JSON.stringify(values, null, 2));
     
     try {
-      // Send data to Coda with the specific column mapping
+      // Test Coda access first (optional)
+      testCodaAccess().then(isAccessible => {
+        console.log("%c [FORM PROCESS] Coda API is accessible:", "color: #2196f3; font-weight: bold;", isAccessible);
+      });
+      
+      // Send data to Coda
       console.log("%c [FORM PROCESS] Submitting to Coda...", "color: #2196f3; font-weight: bold;");
       
       // Fire and forget - don't wait

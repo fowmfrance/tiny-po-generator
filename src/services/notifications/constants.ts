@@ -1,14 +1,16 @@
 
 import { TemplateIds } from './types';
 
-// Replace this with your actual Supersend API key
-export const SUPERSEND_API_KEY = 'your-supersend-api-key';
-export const SUPERSEND_API_URL = 'https://api.supersend.io/v1';
+// Coda API configuration
+export const CODA_API_TOKEN = '56dbe324-55cb-44e8-a5f0-4ff96cd28a03'; // This token has proper permissions
+export const CODA_DOC_ID = 'hRROcdWUBC';
+export const CODA_TABLE_ID = 'grid-yoonq1yARn';
+export const CODA_API_URL = 'https://coda.io/apis/v1';
 
-// Coda API token for webhook authentication
-// Updated token with proper permissions
-export const CODA_API_TOKEN = '336173f4-9c5a-4f15-8e4a-089cd44cc9a9';
+// Form submission endpoint - fallback method
+export const FORM_WEBHOOK_URL = "https://coda.io/form/Sapajoo-Waitlist_dE5AgoOFj6T";
 
+// Notification templates
 export const TEMPLATE_IDS: TemplateIds = {
   po_created: 'po-created-template',
   po_sent: 'po-sent-template',
