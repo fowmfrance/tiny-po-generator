@@ -3,13 +3,13 @@ import { SignUpValues } from '@/schemas/signupSchema';
 
 /**
  * Maps form values to the format expected by Coda API
- * Using the correct column names from the Coda table
+ * Using the correct column IDs from the Coda table
  */
 export const mapToCodaApiFormat = (values: SignUpValues): any => {
   // Format current date
   const currentDate = new Date().toISOString();
   
-  // Create properly formatted cells for the Coda API, using actual column names from the table
+  // Create properly formatted cells for the Coda API, using the exact column IDs
   return {
     rows: [{
       cells: [
