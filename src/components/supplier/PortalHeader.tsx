@@ -3,7 +3,7 @@ import React from 'react';
 
 const PortalHeader: React.FC = () => {
   return (
-    <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="sm:mx-auto sm:w-full sm:max-w-md bg-transparent">
       <img 
         src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
         alt="Sapajoo" 

@@ -9,7 +9,7 @@ import Index from './pages/Index';
 function App() {
   return (
     <Router>
-      <div className="w-full flex justify-center pt-6">
+      <div className="w-full flex justify-center pt-6 bg-transparent">
         <img 
           src="/lovable-uploads/e108d857-cf1f-487c-8ddf-e170435be97a.png" 
           alt="Logo Sapajoo" 
