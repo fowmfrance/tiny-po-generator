@@ -2,7 +2,8 @@
 import { SignUpValues } from '@/schemas/signupSchema';
 import { submitToCodaApi } from './apiSubmission';
 import { createCodaHeaders } from './utils';
-import { CODA_API_URL, CODA_DOC_ID } from '../constants';
+import { CODA_API_URL, CODA_DOC_ID, CODA_API_TOKEN } from '../constants';
+import axios from 'axios';
 
 // Re-export functions for backwards compatibility
 export { mapToCodaApiFormat, mapToCodaFormFormat } from './dataMappers';
@@ -10,54 +11,30 @@ export { submitToCodaApi } from './apiSubmission';
 
 /**
  * Tests if Coda API is accessible with the current token
+ * Using the exact approach suggested with axios
  */
 export const testCodaAccess = async (): Promise<boolean> => {
   try {
-    console.log("%c [CODA] Testing API access...", "color: #2196f3;");
+    console.log("%c [CODA] Testing API access using axios...", "color: #2196f3;");
     
-    // Test the API token
-    console.log("%c [CODA] Testing API token access...", "color: #2196f3;");
-    const whoamiUrl = `${CODA_API_URL}/whoami`;
-    const headers = createCodaHeaders();
-    
-    const whoamiResponse = await fetch(whoamiUrl, {
-      method: 'GET',
-      headers
-    });
-    
-    if (whoamiResponse.status !== 200) {
-      console.error("%c [CODA API] Token test failed with status:", "color: #f44336;", whoamiResponse.status);
-      return false;
-    }
-    
-    const whoamiData = await whoamiResponse.json();
-    console.log("%c [CODA API] Token test response:", "color: #2196f3;", whoamiData);
-    
-    // Test document access
-    console.log("%c [CODA] Testing document access...", "color: #2196f3;");
-    const docUrl = `${CODA_API_URL}/docs/${CODA_DOC_ID}`;
-    
+    // Test the tables endpoint directly with axios as suggested
     try {
-      const docResponse = await fetch(docUrl, {
-        method: 'GET',
-        headers
-      });
-      
-      const docData = await docResponse.json();
-      console.log("%c [CODA API] Document access test response:", "color: #2196f3;", docData);
-      
-      if (docResponse.status !== 200) {
-        console.error("%c [CODA API] Document access test failed with status:", "color: #f44336;", docResponse.status);
-        return false;
-      }
-      
+      const response = await axios.get(
+        `https://coda.io/apis/v1/docs/rHPklOH20m/tables`,
+        {
+          headers: {
+            'Authorization': `Bearer 336173f4-9c5a-4f15-8e4a-089cd44cc9a9`
+          }
+        }
+      );
+      console.log("%c [CODA API] Tables response data:", "color: #2196f3;", response.data);
       return true;
     } catch (error) {
-      console.error("%c [CODA API] Document access test error:", "color: #f44336;", error);
+      console.error("%c [CODA API] Error accessing tables:", "color: #f44336;", error);
       return false;
     }
   } catch (error) {
-    console.error("%c [CODA] Error testing API access:", "color: #f44336;", error);
+    console.error("%c [CODA] Error in testCodaAccess:", "color: #f44336;", error);
     return false;
   }
 };
