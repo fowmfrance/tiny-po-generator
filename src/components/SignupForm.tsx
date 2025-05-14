@@ -8,7 +8,6 @@ import { Loader2 } from 'lucide-react';
 import { toast } from './ui/use-toast';
 import { signUpSchema, SignUpValues } from '@/schemas/signupSchema';
 import ConfirmationDialog from './signup/ConfirmationDialog';
-import { sendFormDataViaEmail } from '@/utils/emailUtils';
 import {
   NameFields,
   EmailField,
@@ -18,6 +17,7 @@ import {
   CurrentToolField,
   ConsentField
 } from './signup/FormFields';
+import { sendMockNotification } from '@/services/notifications/notificationApi';
 
 const SignupForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,13 +41,26 @@ const SignupForm = () => {
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
     try {
-      // Send form data via email
+      // Send notification using Supersend mock implementation
       const emailSubject = `Nouvelle inscription liste d'attente: ${values.firstName} ${values.lastName} de ${values.company}`;
-      sendFormDataViaEmail(values, 'hello@sapajoo.fr', emailSubject);
+      
+      await sendMockNotification('vendor_invited', {
+        email: 'hello@sapajoo.fr',
+        name: 'Sapajoo Team'
+      }, {
+        subject: emailSubject,
+        formData: values,
+        date: new Date().toISOString()
+      });
       
       // Show confirmation
       setShowConfirmation(true);
       form.reset();
+      
+      toast({
+        title: "Formulaire envoyé",
+        description: "Votre demande a bien été reçue. Merci!",
+      });
     } catch (error) {
       toast({
         title: "Erreur",

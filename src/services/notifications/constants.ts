@@ -14,5 +14,6 @@ export const TEMPLATE_IDS: TemplateIds = {
   po_paid: 'po-paid-template',
   invoice_received: 'invoice-received-template',
   approval_required: 'approval-required-template',
-  vendor_invited: 'vendor-invited-template'
+  vendor_invited: 'vendor-invited-template',
+  signup_form: 'signup-form-template'
 };
