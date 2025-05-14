@@ -1,36 +1,16 @@
 
 import { NotificationEventType, Recipient } from './types';
-import { SUPERSEND_API_KEY, SUPERSEND_API_URL, TEMPLATE_IDS } from './constants';
+import { TEMPLATE_IDS } from './constants';
 
-// Helper function to send notifications through Supersend
+// Helper function to send notifications through mock service
 export const sendNotification = async (
   eventType: NotificationEventType,
   recipient: Recipient,
   data: Record<string, any>
 ) => {
   try {
-    const response = await fetch(`${SUPERSEND_API_URL}/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPERSEND_API_KEY}`
-      },
-      body: JSON.stringify({
-        template_id: TEMPLATE_IDS[eventType],
-        email: recipient.email,
-        data: {
-          name: recipient.name || recipient.email.split('@')[0],
-          ...data
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Supersend notification failed:', errorData);
-      return false;
-    }
-
+    console.log(`[NOTIFICATION] Would send ${eventType} notification to ${recipient.email}`, data);
+    // In a real implementation, this would be an actual API call
     return true;
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -45,6 +25,8 @@ export const sendMockNotification = (
   data: Record<string, any>
 ) => {
   console.log(`[MOCK NOTIFICATION] ${eventType} to ${recipient.email}`, data);
+  console.log(`Template ID: ${TEMPLATE_IDS[eventType]}`);
+  console.log(`Data: ${JSON.stringify(data, null, 2)}`);
   // This would be replaced with actual API calls in production
   return Promise.resolve(true);
 };
