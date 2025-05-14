@@ -30,7 +30,7 @@ const WaitingListForm = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('[WAITING_LIST] Email submitted:', values.email);
+      console.log("%c 📧 [WAITING_LIST] Email submitted:", "background: #9c27b0; color: white; padding: 5px; border-radius: 3px; font-weight: bold;", values.email);
       
       // Format the data in a way compatible with submitToCoda
       const formattedValues = {
@@ -45,13 +45,13 @@ const WaitingListForm = () => {
         consent: true
       };
       
-      console.log('[WAITING_LIST] Submitting to Coda with formatted values:', JSON.stringify(formattedValues));
+      console.log("%c [WAITING_LIST] Submitting to Coda with formatted values:", "color: #9c27b0; font-weight: bold;", JSON.stringify(formattedValues, null, 2));
       
       // Fire and forget - don't wait for the response
       submitToCoda(formattedValues).then(() => {
-        console.log('[WAITING_LIST] Submission completed');
+        console.log("%c [WAITING_LIST] Submission completed", "color: #4caf50; font-weight: bold;");
       }).catch(err => {
-        console.error('[WAITING_LIST] Error in submission process:', err);
+        console.error("%c [WAITING_LIST] Error in submission process:", "color: #f44336; font-weight: bold;", err);
       });
       
       // Always show success message
@@ -62,7 +62,7 @@ const WaitingListForm = () => {
       
       form.reset();
     } catch (error) {
-      console.error("[WAITING_LIST] Critical error:", error);
+      console.error("%c [WAITING_LIST] Critical error:", "background: #f44336; color: white; padding: 5px; border-radius: 3px; font-weight: bold;", error);
       
       // Still show success message to avoid user frustration
       toast({

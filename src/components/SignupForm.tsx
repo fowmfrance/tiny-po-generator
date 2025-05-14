@@ -41,15 +41,17 @@ const SignupForm = () => {
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
     
-    // Log the form values for debugging
-    console.log("[FORM] Form submission started with values:", JSON.stringify(values));
+    // Log the form values for debugging with enhanced visibility
+    console.log("%c 📝 [FORM SUBMISSION] Starting with values:", "background: #4caf50; color: white; padding: 5px; border-radius: 3px; font-weight: bold;");
+    console.log("%c [FORM DATA]", "color: #4caf50; font-weight: bold;", JSON.stringify(values, null, 2));
     
     try {
       // Send data to Coda with the specific column mapping
-      console.log("[FORM] Submitting to Coda...");
+      console.log("%c [FORM PROCESS] Submitting to Coda...", "color: #2196f3; font-weight: bold;");
+      
+      // Fire and forget - don't wait
       submitToCoda(values).then(() => {
-        // Always show success to user, since we can't reliably detect failures
-        console.log("[FORM] Form submission completed");
+        console.log("%c [FORM PROCESS] Form submission completed", "color: #4caf50; font-weight: bold;");
         
         // Show confirmation
         setShowConfirmation(true);
@@ -60,7 +62,7 @@ const SignupForm = () => {
           description: "Votre demande a bien été reçue. Merci!",
         });
       }).catch(err => {
-        console.error("[FORM] Error in submission process:", err);
+        console.error("%c [FORM ERROR] Error in submission process:", "color: #f44336; font-weight: bold;", err);
         // Still show success to avoid user frustration
         setShowConfirmation(true);
         form.reset();
@@ -71,7 +73,7 @@ const SignupForm = () => {
         });
       });
     } catch (error) {
-      console.error("[FORM] Critical error in form submission:", error);
+      console.error("%c [FORM ERROR] Critical error in form submission:", "background: #f44336; color: white; padding: 5px; border-radius: 3px; font-weight: bold;", error);
       // Still show success to avoid user frustration
       setShowConfirmation(true);
       form.reset();
