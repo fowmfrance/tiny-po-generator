@@ -1,69 +1,18 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import Index from "./pages/Index";
-import PurchaseOrders from "./pages/PurchaseOrders";
-import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
-import CreatePO from "./pages/CreatePO";
-import Vendors from "./pages/Vendors";
-import VendorDetail from "./pages/VendorDetail";
-import Budgets from "./pages/Budgets";
-import BudgetDetails from "./pages/BudgetDetails";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import SupplierPortal from "./pages/SupplierPortal";
-import SupplierDashboard from "./pages/SupplierDashboard";
-import SupplierInvoiceCreate from "./pages/SupplierInvoiceCreate";
-import SupplierPOView from "./pages/SupplierPOView";
-import SupplierGuestInvoice from "./pages/SupplierGuestInvoice";
-import Reports from "./pages/Reports";
-import LandingPage from "./pages/LandingPage";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import { Toaster } from './components/ui/toaster';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+      </Routes>
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* Main Application Routes */}
-          <Route path="/app" element={<Layout />}>
-            <Route path="" element={<Index />} />
-            <Route path="budgets" element={<Budgets />} />
-            <Route path="budgets/:budgetId" element={<BudgetDetails />} />
-            <Route path="purchase-orders" element={<PurchaseOrders />} />
-            <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
-            <Route path="purchase-orders/create" element={<CreatePO />} />
-            <Route path="vendors" element={<Vendors />} />
-            <Route path="vendors/:id" element={<VendorDetail />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
-            {/* Placeholder routes for future implementation */}
-            <Route path="invoices" element={<div className="p-6">Page des Factures (À venir)</div>} />
-          </Route>
-          
-          {/* Supplier Portal Routes */}
-          <Route path="/supplier" element={<SupplierPortal />} />
-          <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
-          <Route path="/supplier/invoices/create" element={<SupplierInvoiceCreate />} />
-          <Route path="/supplier/purchaseorders/:id" element={<SupplierPOView />} />
-          <Route path="/supplier/guest-invoice" element={<SupplierGuestInvoice />} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </Router>
+  );
+}
 
 export default App;
