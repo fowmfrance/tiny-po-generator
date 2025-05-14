@@ -10,6 +10,10 @@ const WEBHOOK_URL = "https://coda.io/apis/v1/docs/rHPklOH20m/hooks/automation/gr
  * @returns Mapped data ready for Coda
  */
 export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
+  // Create a JSON string of all form data
+  const rawJsonData = JSON.stringify(values);
+  console.log("Raw JSON data being sent:", rawJsonData);
+  
   // Create a properly formatted object for Coda with explicit column IDs
   const formattedData = {
     row: {
@@ -21,6 +25,7 @@ export const mapToCodaFormat = (values: SignUpValues): Record<string, any> => {
       "c-4U06AUzFSc": values.revenue,
       "c-EMzmtR-jK5": values.suppliersCount,
       "c--3FgZRfKks": values.currentTool,
+      "c-tNQ5h1rDt6": rawJsonData, // Adding raw JSON data to the specified column
     }
   };
   
