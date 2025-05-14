@@ -2,9 +2,9 @@
 import { TemplateIds } from './types';
 
 // Coda API configuration
-export const CODA_API_TOKEN = '56dbe324-55cb-44e8-a5f0-4ff96cd28a03'; // This token has proper permissions
-export const CODA_DOC_ID = 'hRROcdWUBC';
-export const CODA_TABLE_ID = 'grid-yoonq1yARn';
+export const CODA_API_TOKEN = '56dbe324-55cb-44e8-a5f0-4ff96cd28a03'; // Token from Python example
+export const CODA_DOC_ID = 'hRROcdWUBC'; // Doc ID from Python example
+export const CODA_TABLE_ID = 'grid-yoonq1yARn'; // Table ID from Python example
 export const CODA_API_URL = 'https://coda.io/apis/v1';
 
 // Form submission endpoint - fallback method

@@ -3,7 +3,7 @@ import { SignUpValues } from '@/schemas/signupSchema';
 import { CODA_API_TOKEN, CODA_DOC_ID, CODA_TABLE_ID, CODA_API_URL, FORM_WEBHOOK_URL } from './constants';
 
 /**
- * Tests Coda API access using the provided credentials
+ * Tests Coda API access using the provided credentials, following the Python implementation
  * @returns Promise that resolves with true if access is successful
  */
 export const testCodaAccess = async (): Promise<boolean> => {
@@ -13,14 +13,15 @@ export const testCodaAccess = async (): Promise<boolean> => {
       'Content-Type': 'application/json; charset=utf-8'
     };
     
-    // Test the API token
+    // Test the API token with whoami endpoint
+    console.log("%c [CODA] Testing API token access...", "color: #2196f3;");
     const whoamiResponse = await fetch(`${CODA_API_URL}/whoami`, {
       method: 'GET',
       headers
     });
     
-    console.log("%c [CODA API] Token test response:", "color: #2196f3;", 
-      await whoamiResponse.json());
+    const whoamiData = await whoamiResponse.json();
+    console.log("%c [CODA API] Token test response:", "color: #2196f3;", whoamiData);
     
     if (whoamiResponse.status !== 200) {
       console.error("%c [CODA API] Token test failed with status:", "color: #f44336;", 
@@ -29,15 +30,23 @@ export const testCodaAccess = async (): Promise<boolean> => {
     }
     
     // Test document access
+    console.log("%c [CODA] Testing document access...", "color: #2196f3;");
     const docResponse = await fetch(`${CODA_API_URL}/docs/${CODA_DOC_ID}`, {
       method: 'GET',
       headers
     });
     
-    console.log("%c [CODA API] Document access test response:", "color: #2196f3;", 
-      await docResponse.json());
+    const docData = await docResponse.json();
+    console.log("%c [CODA API] Document access test response:", "color: #2196f3;", docData);
     
-    return docResponse.status === 200;
+    if (docResponse.status !== 200) {
+      console.error("%c [CODA API] Document access test failed with status:", "color: #f44336;", 
+        docResponse.status);
+      return false;
+    }
+    
+    console.log("%c [CODA] API access test successful!", "color: #4CAF50;");
+    return true;
   } catch (error) {
     console.error("%c [CODA API] Access test error:", "color: #f44336;", error);
     return false;
@@ -50,6 +59,9 @@ export const testCodaAccess = async (): Promise<boolean> => {
  * @returns Formatted data for Coda API
  */
 export const mapToCodaApiFormat = (values: SignUpValues): any => {
+  // Format current date
+  const currentDate = new Date().toISOString();
+  
   // Create properly formatted cells for the Coda API
   return {
     rows: [{
@@ -63,7 +75,7 @@ export const mapToCodaApiFormat = (values: SignUpValues): any => {
         { column: "Suppliers Count", value: values.suppliersCount },
         { column: "Current Tool", value: values.currentTool },
         { column: "Consent", value: values.consent },
-        { column: "Date Submitted", value: new Date().toISOString() },
+        { column: "Date Submitted", value: currentDate }
       ]
     }]
   };
@@ -89,7 +101,7 @@ export const mapToCodaFormFormat = (values: SignUpValues): Record<string, any> =
 };
 
 /**
- * Submits data to Coda via direct API
+ * Submits data to Coda via direct API following Python implementation
  */
 export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> => {
   try {
@@ -104,26 +116,50 @@ export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> =>
     console.log("%c [CODA API] Submitting data to Coda API...", "color: #2196f3;");
     console.log("%c [CODA API] Payload:", "color: #2196f3;", payload);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload)
-    });
+    const maxRetries = 3;
+    let retryCount = 0;
     
-    if (response.status === 202) {
-      console.log("%c [CODA API] Submission successful!", "color: #4caf50;");
-      return true;
-    } else {
-      const errorData = await response.json();
-      console.error("%c [CODA API] Submission failed:", "color: #f44336;", response.status, errorData);
-      
-      // If we get a 429 rate limit error, we could implement retry logic here
-      if (response.status === 429) {
-        console.warn("%c [CODA API] Rate limit hit, would retry in production", "color: #ff9800;");
+    while (retryCount < maxRetries) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        
+        console.log("%c [CODA API] Response status:", "color: #2196f3;", response.status);
+        
+        if (response.status === 202) {
+          console.log("%c [CODA API] Submission successful!", "color: #4caf50;");
+          return true;
+        } else {
+          const errorData = await response.json();
+          console.error("%c [CODA API] Submission failed:", "color: #f44336;", response.status, errorData);
+          
+          // If we get a 429 rate limit error, implement retry with exponential backoff
+          if (response.status === 429) {
+            retryCount++;
+            const waitTime = Math.pow(2, retryCount);
+            console.warn(`%c [CODA API] Rate limit hit, retrying in ${waitTime} seconds...`, "color: #ff9800;");
+            await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+          } else {
+            return false;
+          }
+        }
+      } catch (error) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          const waitTime = Math.pow(2, retryCount);
+          console.error("%c [CODA API] Request error, retrying...", "color: #f44336;", error);
+          await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+        } else {
+          console.error("%c [CODA API] Max retries reached:", "color: #f44336;", error);
+          return false;
+        }
       }
-      
-      return false;
     }
+    
+    return false;
   } catch (error) {
     console.error("%c [CODA API] Error during submission:", "color: #f44336;", error);
     return false;
@@ -142,6 +178,8 @@ const submitViaFormWebhook = async (values: SignUpValues): Promise<boolean> => {
     Object.entries(formattedData).forEach(([key, value]) => {
       urlEncodedData.append(key, String(value));
     });
+    
+    console.log("%c [CODA FORM] Submitting via form webhook...", "color: #ff9800;");
     
     // Try with no-cors mode
     await fetch(FORM_WEBHOOK_URL, {
@@ -162,7 +200,57 @@ const submitViaFormWebhook = async (values: SignUpValues): Promise<boolean> => {
 };
 
 /**
- * Submits form data to Coda, trying multiple methods
+ * Clear existing rows in table before uploading new data
+ */
+export const clearExistingRows = async (): Promise<boolean> => {
+  try {
+    const headers = {
+      'Authorization': `Bearer ${CODA_API_TOKEN}`,
+      'Content-Type': 'application/json; charset=utf-8'
+    };
+    
+    // Get existing rows
+    const url = `${CODA_API_URL}/docs/${CODA_DOC_ID}/tables/${CODA_TABLE_ID}/rows`;
+    const response = await fetch(url, { headers });
+    
+    if (response.status !== 200) {
+      console.error("%c [CODA API] Failed to fetch existing rows:", "color: #f44336;", response.status);
+      return false;
+    }
+    
+    const data = await response.json();
+    const rows = data.items || [];
+    
+    if (rows.length === 0) {
+      console.log("%c [CODA API] No existing rows to clear", "color: #2196f3;");
+      return true;
+    }
+    
+    // Delete rows
+    const rowIds = rows.map((row: any) => row.id);
+    console.log("%c [CODA API] Deleting existing rows:", "color: #ff9800;", rowIds.length);
+    
+    const deleteResponse = await fetch(url, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify({ rowIds })
+    });
+    
+    if (deleteResponse.status === 202) {
+      console.log("%c [CODA API] Existing rows cleared successfully", "color: #4caf50;");
+      return true;
+    } else {
+      console.error("%c [CODA API] Failed to clear rows:", "color: #f44336;", deleteResponse.status);
+      return false;
+    }
+  } catch (error) {
+    console.error("%c [CODA API] Error clearing rows:", "color: #f44336;", error);
+    return false;
+  }
+};
+
+/**
+ * Submits form data to Coda, trying multiple methods like in the Python script
  * @param values Form values from signup form
  * @returns Promise resolving with the submission result
  */
@@ -171,18 +259,31 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
     "background: #0066ff; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
   
   try {
-    // First, try direct API submission
-    console.log("%c [CODA] Trying direct API submission...", "color: #2196f3;");
-    const apiSuccess = await submitToCodaApi(values);
+    // Test API access first
+    console.log("%c [CODA] Testing API access...", "color: #2196f3;");
+    const hasAccess = await testCodaAccess();
     
-    if (apiSuccess) {
-      console.log("%c ================= CODA API SUBMISSION SUCCESSFUL =================", 
-        "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
-      return true;
+    if (!hasAccess) {
+      console.warn("%c [CODA] API access failed, will try form webhook...", "color: #ff9800;");
+    } else {
+      // Clear existing rows if needed (optional)
+      // await clearExistingRows();
+      
+      // Try direct API submission
+      console.log("%c [CODA] Trying direct API submission...", "color: #2196f3;");
+      const apiSuccess = await submitToCodaApi(values);
+      
+      if (apiSuccess) {
+        console.log("%c ================= CODA API SUBMISSION SUCCESSFUL =================", 
+          "background: #4CAF50; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+        return true;
+      }
+      
+      console.warn("%c [CODA] API submission failed, trying fallback method...", "color: #ff9800;");
     }
     
     // If API fails, try form webhook
-    console.log("%c [CODA] Direct API failed, trying form webhook...", "color: #ff9800;");
+    console.log("%c [CODA] Trying form webhook as fallback...", "color: #ff9800;");
     const formSuccess = await submitViaFormWebhook(values);
     
     if (formSuccess) {
@@ -191,17 +292,15 @@ export const submitToCoda = async (values: SignUpValues): Promise<boolean> => {
       return true;
     }
     
-    // If all methods failed but we want to let the user continue
-    console.log("%c ================= CODA SUBMISSION COMPLETED WITH WARNINGS =================", 
-      "background: #FF9800; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
-    return true;
+    console.error("%c ================= CODA SUBMISSION FAILED =================", 
+      "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
+    return false;
   } catch (error) {
     console.error("%c [CODA] Critical error in submission process:", 
       "background: #cc0000; color: #fff; padding: 2px 5px;", error);
     console.log("%c ================= CODA SUBMISSION FAILED =================", 
       "background: #cc0000; color: #fff; padding: 5px; font-weight: bold; width: 100%;");
     
-    // Return true anyway to not block the user flow
-    return true;
+    return false;
   }
 };
