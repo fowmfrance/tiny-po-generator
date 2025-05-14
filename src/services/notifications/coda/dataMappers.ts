@@ -9,18 +9,18 @@ export const mapToCodaApiFormat = (values: SignUpValues): any => {
   // Format current date
   const currentDate = new Date().toISOString();
   
-  // Create properly formatted cells for the Coda API, using the exact column IDs
+  // Create properly formatted cells for the Coda API, using the exact column IDs provided
   return {
     rows: [{
       cells: [
-        { column: "firstname", value: values.firstName },
-        { column: "lastname", value: values.lastName },
-        { column: "email", value: values.email },
-        { column: "company", value: values.company },
-        { column: "jobtitle", value: values.jobTitle },
-        { column: "revenue", value: values.revenue },
-        { column: "supplierscount", value: values.suppliersCount },
-        { column: "currenttool", value: values.currentTool },
+        { column: "c-3Dp2s_RPJJ", value: values.firstName },
+        { column: "c-3I7nkZIM80", value: values.lastName },
+        { column: "c-yMaf-8Nu2a", value: values.email },
+        { column: "c-igPX8odn0Z", value: values.company },
+        { column: "c-GoWg1VW34B", value: values.jobTitle },
+        { column: "c-4U06AUzFSc", value: values.revenue },
+        { column: "c-EMzmtR-jK5", value: values.suppliersCount },
+        { column: "c--3FgZRfKks", value: values.currentTool },
         { column: "consent", value: values.consent ? "Yes" : "No" },
         { column: "datesubmitted", value: currentDate }
       ]

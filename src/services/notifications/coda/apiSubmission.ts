@@ -18,7 +18,7 @@ export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> =>
     // Direct endpoint to add rows to the table
     const url = `${CODA_API_URL}/docs/${CODA_DOC_ID}/tables/${CODA_TABLE_ID}/rows`;
     
-    // Format data for API
+    // Format data for API with exact column IDs
     const payload = mapToCodaApiFormat(values);
     
     console.log("%c [CODA API] Submitting data to Coda table with POST...", "color: #2196f3;");
@@ -42,6 +42,7 @@ export const submitToCodaApi = async (values: SignUpValues): Promise<boolean> =>
     // Log more detailed error information if available
     if (error.response) {
       console.error("%c [CODA API] Error response data:", "color: #f44336;", error.response.data);
+      console.error("%c [CODA API] Error details:", "color: #f44336;", JSON.stringify(error.response.data, null, 2));
     }
     
     return false;
