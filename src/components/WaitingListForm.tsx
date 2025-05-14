@@ -6,9 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
-import { toast } from './ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { submitToCoda } from '@/services/notificationService';
+import { Alert, AlertDescription } from './ui/alert';
 
 const waitingListSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide" }),
@@ -18,6 +19,7 @@ type WaitingListValues = z.infer<typeof waitingListSchema>;
 
 const WaitingListForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   const form = useForm<WaitingListValues>({
     resolver: zodResolver(waitingListSchema),
@@ -28,6 +30,8 @@ const WaitingListForm = () => {
 
   const onSubmit = async (values: WaitingListValues) => {
     setIsSubmitting(true);
+    setSubmissionError(null);
+    
     try {
       console.log('Email submitted:', values.email);
       
@@ -58,6 +62,7 @@ const WaitingListForm = () => {
       }
     } catch (error) {
       console.error("Error submitting email:", error);
+      setSubmissionError("Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.");
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.",
@@ -71,6 +76,12 @@ const WaitingListForm = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
+        {submissionError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{submissionError}</AlertDescription>
+          </Alert>
+        )}
+        
         <FormField
           control={form.control}
           name="email"
