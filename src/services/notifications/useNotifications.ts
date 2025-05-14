@@ -7,7 +7,7 @@ import { notifyApprovalRequired } from './approvalNotifications';
 import { notifyVendorInvited } from './vendorNotifications';
 
 // Hook to use notifications with toast feedback
-export const useNotifications = () => {
+const useNotifications = () => {
   const { toast } = useToast();
   
   const sendNotificationWithToast = async (
@@ -62,3 +62,5 @@ export const useNotifications = () => {
     notifyVendorInvited
   };
 };
+
+export default useNotifications;
