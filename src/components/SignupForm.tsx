@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -254,8 +253,7 @@ const SignupForm = () => {
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <p className="text-xs text-gray-500">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam euismod, nisi vel consectetur
-                    interdum, nisl nisi consectetur purus, eget egestas nisl nisi sed orci.
+                    En cochant cette case, je reconnais avoir pris connaissance de la politique de confidentialité des données et accepte d'être recontacté(e) par l'équipe Sapajoo
                   </p>
                   <FormMessage className="text-xs mt-1" />
                 </div>
