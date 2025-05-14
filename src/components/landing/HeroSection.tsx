@@ -6,20 +6,12 @@ const HeroSection = () => {
   return (
     <section className="pt-16 pb-20 px-4 md:px-8 lg:px-16 bg-white">
       <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-16">
-          <div className="flex items-center">
-            <div className="bg-primary p-2 rounded-lg">
-              <img 
-                src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
-                alt="Logo" 
-                className="h-10 w-10 object-contain"
-              />
-            </div>
-            <h2 className="ml-3 font-bold text-2xl tracking-tight">Sapajoo</h2>
-          </div>
-          <button className="text-primary font-medium hover:text-primary/80 transition-colors">
-            Connexion
-          </button>
+        <div className="flex justify-center items-center mb-16">
+          <img 
+            src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
+            alt="Logo Sapajoo" 
+            className="h-16 w-auto object-contain"
+          />
         </div>
         
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
