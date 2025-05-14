@@ -21,7 +21,7 @@ export const mapToCodaApiFormat = (values: SignUpValues): any => {
         { column: "c-4U06AUzFSc", value: values.revenue },
         { column: "c-EMzmtR-jK5", value: values.suppliersCount },
         { column: "c--3FgZRfKks", value: values.currentTool },
-        { column: "consent", value: values.consent ? "Yes" : "No" },
+        { column: "c-mBZntlVM-C", value: values.consent ? "Yes" : "No" },
         { column: "datesubmitted", value: currentDate }
       ]
     }]
