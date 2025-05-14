@@ -25,11 +25,14 @@ const HeroSection = () => {
           <div className="flex-1 relative">
             <div className="relative rounded-2xl overflow-hidden shadow-xl">
               <AspectRatio ratio={16/9} className="bg-muted">
-                <img 
-                  src="/lovable-uploads/a198a451-2774-4214-9a03-acf2d7dc0877.png" 
-                  alt="Tableau de bord Sapajoo" 
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-full h-full overflow-hidden">
+                  <img 
+                    src="/lovable-uploads/a198a451-2774-4214-9a03-acf2d7dc0877.png" 
+                    alt="Tableau de bord Sapajoo" 
+                    className="w-[120%] h-full object-cover object-[-30px_center]"
+                    style={{ marginLeft: "-20px" }}
+                  />
+                </div>
               </AspectRatio>
             </div>
           </div>
