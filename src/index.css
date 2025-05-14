@@ -1,14 +1,13 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 185 38% 82%; /* #b8d4d8 */
+    --background: 185 38% 92%; /* #d0e5e9 - lighter blue background */
     --foreground: 188 22% 45%; /* Dark text color matching the palette */
     --primary: 210 100% 25%; /* #173288 */
-    --secondary: 184 30% 60%; /* #83b8bc */
+    --secondary: 185 38% 82%; /* #b8d4d8 - light blue instead of green */
     
     /* Other color variables remain the same */
     --card: 0 0% 100%;

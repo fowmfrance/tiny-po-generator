@@ -4,7 +4,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 const HeroSection = () => {
   return (
-    <section className="pt-16 pb-20 px-4 md:px-8 lg:px-16 bg-white">
+    <section className="pt-16 pb-20 px-4 md:px-8 lg:px-16 bg-[#d0e5e9]">
       <div className="container mx-auto">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
           <div className="flex-1 max-w-2xl">

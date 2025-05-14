@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss"
 
 export default {
@@ -25,8 +24,8 @@ export default {
       colors: {
         'po-primary': {
           DEFAULT: '#173288',  // Dark blue
-          background: '#b8d4d8',  // Background color - keeping this as it's not green
-          button: '#83b8bc',  // Button color - keeping this as it's not green
+          background: '#d0e5e9',  // Light blue background instead of green
+          button: '#b8d4d8',  // Light blue button instead of green
           text: {
             background: '#967cbd'  // Background zones of text
           }
@@ -87,10 +86,10 @@ export default {
           gray: '#6b7280',
         },
         landing: {
-          DEFAULT: '#957bbc',
+          DEFAULT: '#d0e5e9',  // Light blue instead of purple
           footer: '#c5c1a8',
           features: '#19348a',
-          cta: '#83b8bc'
+          cta: '#b8d4d8'  // Light blue instead of green
         }
       },
       backgroundColor: {
@@ -100,10 +99,10 @@ export default {
         accent: '#f3f1eb',
         'text-zone': '#967cbd',
         'landing': {
-          DEFAULT: '#957bbc',
+          DEFAULT: '#d0e5e9',  // Light blue instead of purple
           footer: '#c5c1a8',
           features: '#19348a',
-          cta: '#83b8bc'
+          cta: '#b8d4d8'  // Light blue instead of green
         }
       },
       boxShadow: {
