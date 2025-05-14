@@ -47,14 +47,12 @@ const FeaturesSection = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-4 p-2">
-              <div className="text-3xl">{feature.icon}</div>
-              <div>
-                <h3 className="font-semibold text-xl mb-2 text-primary">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
+            <div key={index} className="flex flex-col items-center p-6 bg-white rounded-lg shadow-marie">
+              <div className="text-4xl mb-4">{feature.icon}</div>
+              <h3 className="font-semibold text-xl mb-3 text-primary text-center">{feature.title}</h3>
+              <p className="text-gray-600 text-center">{feature.description}</p>
             </div>
           ))}
         </div>
