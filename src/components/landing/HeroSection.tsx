@@ -6,14 +6,6 @@ const HeroSection = () => {
   return (
     <section className="pt-16 pb-20 px-4 md:px-8 lg:px-16 bg-white">
       <div className="container mx-auto">
-        <div className="flex justify-center items-center mb-16">
-          <img 
-            src="/lovable-uploads/efe8955a-c370-4bed-ba41-e64efd80f9e6.png" 
-            alt="Logo Sapajoo" 
-            className="h-32 w-auto object-contain"
-          />
-        </div>
-        
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
           <div className="flex-1 max-w-2xl">
             <div className="inline-block bg-accent text-primary font-medium rounded-full px-6 py-2 text-sm mb-8">
