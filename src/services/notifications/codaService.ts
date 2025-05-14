@@ -1,6 +1,5 @@
 
 import { SignUpValues } from '@/schemas/signupSchema';
-import { CODA_API_TOKEN } from './constants';
 
 // Updated Coda endpoint using their public form submission endpoint
 const FORM_WEBHOOK_URL = "https://coda.io/form/Sapajoo-Waitlist_dE5AgoOFj6T";
