@@ -8,18 +8,20 @@ const FooterSection = () => {
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="md:col-span-1">
-            <p className="text-white mb-6 max-w-md">
+            <p className="text-white mb-6 max-w-md italic">
               Sapajoo, la plateforme de gestion des achats pensée pour les PME
             </p>
           </div>
           
-          <div>
-            <h3 className="font-bold text-white mb-4">Liens</h3>
-            <ul className="space-y-2">
-              <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Accueil</Link></li>
-              <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Fonctionnalités</Link></li>
-              <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Contact</Link></li>
-            </ul>
+          <div className="flex justify-center">
+            <div>
+              <h3 className="font-bold text-white mb-4 text-center">Liens</h3>
+              <ul className="space-y-2 text-center">
+                <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Accueil</Link></li>
+                <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Fonctionnalités</Link></li>
+                <li><Link to="/" className="text-white hover:text-gray-200 transition-colors">Contact</Link></li>
+              </ul>
+            </div>
           </div>
           
           <div>

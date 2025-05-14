@@ -24,7 +24,7 @@ const MentionsLegales = () => {
             Retour à l'accueil
           </Link>
           
-          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8">Mentions Légales</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">Mentions Légales</h1>
           
           <div className="prose max-w-none">
             <p className="text-gray-600">
