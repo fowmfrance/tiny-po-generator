@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -49,12 +50,19 @@ const SignupForm = () => {
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
     try {
-      // This is where you would integrate with your email collection service
-      console.log('Form submitted:', values);
+      // Send form data via email
+      const emailSubject = `Nouvelle inscription liste d'attente: ${values.firstName} ${values.lastName} de ${values.company}`;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Format the body as JSON
+      const emailBody = JSON.stringify(values, null, 2);
       
+      // Create a mailto link with the form data
+      const mailtoLink = `mailto:hello@sapajoo.fr?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+      
+      // Open the user's email client with the pre-filled email
+      window.open(mailtoLink, '_blank');
+      
+      // Show confirmation
       setShowConfirmation(true);
       form.reset();
     } catch (error) {
@@ -63,6 +71,7 @@ const SignupForm = () => {
         description: "Une erreur est survenue. Veuillez réessayer.",
         variant: "destructive",
       });
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
