@@ -31,7 +31,7 @@ const Header = () => {
           <img 
             src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
             alt="Sapajoo" 
-            className="h-10 w-auto object-contain"
+            className="h-12 w-auto object-contain"
           />
         </div>
         
@@ -41,7 +41,10 @@ const Header = () => {
             <li>
               <a 
                 href="#mission" 
-                className="text-gray-800 font-medium hover:text-primary transition-colors"
+                className={cn(
+                  "font-medium hover:text-primary transition-colors",
+                  scrolled ? "text-gray-800" : "text-white"
+                )}
               >
                 Mission
               </a>
@@ -49,7 +52,10 @@ const Header = () => {
             <li>
               <a 
                 href="#features" 
-                className="text-gray-800 font-medium hover:text-primary transition-colors"
+                className={cn(
+                  "font-medium hover:text-primary transition-colors",
+                  scrolled ? "text-gray-800" : "text-white"
+                )}
               >
                 Fonctionnalités
               </a>
@@ -57,7 +63,10 @@ const Header = () => {
             <li>
               <a 
                 href="#avantages" 
-                className="text-gray-800 font-medium hover:text-primary transition-colors"
+                className={cn(
+                  "font-medium hover:text-primary transition-colors",
+                  scrolled ? "text-gray-800" : "text-white"
+                )}
               >
                 Avantages
               </a>
@@ -65,7 +74,10 @@ const Header = () => {
             <li>
               <a 
                 href="#signup" 
-                className="text-gray-800 font-medium hover:text-primary transition-colors"
+                className={cn(
+                  "font-medium hover:text-primary transition-colors",
+                  scrolled ? "text-gray-800" : "text-white"
+                )}
               >
                 Contact
               </a>
