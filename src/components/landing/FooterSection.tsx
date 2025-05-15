@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
@@ -35,7 +34,9 @@ const FooterSection = () => {
               rel="noopener noreferrer"
               className="flex items-center text-gray-600 hover:text-blue-600 text-sm"
             >
-              <Linkedin className="h-4 w-4 mr-1" />
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#0077b5] text-white mr-2 text-xs font-semibold">
+                in
+              </div>
               LinkedIn
             </a>
           </div>
