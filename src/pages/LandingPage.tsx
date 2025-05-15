@@ -28,7 +28,7 @@ const LandingPage = () => {
             backgroundImage: "url('/lovable-uploads/e52049c0-6ccd-4165-9d7a-3003172c2fa5.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
-            opacity: 1,
+            opacity: 0.85,  // 15% transparency (0.85 opacity)
           }}
         />
         <SignupFormSection />
