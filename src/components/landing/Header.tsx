@@ -40,12 +40,9 @@ const Header = () => {
         {/* Logo on the left side */}
         <div className="flex items-center">
           <img 
-            src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
+            src="/lovable-uploads/6c09108a-5adb-49a5-9224-982268aef474.png" 
             alt="Sapajoo" 
-            className={cn(
-              "h-12 w-auto object-contain",
-              !scrolled && "filter brightness-0 invert" // Make logo white when header is transparent
-            )}
+            className="h-12 w-auto object-contain"
             style={{ 
               display: "block",
               visibility: "visible",
