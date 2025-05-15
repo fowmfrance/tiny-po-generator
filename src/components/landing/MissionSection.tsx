@@ -21,7 +21,7 @@ const MissionSection = () => {
   }, []);
   
   return (
-    <section id="mission" className="py-20 px-4 md:px-8 lg:px-16 bg-accent">
+    <section id="mission" className="py-20 px-4 md:px-8 lg:px-16 bg-transparent">
       <div className="container mx-auto">
         <div className="text-center mb-16">
           <h2 
