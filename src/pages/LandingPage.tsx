@@ -11,24 +11,29 @@ import FooterSection from '@/components/landing/FooterSection';
 const LandingPage = () => {
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden w-full relative">
-      {/* Background gradient image */}
-      <div 
-        className="absolute inset-0 w-full h-full -z-10" 
-        style={{
-          backgroundImage: "url('/lovable-uploads/e52049c0-6ccd-4165-9d7a-3003172c2fa5.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 1,
-        }}
-      />
+      {/* No background gradient for the top part */}
       
       <Header />
       <HeroSection />
       <MissionSection />
       <FeaturesSection />
       <HowItWorksSection />
-      <SignupFormSection />
-      <FooterSection />
+      
+      {/* Contact section and footer with gradient background */}
+      <div className="relative">
+        {/* Background gradient image limited to this section */}
+        <div 
+          className="absolute inset-0 w-full h-full -z-10" 
+          style={{
+            backgroundImage: "url('/lovable-uploads/e52049c0-6ccd-4165-9d7a-3003172c2fa5.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 1,
+          }}
+        />
+        <SignupFormSection />
+        <FooterSection />
+      </div>
     </div>
   );
 };
