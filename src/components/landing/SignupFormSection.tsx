@@ -4,8 +4,22 @@ import SignupForm from '@/components/SignupForm';
 
 const SignupFormSection = () => {
   return (
-    <section className="py-20 px-4 md:px-8 lg:px-16 bg-accent">
-      <div className="container mx-auto">
+    <section className="py-20 px-4 md:px-8 lg:px-16 relative overflow-hidden">
+      {/* Background with gradient rotation */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <div 
+          className="absolute inset-0" 
+          style={{
+            backgroundImage: "url('/lovable-uploads/3e7266e2-138f-4e51-b06f-f2aa51e97150.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "left bottom",
+            opacity: 0.25,
+            transform: "rotate(270deg)"
+          }}
+        />
+      </div>
+      
+      <div className="container mx-auto relative z-10">
         <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-marie p-8 md:p-12">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-primary">
