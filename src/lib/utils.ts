@@ -8,5 +8,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function highlight(text: string, type: 'yellow' | 'green' | 'pink' = 'yellow'): React.ReactNode {
-  return <span className={`highlight-${type}`}>{text}</span>;
+  return React.createElement('span', { className: `highlight-${type}` }, text);
 }
