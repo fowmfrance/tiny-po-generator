@@ -20,12 +20,12 @@ const HeroSection = () => {
       {/* Gradient background overlay */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <div 
-          className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-600/20" 
+          className="absolute inset-0" 
           style={{
-            backgroundImage: "url('/lovable-uploads/10e53a76-a276-4649-ad2c-f332fb8c23d2.png')",
+            backgroundImage: "url('/lovable-uploads/3e7266e2-138f-4e51-b06f-f2aa51e97150.png')",
             backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: 0.15,
+            backgroundPosition: "right center",
+            opacity: 0.25, // Increased from 0.15 to make it less transparent
           }}
         />
       </div>
