@@ -5,8 +5,9 @@ import { Heart, Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
-    <footer className="bg-transparent py-6 w-screen overflow-hidden">
-      <div className="container mx-auto px-6">
+    <footer className="relative bg-transparent py-6 w-full overflow-hidden z-10">
+      <div className="absolute inset-0 bg-gradient-to-t from-landing-footer to-transparent opacity-20"></div>
+      <div className="container mx-auto px-6 relative">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Logo section */}
           <div className="text-center md:text-left">

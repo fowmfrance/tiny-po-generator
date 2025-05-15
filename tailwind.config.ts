@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss"
 
 export default {
@@ -87,7 +88,7 @@ export default {
         },
         landing: {
           DEFAULT: '#d0e5e9',  // Light blue instead of purple
-          footer: '#c5c1a8',
+          footer: '#19348a',  // Using the features blue for the gradient
           features: '#19348a',
           cta: '#b8d4d8'  // Light blue instead of green
         }
