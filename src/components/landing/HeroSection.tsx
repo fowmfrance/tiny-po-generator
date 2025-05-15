@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { highlight } from '@/lib/utils';
 
 const HeroSection = () => {
   return (
@@ -9,7 +10,7 @@ const HeroSection = () => {
         {/* Full width heading */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary leading-tight">
-            Simplifiez vos achats d'entreprise
+            Simplifiez vos {highlight('achats')} d'entreprise
           </h1>
         </div>
         
@@ -18,7 +19,7 @@ const HeroSection = () => {
           {/* Left Column - Text Content */}
           <div className="space-y-6 lg:pr-8">
             <p className="text-lg md:text-xl text-gray-600">
-              Sapajoo est une solution tout-en-un qui transforme votre processus d'achats indirects, de la demande au paiement, sans les complications habituelles d'un ERP.
+              Sapajoo est une solution {highlight('tout-en-un', 'green')} qui transforme votre processus d'achats indirects, de la {highlight('demande', 'pink')} au {highlight('paiement', 'pink')}, sans les complications habituelles d'un ERP.
             </p>
           </div>
           
