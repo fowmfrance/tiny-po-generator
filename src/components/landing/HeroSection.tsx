@@ -16,7 +16,7 @@ const HeroSection = () => {
   }, []);
   
   return (
-    <section className="relative py-16 md:py-24 px-4 md:px-8 lg:px-16 overflow-hidden mt-16">
+    <section className="relative pt-32 pb-16 md:py-24 px-4 md:px-8 lg:px-16 overflow-hidden">
       {/* Gradient background overlay */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <div 
@@ -25,7 +25,7 @@ const HeroSection = () => {
             backgroundImage: "url('/lovable-uploads/3e7266e2-138f-4e51-b06f-f2aa51e97150.png')",
             backgroundSize: "cover",
             backgroundPosition: "right center",
-            opacity: 0.25, // Increased from 0.15 to make it less transparent
+            opacity: 0.25,
           }}
         />
       </div>

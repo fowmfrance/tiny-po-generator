@@ -4,8 +4,12 @@ import { cn } from '@/lib/utils';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
+    // Mark component as mounted
+    setMounted(true);
+    
     const handleScroll = () => {
       if (window.scrollY > 20) {
         setScrolled(true);
@@ -15,8 +19,15 @@ const Header = () => {
     };
     
     window.addEventListener('scroll', handleScroll);
+    // Initial check for scroll position
+    handleScroll();
+    
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
+  if (!mounted) {
+    return null; // Return null on server to prevent hydration mismatch
+  }
   
   return (
     <header 
@@ -31,7 +42,10 @@ const Header = () => {
           <img 
             src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
             alt="Sapajoo" 
-            className="h-12 w-auto object-contain"
+            className={cn(
+              "h-12 w-auto object-contain",
+              !scrolled && "filter brightness-0 invert" // Make logo white when header is transparent
+            )}
           />
         </div>
         
