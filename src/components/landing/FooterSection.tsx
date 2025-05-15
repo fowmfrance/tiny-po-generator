@@ -43,10 +43,11 @@ const FooterSection = () => {
               rel="noopener noreferrer"
               className="flex items-center text-gray-600 hover:text-blue-600 text-sm"
             >
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#0077b5] text-white mr-2 text-xs font-semibold">
-                in
-              </div>
-              LinkedIn
+              <img 
+                src="/lovable-uploads/e50253b8-c073-4664-baa6-779c5fea99af.png" 
+                alt="LinkedIn" 
+                className="w-6 h-6 mr-2" 
+              />
             </a>
           </div>
         </div>

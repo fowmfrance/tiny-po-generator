@@ -37,7 +37,7 @@ const Header = () => {
       )}
     >
       <div className="container mx-auto flex justify-between items-center">
-        {/* Logo on the left side - making sure it's visible */}
+        {/* Logo on the left side */}
         <div className="flex items-center">
           <img 
             src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
@@ -46,12 +46,18 @@ const Header = () => {
               "h-12 w-auto object-contain",
               !scrolled && "filter brightness-0 invert" // Make logo white when header is transparent
             )}
-            style={{ display: "block" }} // Force display
+            style={{ 
+              display: "block",
+              visibility: "visible",
+              opacity: 1,
+              width: "auto",
+              minWidth: "100px"
+            }} 
           />
         </div>
         
         {/* Navigation on the right side */}
-        <nav>
+        <nav className="hidden sm:block">
           <ul className="flex space-x-8">
             <li>
               <a 
