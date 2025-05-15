@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { highlight } from '@/lib/utils';
+import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "@/components/ui/navigation-menu";
+import { cn } from '@/lib/utils';
 
 const HeroSection = () => {
   return (
@@ -10,17 +11,60 @@ const HeroSection = () => {
         {/* Full width heading */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">
-            Simplifiez vos {highlight('achats')} d'entreprise
+            Simplifiez vos achats d'entreprise
           </h1>
         </div>
         
-        {/* Two columns: paragraph and image */}
+        {/* Two columns: paragraph and navigation */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column - Text Content */}
-          <div className="space-y-6 lg:pr-8">
-            <p className="text-lg md:text-xl text-gray-700">
-              Sapajoo est une solution {highlight('tout-en-un', 'green')} qui transforme votre processus d'achats indirects, de la {highlight('demande', 'pink')} au {highlight('paiement', 'pink')}, sans les complications habituelles d'un ERP.
+          {/* Left Column - Text Content with Navigation */}
+          <div className="space-y-8 lg:pr-8">
+            <p className="text-lg md:text-xl text-gray-700 mb-6">
+              Sapajoo est une solution tout-en-un qui transforme votre processus d'achats indirects, 
+              de la demande au paiement, sans les complications habituelles d'un ERP.
             </p>
+            
+            {/* FOWM.io style navigation menu */}
+            <NavigationMenu className="mx-auto">
+              <NavigationMenuList className="flex flex-col space-y-4 text-left">
+                <NavigationMenuItem>
+                  <NavigationMenuLink 
+                    href="#features" 
+                    className={cn(
+                      "text-lg font-medium hover:text-primary transition-colors duration-200",
+                      "flex items-center group"
+                    )}
+                  >
+                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    Explorer les fonctionnalités
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink 
+                    href="#how-it-works" 
+                    className={cn(
+                      "text-lg font-medium hover:text-primary transition-colors duration-200",
+                      "flex items-center group"
+                    )}
+                  >
+                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    Découvrir comment ça marche
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink 
+                    href="#signup" 
+                    className={cn(
+                      "text-lg font-medium hover:text-primary transition-colors duration-200",
+                      "flex items-center group"
+                    )}
+                  >
+                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    Demander une démo
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </div>
           
           {/* Right Column - Dashboard Image */}
