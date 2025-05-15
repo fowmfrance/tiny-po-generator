@@ -4,9 +4,9 @@ import SignupForm from '@/components/SignupForm';
 
 const SignupFormSection = () => {
   return (
-    <section id="signup" className="py-20 relative overflow-hidden w-full"> 
+    <section id="signup" className="py-20 relative w-full"> 
       {/* Background with gradient rotation - expanded to ensure full width coverage */}
-      <div className="absolute inset-0 w-screen h-full overflow-hidden">
+      <div className="absolute inset-0 w-full h-full">
         <div 
           className="absolute inset-0 w-full h-full" 
           style={{
