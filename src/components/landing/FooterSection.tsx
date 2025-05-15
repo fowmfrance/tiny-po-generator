@@ -6,6 +6,15 @@ const FooterSection = () => {
   return (
     <footer className="bg-gray-100 py-8 px-4 md:px-8">
       <div className="container mx-auto">
+        {/* Logo in the footer */}
+        <div className="flex justify-center mb-8">
+          <img 
+            src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
+            alt="Sapajoo" 
+            className="h-12 w-auto object-contain"
+          />
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column 1 */}
           <div>
