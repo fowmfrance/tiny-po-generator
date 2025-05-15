@@ -1,16 +1,32 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
 
 const HeroSection = () => {
+  const [visible, setVisible] = useState(false);
+  
+  useEffect(() => {
+    // Trigger animation after component mounts
+    const timer = setTimeout(() => {
+      setVisible(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   return (
     <section className="py-16 md:py-24 px-4 md:px-8 lg:px-16 bg-white overflow-hidden">
       <div className="container mx-auto">
-        {/* Full width heading */}
+        {/* Full width heading with animation */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">
+          <h1 
+            className={cn(
+              "text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight",
+              "transition-all duration-700 ease-out",
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            )}
+          >
             Simplifiez vos achats d'entreprise
           </h1>
         </div>
@@ -19,13 +35,25 @@ const HeroSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Text Content with Navigation */}
           <div className="space-y-8 lg:pr-8">
-            <p className="text-lg md:text-xl text-gray-700 mb-6">
+            <p 
+              className={cn(
+                "text-lg md:text-xl text-gray-700 mb-6",
+                "transition-all duration-700 delay-300 ease-out",
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              )}
+            >
               Sapajoo est une solution tout-en-un qui transforme votre processus d'achats indirects, 
               de la demande au paiement, sans les complications habituelles d'un ERP.
             </p>
             
-            {/* FOWM.io style navigation menu with more prominent hover effects */}
-            <div className="flex flex-col space-y-5 text-left">
+            {/* FOWM.io style navigation menu with animation */}
+            <div 
+              className={cn(
+                "flex flex-col space-y-5 text-left",
+                "transition-all duration-700 delay-500 ease-out",
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              )}
+            >
               <a 
                 href="#features" 
                 className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
@@ -50,8 +78,14 @@ const HeroSection = () => {
             </div>
           </div>
           
-          {/* Right Column - Dashboard Image */}
-          <div className="relative">
+          {/* Right Column - Dashboard Image with animation */}
+          <div 
+            className={cn(
+              "relative",
+              "transition-all duration-700 delay-700 ease-out",
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            )}
+          >
             <div className="bg-white rounded-2xl shadow-marie">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-xl">
                 <div className="w-full h-full overflow-hidden">
