@@ -10,7 +10,7 @@ import FooterSection from '@/components/landing/FooterSection';
 
 const LandingPage = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-white to-[#d0e5e9] overflow-x-hidden w-full">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-white to-blue-50 overflow-x-hidden w-full">
       <Header />
       <HeroSection />
       <MissionSection />
