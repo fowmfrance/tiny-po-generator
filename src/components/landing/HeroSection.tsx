@@ -16,7 +16,7 @@ const HeroSection = () => {
   }, []);
   
   return (
-    <section className="py-16 md:py-24 px-4 md:px-8 lg:px-16 bg-white overflow-hidden">
+    <section className="py-16 md:py-24 px-4 md:px-8 lg:px-16 bg-white overflow-hidden mt-16">
       <div className="container mx-auto">
         {/* Full width heading with animation */}
         <div className="mb-12 text-center">
@@ -31,13 +31,13 @@ const HeroSection = () => {
           </h1>
         </div>
         
-        {/* Two columns: paragraph and navigation */}
+        {/* Two columns: paragraph and image */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column - Text Content with Navigation */}
+          {/* Left Column - Text Content */}
           <div className="space-y-8 lg:pr-8">
             <p 
               className={cn(
-                "text-lg md:text-xl text-gray-700 mb-6",
+                "text-lg md:text-xl text-gray-700",
                 "transition-all duration-700 delay-300 ease-out",
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
@@ -45,37 +45,6 @@ const HeroSection = () => {
               Sapajoo est une solution tout-en-un qui transforme votre processus d'achats indirects, 
               de la demande au paiement, sans les complications habituelles d'un ERP.
             </p>
-            
-            {/* FOWM.io style navigation menu with animation */}
-            <div 
-              className={cn(
-                "flex flex-col space-y-5 text-left",
-                "transition-all duration-700 delay-500 ease-out",
-                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              )}
-            >
-              <a 
-                href="#features" 
-                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
-              >
-                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
-                Explorer les fonctionnalités
-              </a>
-              <a 
-                href="#how-it-works" 
-                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
-              >
-                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
-                Découvrir comment ça marche
-              </a>
-              <a 
-                href="#signup" 
-                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
-              >
-                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
-                Demander une démo
-              </a>
-            </div>
           </div>
           
           {/* Right Column - Dashboard Image with animation */}
