@@ -24,47 +24,30 @@ const HeroSection = () => {
               de la demande au paiement, sans les complications habituelles d'un ERP.
             </p>
             
-            {/* FOWM.io style navigation menu */}
-            <NavigationMenu className="mx-auto">
-              <NavigationMenuList className="flex flex-col space-y-4 text-left">
-                <NavigationMenuItem>
-                  <NavigationMenuLink 
-                    href="#features" 
-                    className={cn(
-                      "text-lg font-medium hover:text-primary transition-colors duration-200",
-                      "flex items-center group"
-                    )}
-                  >
-                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    Explorer les fonctionnalités
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink 
-                    href="#how-it-works" 
-                    className={cn(
-                      "text-lg font-medium hover:text-primary transition-colors duration-200",
-                      "flex items-center group"
-                    )}
-                  >
-                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    Découvrir comment ça marche
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink 
-                    href="#signup" 
-                    className={cn(
-                      "text-lg font-medium hover:text-primary transition-colors duration-200",
-                      "flex items-center group"
-                    )}
-                  >
-                    <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    Demander une démo
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {/* FOWM.io style navigation menu with more prominent hover effects */}
+            <div className="flex flex-col space-y-5 text-left">
+              <a 
+                href="#features" 
+                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
+              >
+                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
+                Explorer les fonctionnalités
+              </a>
+              <a 
+                href="#how-it-works" 
+                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
+              >
+                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
+                Découvrir comment ça marche
+              </a>
+              <a 
+                href="#signup" 
+                className="text-lg font-medium flex items-center group transition-colors duration-200 hover:text-primary"
+              >
+                <span className="text-primary mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">→</span>
+                Demander une démo
+              </a>
+            </div>
           </div>
           
           {/* Right Column - Dashboard Image */}
