@@ -42,7 +42,7 @@ const Header = () => {
           <img 
             src="/lovable-uploads/6c09108a-5adb-49a5-9224-982268aef474.png" 
             alt="Sapajoo" 
-            className="h-12 w-auto object-contain"
+            className="h-36 w-auto object-contain" /* Changed from h-12 to h-36 (300% increase) */
             style={{ 
               display: "block",
               visibility: "visible",
