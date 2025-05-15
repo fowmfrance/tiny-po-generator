@@ -5,12 +5,12 @@ import { Heart, Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
-    <footer className="relative py-6 w-full mt-auto">
+    <footer className="relative py-4 w-full mt-auto">
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {/* Logo section */}
-          <div className="text-center md:text-left">
-            <h2 className="text-white text-xs mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Logo section - moved closer to center */}
+          <div className="text-center md:text-left md:pl-4">
+            <h2 className="text-white text-xs mb-2">
               Sapajoo (<span className="font-bold">LA</span> plateforme de gestion du process achat des PME/TPE)
             </h2>
             <NavLink to="/mentions-legales" className="text-white text-xs hover:underline transition-colors">
@@ -25,9 +25,9 @@ const FooterSection = () => {
             </p>
           </div>
           
-          {/* Contact info */}
-          <div className="text-center md:text-right">
-            <h3 className="text-white font-bold text-xs mb-4">Contact</h3>
+          {/* Contact info - aligned left within the column and moved closer to center */}
+          <div className="text-center md:text-left md:pl-10">
+            <h3 className="text-white font-bold text-xs mb-2">Contact</h3>
             <p className="text-white text-xs mb-2">hello@sapajoo.fr</p>
             <a 
               href="https://linkedin.com/company/sapajoo" 
