@@ -122,42 +122,36 @@
 /* Updated neon highlight effects that highlight the full height of text */
 .highlight-yellow {
   @apply relative inline-block;
-  background: linear-gradient(180deg, rgba(255, 246, 122, 0) 50%, rgba(255, 236, 32, 0.4) 50%);
-  padding: 0 2px;
-  border-radius: 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 236, 32, 0.4) 40%);
+  padding: 0 1px;
+  border-radius: 1px;
   transition: background 0.3s ease;
 }
 
 .highlight-yellow:hover {
-  background: linear-gradient(180deg, rgba(255, 246, 122, 0) 50%, rgba(255, 236, 32, 0.6) 50%);
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 236, 32, 0.6) 40%);
 }
 
 .highlight-green {
   @apply relative inline-block;
-  background: linear-gradient(180deg, rgba(122, 255, 184, 0) 50%, rgba(32, 255, 138, 0.4) 50%);
-  padding: 0 2px;
-  border-radius: 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  background: linear-gradient(to bottom, transparent 60%, rgba(101, 225, 179, 0.4) 40%);
+  padding: 0 1px;
+  border-radius: 1px;
   transition: background 0.3s ease;
 }
 
 .highlight-green:hover {
-  background: linear-gradient(180deg, rgba(122, 255, 184, 0) 50%, rgba(32, 255, 138, 0.6) 50%);
+  background: linear-gradient(to bottom, transparent 60%, rgba(101, 225, 179, 0.6) 40%);
 }
 
 .highlight-pink {
   @apply relative inline-block;
-  background: linear-gradient(180deg, rgba(255, 184, 222, 0) 50%, rgba(255, 105, 180, 0.4) 50%);
-  padding: 0 2px;
-  border-radius: 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 129, 178, 0.4) 40%);
+  padding: 0 1px;
+  border-radius: 1px;
   transition: background 0.3s ease;
 }
 
 .highlight-pink:hover {
-  background: linear-gradient(180deg, rgba(255, 184, 222, 0) 50%, rgba(255, 105, 180, 0.6) 50%);
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 129, 178, 0.6) 40%);
 }

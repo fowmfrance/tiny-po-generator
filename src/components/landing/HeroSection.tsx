@@ -9,7 +9,7 @@ const HeroSection = () => {
       <div className="container mx-auto">
         {/* Full width heading */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">
             Simplifiez vos {highlight('achats')} d'entreprise
           </h1>
         </div>
@@ -18,14 +18,14 @@ const HeroSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Text Content */}
           <div className="space-y-6 lg:pr-8">
-            <p className="text-lg md:text-xl text-gray-600">
+            <p className="text-lg md:text-xl text-gray-700">
               Sapajoo est une solution {highlight('tout-en-un', 'green')} qui transforme votre processus d'achats indirects, de la {highlight('demande', 'pink')} au {highlight('paiement', 'pink')}, sans les complications habituelles d'un ERP.
             </p>
           </div>
           
           {/* Right Column - Dashboard Image */}
           <div className="relative">
-            <div className="bg-white p-3 rounded-2xl shadow-marie">
+            <div className="bg-white rounded-2xl shadow-marie">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-xl">
                 <div className="w-full h-full overflow-hidden">
                   <img 
