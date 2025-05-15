@@ -91,7 +91,8 @@ export default {
           footer: '#19348a',  // Using the features blue for the gradient
           features: '#19348a',
           cta: '#b8d4d8'  // Light blue instead of green
-        }
+        },
+        navy: '#19348a', // Adding the navy color for footer text
       },
       backgroundColor: {
         DEFAULT: '#ffffff',
