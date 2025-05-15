@@ -5,7 +5,7 @@ import { Heart, Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
-    <footer style={{ backgroundColor: 'transparent' }} className="relative py-6 w-full">
+    <footer className="relative py-6 w-full bg-transparent">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Logo section */}

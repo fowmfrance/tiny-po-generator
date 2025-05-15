@@ -13,7 +13,7 @@ const SignupFormSection = () => {
             backgroundImage: "url('/lovable-uploads/3e7266e2-138f-4e51-b06f-f2aa51e97150.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
-            opacity: 0.1, // Reduced opacity to make the green less intense
+            opacity: 0.08, // Very subtle background image
           }}
         />
       </div>
