@@ -16,8 +16,21 @@ const HeroSection = () => {
   }, []);
   
   return (
-    <section className="py-16 md:py-24 px-4 md:px-8 lg:px-16 bg-white overflow-hidden mt-16">
-      <div className="container mx-auto">
+    <section className="relative py-16 md:py-24 px-4 md:px-8 lg:px-16 overflow-hidden mt-16">
+      {/* Gradient background overlay */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-600/20" 
+          style={{
+            backgroundImage: "url('/lovable-uploads/10e53a76-a276-4649-ad2c-f332fb8c23d2.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.15,
+          }}
+        />
+      </div>
+      
+      <div className="container mx-auto relative z-10">
         {/* Full width heading with animation */}
         <div className="mb-12 text-center">
           <h1 
