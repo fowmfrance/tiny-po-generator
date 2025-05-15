@@ -1,52 +1,43 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Heart, Linkedin } from 'lucide-react';
 
 const FooterSection = () => {
   return (
-    <footer className="bg-accent py-6 w-screen overflow-hidden">
+    <footer className="bg-[#cdcfdc]/80 py-6 w-screen overflow-hidden">
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Logo section */}
           <div className="text-center md:text-left">
-            <img 
-              src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
-              alt="Sapajoo Logo" 
-              className="h-14 mb-4 mx-auto md:mx-0"
-            />
-            <p className="text-gray-600">Simplifiez votre gestion d'achats</p>
+            <h2 className="text-white text-lg mb-4">
+              Sapajoo (<span className="font-bold">LA</span> plateforme de gestion du process achat des PME/TPE)
+            </h2>
+            <NavLink to="/mentions-legales" className="text-white hover:underline transition-colors">
+              Mentions légales
+            </NavLink>
           </div>
           
-          {/* Quick links */}
-          <div className="text-center md:text-left">
-            <h3 className="text-primary font-medium mb-4">Liens rapides</h3>
-            <ul className="space-y-2">
-              <li>
-                <NavLink to="/" className="text-gray-600 hover:text-primary transition-colors">
-                  Accueil
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/mentions-legales" className="text-gray-600 hover:text-primary transition-colors">
-                  Mentions légales
-                </NavLink>
-              </li>
-            </ul>
+          {/* Center section */}
+          <div className="text-center flex items-center justify-center">
+            <p className="text-white flex items-center">
+              Fait avec <Heart className="mx-2 text-red-500" size={18} /> à Paris
+            </p>
           </div>
           
           {/* Contact info */}
           <div className="text-center md:text-right">
-            <h3 className="text-primary font-medium mb-4">Contact</h3>
-            <p className="text-gray-600">hello@sapajoo.fr</p>
-            <p className="text-gray-600 mt-2">Paris, France</p>
+            <h3 className="text-white font-bold mb-4">Contact</h3>
+            <p className="text-white mb-2">hello@sapajoo.fr</p>
+            <a 
+              href="https://linkedin.com/company/sapajoo" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-white hover:text-blue-300 transition-colors"
+            >
+              <Linkedin size={20} />
+            </a>
           </div>
-        </div>
-        
-        {/* Copyright */}
-        <div className="text-center mt-8 border-t border-gray-200 pt-6">
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Sapajoo. Tous droits réservés.
-          </p>
         </div>
       </div>
     </footer>
