@@ -4,8 +4,8 @@ import SignupForm from '@/components/SignupForm';
 
 const SignupFormSection = () => {
   return (
-    <section className="py-20 px-4 md:px-8 lg:px-16 relative overflow-hidden">
-      {/* Background with gradient rotation */}
+    <section id="signup" className="py-20 relative overflow-hidden"> {/* Removed px-4 md:px-8 lg:px-16 to allow full width */}
+      {/* Background with gradient rotation - expanded to ensure full width coverage */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <div 
           className="absolute inset-0" 
@@ -19,7 +19,7 @@ const SignupFormSection = () => {
         />
       </div>
       
-      <div className="container mx-auto relative z-10">
+      <div className="container mx-auto px-4 md:px-8 lg:px-16 relative z-10"> {/* Added padding to container instead */}
         <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-marie p-8 md:p-12">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-primary">
