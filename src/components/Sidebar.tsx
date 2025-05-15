@@ -8,7 +8,8 @@ import {
   PieChart, 
   Settings, 
   Home,
-  Euro
+  Euro,
+  File
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -86,7 +87,7 @@ const Sidebar = () => {
                 }`
               }
             >
-              <Receipt className="w-5 h-5 mr-3" />
+              <File className="w-5 h-5 mr-3" />
               Factures
             </NavLink>
           </li>
