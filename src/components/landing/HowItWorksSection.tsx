@@ -3,8 +3,8 @@ import React from 'react';
 
 const steps = [
   {
-    title: "1. Configurez vos budgets",
-    description: "Définissez vos enveloppes de <span class='highlight-yellow'>budgets</span> par département, projet ou catégorie de dépenses.",
+    title: "1. Définissez vos budgets",
+    description: "Créez vos enveloppes de <span class='highlight-yellow'>budgets</span> par département, projet ou catégorie de dépenses",
     icon: "🔧"
   },
   {
@@ -13,8 +13,8 @@ const steps = [
     icon: "📝"
   },
   {
-    title: "3. Analysez vos dépenses",
-    description: "Visualisez vos performances et optimisez vos processus grâce à des tableaux de bord intuitifs pour suivre vos <span class='highlight-pink'>budgets et dépenses</span>.",
+    title: "3. Pilotez votre activité",
+    description: "Visualisez vos performances, suivez vos <span class='highlight-pink'>budgets et dépenses</span>, et générez en quelques clicks vos écritures de situation comptable (cut off)",
     icon: "📈"
   }
 ];
@@ -28,7 +28,7 @@ const HowItWorksSection = () => {
             Avantages
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Un process robuste sans la complexité des outils traditionnels
+            Un process robuste sans la complexité des outils traditionnels!
           </p>
         </div>
         
