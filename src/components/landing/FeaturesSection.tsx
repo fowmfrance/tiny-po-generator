@@ -1,11 +1,12 @@
 
 import React from 'react';
+import { Users } from 'lucide-react';
 
 const features = [
   {
     title: "Gestion des Founrisseurs",
     description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
-    icon: "⚙️"
+    icon: <Users className="text-primary h-8 w-8" />
   },
  {
     title: "Pilotage des Budgets",
@@ -52,7 +53,9 @@ const FeaturesSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {features.map((feature, index) => (
             <div key={index} className="flex flex-col items-center p-6 bg-white/50 backdrop-blur-sm rounded-lg shadow-marie">
-              <div className="text-4xl mb-4">{feature.icon}</div>
+              <div className="text-4xl mb-4">
+                {typeof feature.icon === 'string' ? feature.icon : feature.icon}
+              </div>
               <h3 className="font-semibold text-xl mb-3 text-primary text-center">{feature.title}</h3>
               <p className="text-gray-600 text-center">{feature.description}</p>
             </div>
