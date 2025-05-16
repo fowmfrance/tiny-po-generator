@@ -1,11 +1,11 @@
+
 import React from 'react';
-import { Users } from 'lucide-react';
 
 const features = [
   {
     title: "Gestion des Founrisseurs",
     description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
-    icon: <Users className="text-primary h-8 w-8" />
+    icon: "👥"
   },
   {
     title: "Pilotage des Budgets",
