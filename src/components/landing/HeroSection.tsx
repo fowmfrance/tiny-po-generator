@@ -56,7 +56,7 @@ const HeroSection = () => {
               )}
             >
               Sapajoo est une solution SaaS tout-en-un inutitive vous permettant de structurer et sécuriser votre processus achats, 
-              depuis l'enregistrement fournisseur à la mise en règlement
+              depuis l'enregistrement de vos fournisseurs à la mise en règlement de leur facture, en passant par l'affectation budgétaire des dépenses
             </p>
           </div>
           
