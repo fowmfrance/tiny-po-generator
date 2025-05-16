@@ -40,7 +40,7 @@ const HeroSection = () => {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            Simplifiez vos achats d'entreprise
+            Gérez votre process achats sans ERP!
           </h1>
         </div>
         
@@ -55,8 +55,8 @@ const HeroSection = () => {
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
             >
-              Sapajoo est une solution tout-en-un qui transforme votre processus d'achats indirects, 
-              de la demande au paiement, sans les complications habituelles d'un ERP.
+              Sapajoo est une solution SaaS tout-en-un inutitive vous permettant de structurer et sécuriser votre processus achats, 
+              depuis l'enregistrement fournisseur à la mise en règlement
             </p>
           </div>
           
