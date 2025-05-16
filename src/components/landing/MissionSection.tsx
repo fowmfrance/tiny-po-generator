@@ -31,7 +31,7 @@ const MissionSection = () => {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            Notre mission
+            Notre mission : démocratiser les meilleures pratiques en matière de gestion du cycle achats
           </h2>
           <p 
             className={cn(
@@ -40,9 +40,9 @@ const MissionSection = () => {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            Notre mission est de simplifier la gestion des achats indirects pour les entreprises, 
-            en proposant une solution intuitive et complète qui élimine les complications 
-            traditionnellement associées aux systèmes ERP.
+            Un ERP? Surdimensionné par rapport aux flux et au budget outils de la plupart des PME...
+            Un outil d'achat ad hoc? Cela existe, mais les workflow de validation sont complexes et le budget là encore hors de portée des TPE/PME
+            Sapajoo propose donc d'offrir au TPE/PME une alternative accessible techniquement et financièrement au plus grand nombre. Fini les dépenses non budgétées, les factures oubliées lors d'un exercice comptable!
           </p>
         </div>
       </div>
