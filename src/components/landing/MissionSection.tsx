@@ -40,9 +40,9 @@ const MissionSection = () => {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            <br>Un ERP? Surdimensionné par rapport aux flux et au budget outils de la plupart des PME...</br>
-            <br>Un outil d'achat ad hoc? Cela existe, mais les workflow de validation sont complexes et le budget là encore hors de portée des TPE/PME</br>        
-            <br>Sapajoo propose donc d'offrir aux TPE/PME une alternative accessible techniquement et financièrement au plus grand nombre.</br> 
+            Un ERP? Surdimensionné par rapport aux flux et au budget outils de la plupart des PME...<br />
+            Un outil d'achat ad hoc? Cela existe, mais les workflow de validation sont complexes et le budget là encore hors de portée des TPE/PME<br />      
+            Sapajoo propose donc d'offrir aux TPE/PME une alternative accessible techniquement et financièrement au plus grand nombre.<br />
             Fini les dépenses non budgétées ou les factures oubliées lors d'un exercice comptable!
           </p>
         </div>
