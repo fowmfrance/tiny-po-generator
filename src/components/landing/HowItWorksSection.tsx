@@ -4,17 +4,17 @@ import React from 'react';
 const steps = [
   {
     title: "1. Configurez vos budgets",
-    description: "Définissez facilement vos <span class='highlight-yellow'>budgets</span> par département, projet ou catégorie de dépenses.",
+    description: "Définissez vos enveloppes de <span class='highlight-yellow'>budgets</span> par département, projet ou catégorie de dépenses.",
     icon: "🔧"
   },
   {
-    title: "2. Gérez vos commandes",
-    description: "Créez, approuvez et suivez vos <span class='highlight-green'>commandes</span> de manière centralisée.",
+    title: "2. Gérez vos achats",
+    description: "Créez, approuvez et suivez vos <span class='highlight-green'>commandes</span> et affectez-les aux enveloppes budgétaires définies. Plus de risque de dépassement!",
     icon: "📝"
   },
   {
     title: "3. Analysez vos dépenses",
-    description: "Visualisez vos performances et optimisez vos processus grâce à des tableaux de bord intuitifs pour suivre vos <span class='highlight-pink'>dépenses</span>.",
+    description: "Visualisez vos performances et optimisez vos processus grâce à des tableaux de bord intuitifs pour suivre vos <span class='highlight-pink'>budgets et dépenses</span>.",
     icon: "📈"
   }
 ];
@@ -28,7 +28,7 @@ const HowItWorksSection = () => {
             Avantages
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Un processus simple en trois étapes pour transformer votre gestion administrative
+            Un process robuste sans la complexité des outils traditionnels
           </p>
         </div>
         
