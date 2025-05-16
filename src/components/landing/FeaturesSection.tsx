@@ -3,33 +3,35 @@ import React from 'react';
 
 const features = [
   {
-    title: "Traitement Automatisé",
-    description: "Automatisez le traitement des bons de commande pour gagner du temps et réduire les erreurs.",
+    title: "Gestion des Founrisseurs",
+    description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
     icon: "⚙️"
   },
-  {
-    title: "Suivi en Temps Réel",
-    description: "Accédez à l'état de vos commandes en temps réel, où que vous soyez.",
-    icon: "🔄"
-  },
-  {
-    title: "Gestion des Budgets",
+ {
+    title: "Pilotage des Budgets",
     description: "Contrôlez facilement vos dépenses avec une gestion intuitive des budgets.",
     icon: "💰"
   },
+  
   {
-    title: "Intégration Simple",
-    description: "S'intègre facilement avec vos outils actuels pour une transition sans effort.",
+    title: "Suivi en Temps Réel",
+    description: "Accédez à l'état de vos budgets : montants engagés, factures reçues, factures restant à payer...Et traduction comptable en terme de reconnaissance des charges",
+    icon: "🔄"
+  },
+ 
+  {
+    title: "Implémentation en quelques clicks",
+    description: "Personnalisez votre nomenclature, importez et exportez facilement vers d'autres outils, ou créez des connexion avec nos API",
     icon: "🔌"
   },
   {
     title: "Analyses Détaillées",
-    description: "Obtenez des insights précieux grâce à des rapports et analyses complets.",
+    description: "Obtenez des insights précieux grâce à des rapports et analyses complets",
     icon: "📊"
   },
   {
     title: "Interface Intuitive",
-    description: "Une interface utilisateur conçue pour être simple et efficace.",
+    description: "Une interface utilisateur conçue pour être simple et efficace",
     icon: "🖥️"
   }
 ];
