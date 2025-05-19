@@ -3,7 +3,7 @@ import React from 'react';
 
 const features = [
   {
-    title: "Gestion des Founrisseurs",
+    title: "Gestion des Fournisseurs",
     description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
     icon: "👥"
   },
