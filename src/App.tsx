@@ -5,6 +5,7 @@ import { Toaster } from './components/ui/toaster';
 import Layout from './components/Layout';
 import Index from './pages/Index';
 import MentionsLegales from './pages/MentionsLegales';
+import CutOffSimulator from './pages/CutOffSimulator';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<Layout><Index /></Layout>} />
+        <Route path="/cut-off-simulator" element={<Layout><CutOffSimulator /></Layout>} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
       </Routes>
       <Toaster />

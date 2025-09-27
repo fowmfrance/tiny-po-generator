@@ -9,7 +9,8 @@ import {
   Settings, 
   Home,
   Euro,
-  File
+  File,
+  Calculator
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -102,6 +103,19 @@ const Sidebar = () => {
             >
               <PieChart className="w-5 h-5 mr-3" />
               Rapports
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/cut-off-simulator" 
+              className={({ isActive }) => 
+                `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                }`
+              }
+            >
+              <Calculator className="w-5 h-5 mr-3" />
+              Cut-off Simulator
             </NavLink>
           </li>
         </ul>
