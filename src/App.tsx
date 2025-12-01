@@ -22,6 +22,8 @@ import SupplierGuestInvoice from './pages/SupplierGuestInvoice';
 import SupplierInvoiceCreate from './pages/SupplierInvoiceCreate';
 import SupplierPOView from './pages/SupplierPOView';
 import NotFound from './pages/NotFound';
+import Auth from './pages/Auth';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -29,18 +31,19 @@ function App() {
       {/* Remove logo from here since it's now in the header */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<Layout><Index /></Layout>} />
-        <Route path="/cut-off-simulator" element={<Layout><CutOffSimulator /></Layout>} />
-        <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
-        <Route path="/budgets/create" element={<Layout><CreateBudget /></Layout>} />
-        <Route path="/budgets/:id" element={<Layout><BudgetDetails /></Layout>} />
-        <Route path="/purchase-orders" element={<Layout><PurchaseOrders /></Layout>} />
-        <Route path="/purchase-orders/create" element={<Layout><CreatePO /></Layout>} />
-        <Route path="/purchase-orders/:id" element={<Layout><PurchaseOrderDetail /></Layout>} />
-        <Route path="/vendors" element={<Layout><Vendors /></Layout>} />
-        <Route path="/vendors/:id" element={<Layout><VendorDetail /></Layout>} />
-        <Route path="/reports" element={<Layout><Reports /></Layout>} />
-        <Route path="/settings" element={<Layout><Settings /></Layout>} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
+        <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
+        <Route path="/budgets" element={<ProtectedRoute><Layout><Budgets /></Layout></ProtectedRoute>} />
+        <Route path="/budgets/create" element={<ProtectedRoute><Layout><CreateBudget /></Layout></ProtectedRoute>} />
+        <Route path="/budgets/:id" element={<ProtectedRoute><Layout><BudgetDetails /></Layout></ProtectedRoute>} />
+        <Route path="/purchase-orders" element={<ProtectedRoute><Layout><PurchaseOrders /></Layout></ProtectedRoute>} />
+        <Route path="/purchase-orders/create" element={<ProtectedRoute><Layout><CreatePO /></Layout></ProtectedRoute>} />
+        <Route path="/purchase-orders/:id" element={<ProtectedRoute><Layout><PurchaseOrderDetail /></Layout></ProtectedRoute>} />
+        <Route path="/vendors" element={<ProtectedRoute><Layout><Vendors /></Layout></ProtectedRoute>} />
+        <Route path="/vendors/:id" element={<ProtectedRoute><Layout><VendorDetail /></Layout></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="/supplier" element={<SupplierPortal />} />
         <Route path="/supplier/dashboard/:vendorId" element={<SupplierDashboard />} />
         <Route path="/supplier/invoice/guest" element={<SupplierGuestInvoice />} />
