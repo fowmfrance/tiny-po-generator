@@ -11,9 +11,7 @@ import {
 import { 
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
+  ChartTooltipContent
 } from '@/components/ui/chart';
 
 // Mock data for new vendors by category
@@ -38,49 +36,59 @@ const NewVendorsChart: React.FC<NewVendorsChartProps> = ({ timeRange }) => {
   const COLORS = data.map(item => item.color);
   
   return (
-    <ChartContainer
-      config={data.reduce((acc, item) => ({
-        ...acc,
-        [item.name]: { color: item.color, label: item.name }
-      }), {})}
-      className="h-80"
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            nameKey="name"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            content={
-              ({ active, payload }) => active && payload && payload.length ? (
-                <ChartTooltipContent 
-                  active={active}
-                  payload={payload}
-                  formatter={(value, name) => [`${value} fournisseurs`, name]}
-                />
-              ) : null
-            }
-          />
-          <Legend 
-            content={(props) => {
-              // Type assertion to handle the complexity of recharts types
-              return <ChartLegendContent {...props as any} />;
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+    <div className="h-full">
+      <ChartContainer
+        config={data.reduce((acc, item) => ({
+          ...acc,
+          [item.name]: { color: item.color, label: item.name }
+        }), {})}
+        className="h-[calc(100%-60px)]"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+              nameKey="name"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              content={
+                ({ active, payload }) => active && payload && payload.length ? (
+                  <ChartTooltipContent 
+                    active={active}
+                    payload={payload}
+                    formatter={(value, name) => [`${value} fournisseurs`, name]}
+                  />
+                ) : null
+              }
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+      
+      {/* Custom HTML Legend */}
+      <div className="flex flex-wrap justify-center gap-4 mt-4">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="text-sm">{item.name}: {item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
