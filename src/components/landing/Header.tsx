@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -55,7 +57,7 @@ const Header = () => {
         </div>
         
         {/* Navigation on the right side */}
-        <nav className="hidden sm:block">
+        <nav className="hidden sm:flex items-center space-x-8">
           <ul className="flex space-x-8">
             <li>
               <a 
@@ -102,6 +104,14 @@ const Header = () => {
               </a>
             </li>
           </ul>
+          <Link to="/auth">
+            <Button 
+              variant={scrolled ? "default" : "secondary"}
+              size="sm"
+            >
+              Se connecter
+            </Button>
+          </Link>
         </nav>
       </div>
     </header>
