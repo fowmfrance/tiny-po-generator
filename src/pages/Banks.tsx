@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Building2, Link2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BankConnection {
   id: string;
@@ -38,20 +39,22 @@ const Banks = () => {
     setIsConnecting(true);
 
     try {
-      // Test the connection with Qonto API
-      const response = await fetch('https://thirdparty.qonto.com/v2/organization', {
-        method: 'GET',
+      // Use edge function to proxy the request to avoid CORS
+      const { data, error } = await supabase.functions.invoke('qonto-proxy', {
+        body: { endpoint: 'organization' },
         headers: {
-          'Authorization': `${qontoLogin}:${qontoSecretKey}`,
-          'Content-Type': 'application/json',
+          'x-qonto-login': qontoLogin,
+          'x-qonto-secret': qontoSecretKey,
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Identifiants invalides');
+      if (error) {
+        throw new Error(error.message || 'Erreur de connexion');
       }
 
-      const data = await response.json();
+      if (data?.error) {
+        throw new Error(data.error);
+      }
       
       // Add the connection locally for now
       const newConnection: BankConnection = {
