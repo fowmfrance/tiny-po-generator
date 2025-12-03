@@ -10,7 +10,8 @@ import {
   Home,
   Euro,
   File,
-  Calculator
+  Calculator,
+  Building2
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -116,6 +117,19 @@ const Sidebar = () => {
             >
               <Calculator className="w-5 h-5 mr-3" />
               Cut-off Simulator
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/banks" 
+              className={({ isActive }) => 
+                `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                }`
+              }
+            >
+              <Building2 className="w-5 h-5 mr-3" />
+              Banques
             </NavLink>
           </li>
         </ul>

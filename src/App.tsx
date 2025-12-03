@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Index from './pages/Index';
 import MentionsLegales from './pages/MentionsLegales';
 import CutOffSimulator from './pages/CutOffSimulator';
+import Banks from './pages/Banks';
 import Budgets from './pages/Budgets';
 import CreateBudget from './pages/CreateBudget';
 import BudgetDetails from './pages/BudgetDetails';
@@ -34,6 +35,7 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
         <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
+        <Route path="/banks" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
         <Route path="/budgets" element={<ProtectedRoute><Layout><Budgets /></Layout></ProtectedRoute>} />
         <Route path="/budgets/create" element={<ProtectedRoute><Layout><CreateBudget /></Layout></ProtectedRoute>} />
         <Route path="/budgets/:id" element={<ProtectedRoute><Layout><BudgetDetails /></Layout></ProtectedRoute>} />
