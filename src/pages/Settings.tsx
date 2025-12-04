@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +19,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags } from 'lucide-react';
+import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
 
 interface CurrencyRate {
   currency: BudgetCurrency;
@@ -92,8 +92,12 @@ const Settings = () => {
         <p className="text-gray-500">Gérez les paramètres de votre application.</p>
       </div>
       
-      <Tabs defaultValue="currencies">
+      <Tabs defaultValue="categories">
         <TabsList>
+          <TabsTrigger value="categories">
+            <Tags className="h-4 w-4 mr-2" />
+            Catégories
+          </TabsTrigger>
           <TabsTrigger value="currencies">
             <Euro className="h-4 w-4 mr-2" />
             Devises
@@ -107,6 +111,10 @@ const Settings = () => {
             Général
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="categories" className="mt-6">
+          <ExpenseCategoriesTab />
+        </TabsContent>
         
         <TabsContent value="currencies" className="mt-6">
           <Card>
