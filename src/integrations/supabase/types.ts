@@ -116,6 +116,111 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          bank_connection_id: string | null
+          created_at: string
+          id: string
+          project_code: string | null
+          qonto_amount: number
+          qonto_attachment_ids: Json | null
+          qonto_card_last_digits: string | null
+          qonto_category: string | null
+          qonto_currency: string | null
+          qonto_emitted_at: string | null
+          qonto_initiator_id: string | null
+          qonto_label: string | null
+          qonto_local_amount: number | null
+          qonto_local_currency: string | null
+          qonto_note: string | null
+          qonto_operation_type: string | null
+          qonto_raw_data: Json | null
+          qonto_reference: string | null
+          qonto_settled_at: string | null
+          qonto_side: string | null
+          qonto_status: string | null
+          qonto_transaction_id: string
+          qonto_vat_amount: number | null
+          qonto_vat_rate: number | null
+          sapajoo_category_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_connection_id?: string | null
+          created_at?: string
+          id?: string
+          project_code?: string | null
+          qonto_amount: number
+          qonto_attachment_ids?: Json | null
+          qonto_card_last_digits?: string | null
+          qonto_category?: string | null
+          qonto_currency?: string | null
+          qonto_emitted_at?: string | null
+          qonto_initiator_id?: string | null
+          qonto_label?: string | null
+          qonto_local_amount?: number | null
+          qonto_local_currency?: string | null
+          qonto_note?: string | null
+          qonto_operation_type?: string | null
+          qonto_raw_data?: Json | null
+          qonto_reference?: string | null
+          qonto_settled_at?: string | null
+          qonto_side?: string | null
+          qonto_status?: string | null
+          qonto_transaction_id: string
+          qonto_vat_amount?: number | null
+          qonto_vat_rate?: number | null
+          sapajoo_category_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_connection_id?: string | null
+          created_at?: string
+          id?: string
+          project_code?: string | null
+          qonto_amount?: number
+          qonto_attachment_ids?: Json | null
+          qonto_card_last_digits?: string | null
+          qonto_category?: string | null
+          qonto_currency?: string | null
+          qonto_emitted_at?: string | null
+          qonto_initiator_id?: string | null
+          qonto_label?: string | null
+          qonto_local_amount?: number | null
+          qonto_local_currency?: string | null
+          qonto_note?: string | null
+          qonto_operation_type?: string | null
+          qonto_raw_data?: Json | null
+          qonto_reference?: string | null
+          qonto_settled_at?: string | null
+          qonto_side?: string | null
+          qonto_status?: string | null
+          qonto_transaction_id?: string
+          qonto_vat_amount?: number | null
+          qonto_vat_rate?: number | null
+          sapajoo_category_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_sapajoo_category_id_fkey"
+            columns: ["sapajoo_category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -34,17 +34,47 @@ interface BankConnection {
   created_at: string;
 }
 
-interface Transaction {
+interface QontoTransaction {
   id: string;
   emitted_at: string;
   settled_at: string;
   amount: number;
   currency: string;
+  local_amount?: number;
+  local_currency?: string;
   side: 'credit' | 'debit';
+  operation_type?: string;
   label: string;
   status: string;
-  note: string;
-  category: string;
+  note?: string;
+  reference?: string;
+  vat_amount?: number;
+  vat_rate?: number;
+  initiator_id?: string;
+  card_last_digits?: string;
+  category?: string;
+  attachment_ids?: string[];
+}
+
+interface Transaction {
+  id: string;
+  qonto_transaction_id: string;
+  qonto_amount: number;
+  qonto_currency: string;
+  qonto_side: string;
+  qonto_label: string;
+  qonto_settled_at: string | null;
+  qonto_emitted_at: string | null;
+  qonto_status: string;
+  qonto_category: string | null;
+  sapajoo_category_id: string | null;
+  project_code: string | null;
+}
+
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  color: string;
 }
 
 const Banks = () => {
@@ -58,13 +88,24 @@ const Banks = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
   const [activeTab, setActiveTab] = useState('banks');
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
 
   useEffect(() => {
     loadConnections();
+    loadExpenseCategories();
   }, []);
+
+  const loadExpenseCategories = async () => {
+    const { data } = await supabase
+      .from('expense_categories')
+      .select('id, name, color')
+      .eq('is_active', true);
+    if (data) setExpenseCategories(data);
+  };
 
   const loadConnections = async () => {
     setIsLoading(true);
@@ -105,6 +146,8 @@ const Banks = () => {
         if (typedData[0].bank_accounts.length > 0) {
           setSelectedAccountSlug(typedData[0].bank_accounts[0].slug);
         }
+        // Load transactions from DB for the first connection
+        loadTransactionsFromDB(typedData[0].id);
       }
     }
     setIsLoading(false);
@@ -181,7 +224,7 @@ const Banks = () => {
       if (bankAccounts.length > 0) {
         setSelectedAccountSlug(bankAccounts[0].slug);
         setActiveTab('accounts');
-        await fetchTransactions(typedConn, bankAccounts[0].slug);
+        await syncTransactions(typedConn, bankAccounts[0].slug);
       }
     } catch (error) {
       console.error('Connection error:', error);
@@ -195,7 +238,23 @@ const Banks = () => {
     }
   };
 
-  const fetchTransactions = async (connection: BankConnection, accountSlug?: string) => {
+  const loadTransactionsFromDB = async (connectionId: string) => {
+    setIsLoadingTransactions(true);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('bank_connection_id', connectionId)
+      .order('qonto_settled_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading transactions:', error);
+    } else {
+      setTransactions(data || []);
+    }
+    setIsLoadingTransactions(false);
+  };
+
+  const syncTransactions = async (connection: BankConnection, accountSlug?: string) => {
     const slug = accountSlug || selectedAccountSlug;
     if (!slug) {
       toast({
@@ -206,8 +265,10 @@ const Banks = () => {
       return;
     }
 
-    setIsLoadingTransactions(true);
-    setTransactions([]);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setIsSyncing(true);
 
     try {
       const thirtyDaysAgo = new Date();
@@ -231,22 +292,77 @@ const Banks = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      const txns = data.transactions || [];
-      setTransactions(txns);
+      const qontoTxns: QontoTransaction[] = data.transactions || [];
+      
+      // UPSERT transactions - only update Qonto fields, preserve Sapajoo fields
+      const upsertData = qontoTxns.map(tx => ({
+        user_id: user.id,
+        bank_connection_id: connection.id,
+        qonto_transaction_id: tx.id,
+        qonto_amount: tx.amount,
+        qonto_currency: tx.currency,
+        qonto_local_amount: tx.local_amount,
+        qonto_local_currency: tx.local_currency,
+        qonto_side: tx.side,
+        qonto_operation_type: tx.operation_type,
+        qonto_label: tx.label,
+        qonto_settled_at: tx.settled_at,
+        qonto_emitted_at: tx.emitted_at,
+        qonto_status: tx.status,
+        qonto_note: tx.note,
+        qonto_reference: tx.reference,
+        qonto_vat_amount: tx.vat_amount,
+        qonto_vat_rate: tx.vat_rate,
+        qonto_initiator_id: tx.initiator_id,
+        qonto_card_last_digits: tx.card_last_digits,
+        qonto_category: tx.category,
+        qonto_attachment_ids: tx.attachment_ids || [],
+        qonto_raw_data: JSON.parse(JSON.stringify(tx)),
+      }));
+
+      const { error: upsertError } = await supabase.from('transactions').upsert(upsertData, {
+        onConflict: 'user_id,qonto_transaction_id',
+      });
+
+      if (upsertError) {
+        console.error('Upsert error:', upsertError);
+      }
+
+      await loadTransactionsFromDB(connection.id);
       
       toast({
-        title: "Transactions chargées",
-        description: `${txns.length} transactions récupérées.`,
+        title: "Synchronisation réussie",
+        description: `${qontoTxns.length} transactions synchronisées.`,
       });
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de charger les transactions.",
+        description: error instanceof Error ? error.message : "Impossible de synchroniser les transactions.",
         variant: "destructive",
       });
     } finally {
-      setIsLoadingTransactions(false);
+      setIsSyncing(false);
     }
+  };
+
+  const updateTransaction = async (transactionId: string, field: 'sapajoo_category_id' | 'project_code', value: string | null) => {
+    const { error } = await supabase
+      .from('transactions')
+      .update({ [field]: value })
+      .eq('id', transactionId);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la transaction",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTransactions(prev => prev.map(tx => 
+      tx.id === transactionId ? { ...tx, [field]: value } : tx
+    ));
   };
 
   const handleDisconnect = async (connectionId: string) => {
@@ -430,6 +546,7 @@ const Banks = () => {
                     if (connection.bank_accounts.length > 0) {
                       setSelectedAccountSlug(connection.bank_accounts[0].slug);
                     }
+                    loadTransactionsFromDB(connection.id);
                   }}
                 >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -504,7 +621,7 @@ const Banks = () => {
                           className={`cursor-pointer transition-all hover:shadow-md ${selectedAccountSlug === account.slug ? 'ring-2 ring-primary' : ''}`}
                           onClick={() => {
                             setSelectedAccountSlug(account.slug);
-                            fetchTransactions(selectedConnection, account.slug);
+                            syncTransactions(selectedConnection, account.slug);
                           }}
                         >
                           <CardContent className="pt-4">
@@ -532,11 +649,11 @@ const Banks = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => fetchTransactions(selectedConnection)}
-                      disabled={isLoadingTransactions}
+                      onClick={() => syncTransactions(selectedConnection)}
+                      disabled={isLoadingTransactions || isSyncing}
                     >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
-                      Actualiser
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                      {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
                     </Button>
                   </CardHeader>
                   <CardContent>
@@ -555,7 +672,8 @@ const Banks = () => {
                           <TableRow>
                             <TableHead>Date</TableHead>
                             <TableHead>Libellé</TableHead>
-                            <TableHead>Catégorie</TableHead>
+                            <TableHead>Catégorie Sapajoo</TableHead>
+                            <TableHead>Code projet</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Montant</TableHead>
                           </TableRow>
@@ -564,30 +682,58 @@ const Banks = () => {
                           {transactions.map((tx) => (
                             <TableRow key={tx.id}>
                               <TableCell>
-                                {new Date(tx.settled_at || tx.emitted_at).toLocaleDateString('fr-FR')}
+                                {new Date(tx.qonto_settled_at || tx.qonto_emitted_at || '').toLocaleDateString('fr-FR')}
                               </TableCell>
                               <TableCell className="flex items-center gap-2">
-                                {tx.side === 'credit' ? (
+                                {tx.qonto_side === 'credit' ? (
                                   <ArrowDownLeft className="w-4 h-4 text-green-500" />
                                 ) : (
                                   <ArrowUpRight className="w-4 h-4 text-red-500" />
                                 )}
-                                {tx.label || 'Sans libellé'}
+                                {tx.qonto_label || 'Sans libellé'}
                               </TableCell>
-                              <TableCell>{tx.category || '-'}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={tx.sapajoo_category_id || ''}
+                                  onValueChange={(value) => updateTransaction(tx.id, 'sapajoo_category_id', value || null)}
+                                >
+                                  <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Catégorie" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Aucune</SelectItem>
+                                    {expenseCategories.map(cat => (
+                                      <SelectItem key={cat.id} value={cat.id}>
+                                        <span className="flex items-center gap-2">
+                                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                          {cat.name}
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  className="w-[120px]"
+                                  placeholder="Code projet"
+                                  value={tx.project_code || ''}
+                                  onChange={(e) => updateTransaction(tx.id, 'project_code', e.target.value || null)}
+                                />
+                              </TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs ${
-                                  tx.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                  tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                  tx.qonto_status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                  tx.qonto_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {tx.status}
+                                  {tx.qonto_status}
                                 </span>
                               </TableCell>
                               <TableCell className={`text-right font-medium ${
-                                tx.side === 'credit' ? 'text-green-600' : 'text-red-600'
+                                tx.qonto_side === 'credit' ? 'text-green-600' : 'text-red-600'
                               }`}>
-                                {formatAmount(tx.amount, tx.currency, tx.side)}
+                                {formatAmount(tx.qonto_amount, tx.qonto_currency, tx.qonto_side || '')}
                               </TableCell>
                             </TableRow>
                           ))}
