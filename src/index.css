@@ -4,72 +4,83 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White background */
-    --foreground: 188 22% 45%; /* Dark text color matching the palette */
-    --primary: 210 100% 25%; /* #173288 */
-    --secondary: 185 38% 82%; /* #b8d4d8 - light blue instead of green */
+    --background: 210 20% 98%; /* Slate-50 */
+    --foreground: 215 25% 17%; /* Slate-900 */
     
-    /* Other color variables remain the same */
+    --primary: 215 25% 17%; /* Slate-900 */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 18% 96%; /* Slate-100 */
+    --secondary-foreground: 215 25% 17%;
+    
+    --muted: 210 18% 96%;
+    --muted-foreground: 215 16% 47%; /* Slate-500 */
+    
+    --accent: 217 91% 60%; /* Blue-500 */
+    --accent-foreground: 0 0% 100%;
+    
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 17%;
     
-    /* Custom zone background */
-    --text-zone-background: 262 35% 55%; /* #967cbd */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 17%;
+    
+    --border: 214 32% 91%; /* Gray-200 */
+    --input: 214 32% 91%;
+    --ring: 215 25% 17%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --sidebar-background: 210 100% 14%;
+    --sidebar-background: 215 25% 17%;
     --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 210 100% 50%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 100% 20%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 27%;
     --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 210 100% 20%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --radius: 0.5rem;
+    --sidebar-border: 215 25% 27%;
+    --sidebar-ring: 217 91% 60%;
+    
+    --radius: 0.75rem;
   }
 
   .dark {
-    /* Dark mode variables can be adjusted similarly */
-    --background: 185 38% 82%;
-    --foreground: 188 22% 25%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 100% 50%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 215 25% 9%;
+    --foreground: 210 20% 98%;
     
-    --sidebar-background: 210 100% 14%;
+    --primary: 210 20% 98%;
+    --primary-foreground: 215 25% 17%;
+    
+    --secondary: 215 25% 17%;
+    --secondary-foreground: 210 20% 98%;
+    
+    --muted: 215 25% 17%;
+    --muted-foreground: 215 16% 57%;
+    
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    --card: 215 25% 12%;
+    --card-foreground: 210 20% 98%;
+    
+    --popover: 215 25% 12%;
+    --popover-foreground: 210 20% 98%;
+    
+    --border: 215 25% 22%;
+    --input: 215 25% 22%;
+    --ring: 217 91% 60%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --sidebar-background: 215 25% 9%;
     --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 100% 20%;
+    --sidebar-accent: 215 25% 17%;
     --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 210 100% 20%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-border: 215 25% 17%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -79,79 +90,55 @@
   }
 
   body {
-    @apply bg-white text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
+/* Status badges - refined with subtle borders */
 .status-badge {
-  @apply px-2 py-1 rounded-full text-xs font-semibold;
+  @apply px-2.5 py-0.5 rounded-full text-xs font-medium inline-flex items-center;
 }
 
 .status-draft {
-  @apply bg-gray-200 text-gray-800;
+  @apply bg-slate-100 text-slate-700 border border-slate-200;
 }
 
 .status-pending {
-  @apply bg-amber-100 text-amber-800;
+  @apply bg-amber-50 text-amber-700 border border-amber-100;
 }
 
 .status-approved {
-  @apply bg-green-100 text-green-800;
+  @apply bg-emerald-50 text-emerald-700 border border-emerald-100;
 }
 
 .status-rejected {
-  @apply bg-red-100 text-red-800;
+  @apply bg-red-50 text-red-700 border border-red-100;
 }
 
 .status-matched {
-  @apply bg-blue-100 text-blue-800;
+  @apply bg-blue-50 text-blue-700 border border-blue-100;
 }
 
 .status-paid {
-  @apply bg-indigo-100 text-indigo-800;
+  @apply bg-indigo-50 text-indigo-700 border border-indigo-100;
 }
 
+/* Modern progress bar */
 .progress-bar {
-  @apply h-2 rounded-full bg-gray-200 overflow-hidden;
+  @apply h-1.5 rounded-full bg-slate-100 overflow-hidden;
 }
 
 .progress-bar-fill {
-  @apply h-full bg-po-blue rounded-full;
+  @apply h-full bg-slate-900 rounded-full transition-all duration-300;
 }
 
-/* Updated neon highlight effects that highlight the full height of text */
-.highlight-yellow {
-  @apply relative inline-block;
-  background: linear-gradient(to bottom, transparent 60%, rgba(255, 236, 32, 0.4) 40%);
-  padding: 0 1px;
-  border-radius: 1px;
-  transition: background 0.3s ease;
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-200 hover:border-slate-400 hover:shadow-md;
 }
 
-.highlight-yellow:hover {
-  background: linear-gradient(to bottom, transparent 60%, rgba(255, 236, 32, 0.6) 40%);
-}
-
-.highlight-green {
-  @apply relative inline-block;
-  background: linear-gradient(to bottom, transparent 60%, rgba(101, 225, 179, 0.4) 40%);
-  padding: 0 1px;
-  border-radius: 1px;
-  transition: background 0.3s ease;
-}
-
-.highlight-green:hover {
-  background: linear-gradient(to bottom, transparent 60%, rgba(101, 225, 179, 0.6) 40%);
-}
-
-.highlight-pink {
-  @apply relative inline-block;
-  background: linear-gradient(to bottom, transparent 60%, rgba(255, 129, 178, 0.4) 40%);
-  padding: 0 1px;
-  border-radius: 1px;
-  transition: background 0.3s ease;
-}
-
-.highlight-pink:hover {
-  background: linear-gradient(to bottom, transparent 60%, rgba(255, 129, 178, 0.6) 40%);
+/* Tracking tight utility for large text */
+.text-display {
+  @apply tracking-tight;
 }
