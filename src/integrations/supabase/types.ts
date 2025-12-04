@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_connections: {
+        Row: {
+          bank_accounts: Json | null
+          bank_name: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          login: string
+          organization_name: string | null
+          secret_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_accounts?: Json | null
+          bank_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          login: string
+          organization_name?: string | null
+          secret_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_accounts?: Json | null
+          bank_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          login?: string
+          organization_name?: string | null
+          secret_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null

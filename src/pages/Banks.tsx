@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -6,19 +6,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface BankAccount {
+  slug: string;
+  iban: string;
+  bic: string;
+  name: string;
+  balance: number;
+  balance_cents: number;
+  currency: string;
+  authorized_balance: number;
+  authorized_balance_cents: number;
+}
+
 interface BankConnection {
   id: string;
-  bankName: string;
+  bank_name: string;
   login: string;
-  secretKey: string;
-  organizationName: string;
-  bankAccountSlug: string;
-  isActive: boolean;
-  createdAt: Date;
+  secret_key: string;
+  organization_name: string;
+  bank_accounts: BankAccount[];
+  is_active: boolean;
+  created_at: string;
 }
 
 interface Transaction {
@@ -42,9 +54,46 @@ const Banks = () => {
   const [qontoSecretKey, setQontoSecretKey] = useState('');
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
+  const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
+
+  // Load connections from database on mount
+  useEffect(() => {
+    const loadConnections = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('bank_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error loading connections:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les connexions bancaires",
+          variant: "destructive",
+        });
+      } else if (data) {
+        const typedData = data.map(conn => ({
+          ...conn,
+          bank_accounts: (conn.bank_accounts as unknown as BankAccount[]) || []
+        }));
+        setConnections(typedData);
+      }
+      setIsLoading(false);
+    };
+
+    loadConnections();
+  }, []);
 
   const handleConnect = async () => {
     if (!selectedBank || !qontoLogin || !qontoSecretKey) {
@@ -59,6 +108,11 @@ const Banks = () => {
     setIsConnecting(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Vous devez être connecté');
+      }
+
       const { data, error } = await supabase.functions.invoke('qonto-proxy', {
         body: { endpoint: 'organization' },
         headers: {
@@ -70,25 +124,36 @@ const Banks = () => {
       if (error) throw new Error(error.message || 'Erreur de connexion');
       if (data?.error) throw new Error(data.error);
 
-      const bankAccountSlug = data.organization?.bank_accounts?.[0]?.slug || '';
+      const bankAccounts = data.organization?.bank_accounts || [];
       
-      const newConnection: BankConnection = {
-        id: crypto.randomUUID(),
-        bankName: selectedBank,
-        login: qontoLogin,
-        secretKey: qontoSecretKey,
-        organizationName: data.organization?.legal_name || 'Qonto',
-        bankAccountSlug,
-        isActive: true,
-        createdAt: new Date(),
+      // Save to database
+      const { data: newConn, error: insertError } = await supabase
+        .from('bank_connections')
+        .insert({
+          user_id: user.id,
+          bank_name: selectedBank,
+          login: qontoLogin,
+          secret_key: qontoSecretKey,
+          organization_name: data.organization?.legal_name || 'Qonto',
+          bank_accounts: bankAccounts,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      const typedConn = {
+        ...newConn,
+        bank_accounts: bankAccounts as BankAccount[]
       };
 
-      setConnections([...connections, newConnection]);
-      setSelectedConnection(newConnection);
+      setConnections([...connections, typedConn]);
+      setSelectedConnection(typedConn);
       
       toast({
         title: "Connexion réussie",
-        description: `Compte ${newConnection.organizationName} connecté.`,
+        description: `Compte ${typedConn.organization_name} connecté avec ${bankAccounts.length} compte(s).`,
       });
 
       setSelectedBank('');
@@ -96,8 +161,11 @@ const Banks = () => {
       setQontoSecretKey('');
       setIsDialogOpen(false);
 
-      // Fetch transactions immediately
-      await fetchTransactions(newConnection);
+      // Auto-select first account and fetch transactions
+      if (bankAccounts.length > 0) {
+        setSelectedAccountSlug(bankAccounts[0].slug);
+        await fetchTransactions(typedConn, bankAccounts[0].slug);
+      }
     } catch (error) {
       toast({
         title: "Erreur de connexion",
@@ -109,11 +177,12 @@ const Banks = () => {
     }
   };
 
-  const fetchTransactions = async (connection: BankConnection) => {
-    if (!connection.bankAccountSlug) {
+  const fetchTransactions = async (connection: BankConnection, accountSlug?: string) => {
+    const slug = accountSlug || selectedAccountSlug;
+    if (!slug) {
       toast({
         title: "Erreur",
-        description: "Aucun compte bancaire trouvé",
+        description: "Veuillez sélectionner un compte bancaire",
         variant: "destructive",
       });
       return;
@@ -130,14 +199,14 @@ const Banks = () => {
         body: { 
           endpoint: `transactions`,
           params: {
-            slug: connection.bankAccountSlug,
+            slug: slug,
             per_page: 100,
             settled_at_from: thirtyDaysAgo.toISOString().split('T')[0],
           }
         },
         headers: {
           'x-qonto-login': connection.login,
-          'x-qonto-secret': connection.secretKey,
+          'x-qonto-secret': connection.secret_key,
         },
       });
 
@@ -162,11 +231,26 @@ const Banks = () => {
     }
   };
 
-  const handleDisconnect = (connectionId: string) => {
+  const handleDisconnect = async (connectionId: string) => {
+    const { error } = await supabase
+      .from('bank_connections')
+      .update({ is_active: false })
+      .eq('id', connectionId);
+
+    if (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la connexion",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setConnections(connections.filter(c => c.id !== connectionId));
     if (selectedConnection?.id === connectionId) {
       setSelectedConnection(null);
       setTransactions([]);
+      setSelectedAccountSlug('');
     }
     toast({
       title: "Banque déconnectée",
@@ -181,6 +265,22 @@ const Banks = () => {
     }).format(Math.abs(amount));
     return side === 'debit' ? `-${formatted}` : `+${formatted}`;
   };
+
+  const formatBalance = (balance: number, currency: string) => {
+    return new Intl.NumberFormat('fr-FR', { 
+      style: 'currency', 
+      currency 
+    }).format(balance);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Chargement...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -297,13 +397,15 @@ const Banks = () => {
                 className={`cursor-pointer transition-all ${selectedConnection?.id === connection.id ? 'ring-2 ring-primary' : ''}`}
                 onClick={() => {
                   setSelectedConnection(connection);
-                  if (transactions.length === 0) fetchTransactions(connection);
+                  if (connection.bank_accounts.length > 0 && !selectedAccountSlug) {
+                    setSelectedAccountSlug(connection.bank_accounts[0].slug);
+                  }
                 }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-lg font-medium flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
-                    {connection.organizationName}
+                    {connection.organization_name}
                   </CardTitle>
                   <Button 
                     variant="ghost" 
@@ -317,13 +419,16 @@ const Banks = () => {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
                       <Link2 className="w-4 h-4 text-green-500" />
                       <span className="text-green-600">Connecté</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Connecté le {connection.createdAt.toLocaleDateString('fr-FR')}
+                      {connection.bank_accounts.length} compte(s) bancaire(s)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Connecté le {new Date(connection.created_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                 </CardContent>
@@ -333,8 +438,49 @@ const Banks = () => {
 
           {selectedConnection && (
             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Comptes bancaires - {selectedConnection.organization_name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedConnection.bank_accounts.length === 0 ? (
+                  <p className="text-muted-foreground">Aucun compte trouvé</p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {selectedConnection.bank_accounts.map((account) => (
+                      <Card 
+                        key={account.slug}
+                        className={`cursor-pointer transition-all ${selectedAccountSlug === account.slug ? 'ring-2 ring-primary' : ''}`}
+                        onClick={() => {
+                          setSelectedAccountSlug(account.slug);
+                          fetchTransactions(selectedConnection, account.slug);
+                        }}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="space-y-2">
+                            <p className="font-medium">{account.name || 'Compte principal'}</p>
+                            <p className="text-2xl font-bold">
+                              {formatBalance(account.balance, account.currency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {account.iban}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {selectedConnection && selectedAccountSlug && (
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Transactions - {selectedConnection.organizationName}</CardTitle>
+                <CardTitle>Transactions</CardTitle>
                 <Button 
                   variant="outline" 
                   size="sm"
