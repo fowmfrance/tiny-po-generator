@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -17,7 +16,6 @@ type PurchaseOrder = {
 };
 
 const RecentPurchaseOrders = () => {
-  // Sample data for the dashboard
   const recentPOs: PurchaseOrder[] = [
     {
       id: '1',
@@ -55,14 +53,14 @@ const RecentPurchaseOrders = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Bons de Commande Récents</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">Bons de Commande Récents</h2>
         <Link 
           to="/purchase-orders" 
-          className="text-po-blue hover:text-blue-700 text-sm flex items-center"
+          className="text-sm font-medium text-foreground hover:text-accent flex items-center gap-1 transition-colors"
         >
           Voir Tout
-          <ArrowRight className="w-4 h-4 ml-1" />
+          <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

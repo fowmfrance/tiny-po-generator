@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss"
 
 export default {
@@ -19,34 +18,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['SF Pro', 'sans-serif'],
-        serif: ['SF Pro', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
-        'po-primary': {
-          DEFAULT: '#173288',  // Dark blue
-          background: '#d0e5e9',  // Light blue background instead of green
-          button: '#b8d4d8',  // Light blue button instead of green
-          text: {
-            background: '#967cbd'  // Background zones of text
-          }
-        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#002856', // Marie Forleo dark blue
-          foreground: '#ffffff',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: '#f5a67d', // Marie Forleo peach
-          foreground: '#ffffff',
-        },
-        accent: {
-          DEFAULT: '#f3f1eb', // Marie Forleo light beige
-          foreground: '#000000',
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -78,59 +64,24 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
         },
-        po: {
-          blue: '#3b82f6',
-          teal: '#14b8a6',
-          green: '#22c55e',
-          amber: '#f59e0b',
-          red: '#ef4444',
-          gray: '#6b7280',
-        },
-        landing: {
-          DEFAULT: '#d0e5e9',  // Light blue instead of purple
-          footer: '#19348a',  // Using the features blue for the gradient
-          features: '#19348a',
-          cta: '#b8d4d8'  // Light blue instead of green
-        },
-        navy: '#19348a', // Adding the navy color for footer text
-      },
-      backgroundColor: {
-        DEFAULT: '#ffffff',
-        primary: '#002856',
-        secondary: '#f5a67d',
-        accent: '#f3f1eb',
-        'text-zone': '#967cbd',
-        'landing': {
-          DEFAULT: '#d0e5e9',  // Light blue instead of purple
-          footer: '#c5c1a8',
-          features: '#19348a',
-          cta: '#b8d4d8'  // Light blue instead of green
-        }
-      },
-      boxShadow: {
-        'marie': '0 10px 30px rgba(0, 0, 0, 0.08)',
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
+      boxShadow: {
+        'subtle': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+      },
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0'
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)'
-          }
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' }
         },
         'accordion-up': {
-          from: {
-            height: '0'
-          },
-          to: {
-            height: '0'
-          }
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' }
         }
       },
       animation: {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Check } from 'lucide-react';
 import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
@@ -9,26 +8,26 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const statusClasses = {
-    draft: 'bg-gray-200 text-gray-800',
-    pending: 'bg-yellow-100 text-yellow-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    matched: 'bg-blue-100 text-blue-800',
-    paid: 'bg-purple-100 text-purple-800'
+    draft: 'bg-slate-100 text-slate-700 border border-slate-200',
+    pending: 'bg-amber-50 text-amber-700 border border-amber-100',
+    approved: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    rejected: 'bg-red-50 text-red-700 border border-red-100',
+    matched: 'bg-blue-50 text-blue-700 border border-blue-100',
+    paid: 'bg-indigo-50 text-indigo-700 border border-indigo-100'
   };
 
   const statusMap = {
     draft: 'Draft',
-    pending: 'Pending',
-    approved: 'Approved',
-    rejected: 'Rejected',
+    pending: 'En attente',
+    approved: 'Approuvé',
+    rejected: 'Rejeté',
     matched: 'Matched',
-    paid: 'Paid'
+    paid: 'Payé'
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status]}`}>
-      {status === 'matched' && <Check className="inline w-3 h-3 mr-1" />}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses[status]}`}>
+      {status === 'matched' && <Check className="w-3 h-3 mr-1" />}
       {statusMap[status]}
     </span>
   );

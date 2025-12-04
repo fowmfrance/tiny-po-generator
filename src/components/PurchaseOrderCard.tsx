@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -29,50 +28,54 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   paymentProgress = 0
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow flex flex-col">
-      <div className="p-4 flex-grow">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="text-lg font-medium">BC #{poNumber}</h3>
-            <Link to={`/vendors/${vendorId}`} className="text-sm text-po-blue hover:underline">
+    <div className="group bg-card rounded-xl border border-border hover:border-slate-400 transition-colors duration-200 p-6 flex flex-col justify-between h-full">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-1 rounded">
+            BC #{poNumber}
+          </span>
+          <h3 className="mt-3 text-lg font-semibold text-foreground">
+            <Link to={`/vendors/${vendorId}`} className="hover:text-accent transition-colors">
               {vendor}
             </Link>
-          </div>
-          <div>
-            <StatusBadge status={status} />
-          </div>
+          </h3>
         </div>
-        
-        <div className="mb-3">
-          <p className="text-2xl font-semibold">
-            {currency} {amount.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500">{date}</p>
-        </div>
-        
-        {(status === 'approved' || status === 'matched' || status === 'paid') && (
-          <div className="mb-3">
-            <div className="flex justify-between text-xs mb-1">
-              <span>Progression du Paiement</span>
-              <span>{paymentProgress}%</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-bar-fill" 
-                style={{ width: `${paymentProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
+        <StatusBadge status={status} />
       </div>
-      
-      <div className="bg-gray-50 p-3 border-t border-gray-100 mt-auto">
+
+      <div className="mb-6">
+        <span className="text-3xl font-bold tracking-tight text-foreground">
+          {amount.toLocaleString('fr-FR')} €
+        </span>
+        <div className="text-sm text-muted-foreground mt-1">{date}</div>
+      </div>
+
+      {(status === 'approved' || status === 'matched' || status === 'paid') && (
+        <div className="mb-4">
+          <div className="progress-bar">
+            <div 
+              className="progress-bar-fill" 
+              style={{ width: `${paymentProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-4 border-t border-border mt-auto">
+        {(status === 'approved' || status === 'matched' || status === 'paid') && (
+          <span className="text-xs text-muted-foreground font-medium">
+            {paymentProgress}% payé
+          </span>
+        )}
+        {!(status === 'approved' || status === 'matched' || status === 'paid') && (
+          <span />
+        )}
         <Link 
           to={`/purchase-orders/${id}`} 
-          className="text-po-blue hover:text-blue-700 text-sm flex items-center justify-end"
+          className="text-sm font-medium text-foreground hover:text-accent group-hover:translate-x-1 transition-all flex items-center gap-1"
         >
-          Voir les Détails
-          <ArrowRight className="w-4 h-4 ml-1" />
+          Détails
+          <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import UserMenu from './UserMenu';
@@ -9,13 +8,13 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 p-4 flex justify-end items-center">
+        <header className="bg-card border-b border-border px-6 py-4 flex justify-end items-center">
           <UserMenu />
         </header>
-        <main className="flex-1 overflow-auto p-6 bg-gray-50">
+        <main className="flex-1 overflow-auto p-8">
           {children}
         </main>
       </div>
