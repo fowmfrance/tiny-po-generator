@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
+import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -59,41 +60,55 @@ const Banks = () => {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null);
   const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('banks');
 
-  // Load connections from database on mount
   useEffect(() => {
-    const loadConnections = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('bank_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-
-      if (error) {
-        console.error('Error loading connections:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les connexions bancaires",
-          variant: "destructive",
-        });
-      } else if (data) {
-        const typedData = data.map(conn => ({
-          ...conn,
-          bank_accounts: (conn.bank_accounts as unknown as BankAccount[]) || []
-        }));
-        setConnections(typedData);
-      }
-      setIsLoading(false);
-    };
-
     loadConnections();
   }, []);
+
+  const loadConnections = async () => {
+    setIsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      setIsLoading(false);
+      toast({
+        title: "Non connecté",
+        description: "Veuillez vous connecter pour voir vos banques",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('bank_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error loading connections:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les connexions bancaires",
+        variant: "destructive",
+      });
+    } else if (data && data.length > 0) {
+      const typedData = data.map(conn => ({
+        ...conn,
+        bank_accounts: (conn.bank_accounts as unknown as BankAccount[]) || []
+      }));
+      setConnections(typedData);
+      
+      if (!selectedConnection && typedData.length > 0) {
+        setSelectedConnection(typedData[0]);
+        if (typedData[0].bank_accounts.length > 0) {
+          setSelectedAccountSlug(typedData[0].bank_accounts[0].slug);
+        }
+      }
+    }
+    setIsLoading(false);
+  };
 
   const handleConnect = async () => {
     if (!selectedBank || !qontoLogin || !qontoSecretKey) {
@@ -110,7 +125,7 @@ const Banks = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('Vous devez être connecté');
+        throw new Error('Vous devez être connecté pour ajouter une banque');
       }
 
       const { data, error } = await supabase.functions.invoke('qonto-proxy', {
@@ -126,7 +141,6 @@ const Banks = () => {
 
       const bankAccounts = data.organization?.bank_accounts || [];
       
-      // Save to database
       const { data: newConn, error: insertError } = await supabase
         .from('bank_connections')
         .insert({
@@ -141,7 +155,10 @@ const Banks = () => {
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw new Error(insertError.message);
+      }
 
       const typedConn = {
         ...newConn,
@@ -161,12 +178,13 @@ const Banks = () => {
       setQontoSecretKey('');
       setIsDialogOpen(false);
 
-      // Auto-select first account and fetch transactions
       if (bankAccounts.length > 0) {
         setSelectedAccountSlug(bankAccounts[0].slug);
+        setActiveTab('accounts');
         await fetchTransactions(typedConn, bankAccounts[0].slug);
       }
     } catch (error) {
+      console.error('Connection error:', error);
       toast({
         title: "Erreur de connexion",
         description: error instanceof Error ? error.message : "Vérifiez vos identifiants.",
@@ -288,7 +306,7 @@ const Banks = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Banques</h1>
           <p className="text-muted-foreground">
-            Connectez vos comptes bancaires pour synchroniser vos données
+            Gérez vos connexions bancaires et consultez vos opérations
           </p>
         </div>
         
@@ -374,183 +392,215 @@ const Banks = () => {
         </Dialog>
       </div>
 
-      {connections.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Aucune banque connectée</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Connectez votre première banque pour commencer à synchroniser vos données financières.
-            </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter une banque
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {connections.map((connection) => (
-              <Card 
-                key={connection.id} 
-                className={`cursor-pointer transition-all ${selectedConnection?.id === connection.id ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => {
-                  setSelectedConnection(connection);
-                  if (connection.bank_accounts.length > 0 && !selectedAccountSlug) {
-                    setSelectedAccountSlug(connection.bank_accounts[0].slug);
-                  }
-                }}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    {connection.organization_name}
-                  </CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDisconnect(connection.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Link2 className="w-4 h-4 text-green-500" />
-                      <span className="text-green-600">Connecté</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {connection.bank_accounts.length} compte(s) bancaire(s)
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Connecté le {new Date(connection.created_at).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="banks" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Banques
+          </TabsTrigger>
+          <TabsTrigger value="accounts" className="flex items-center gap-2" disabled={connections.length === 0}>
+            <CreditCard className="w-4 h-4" />
+            Comptes
+          </TabsTrigger>
+        </TabsList>
 
-          {selectedConnection && (
+        <TabsContent value="banks" className="mt-6">
+          {connections.length === 0 ? (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wallet className="w-5 h-5" />
-                  Comptes bancaires - {selectedConnection.organization_name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedConnection.bank_accounts.length === 0 ? (
-                  <p className="text-muted-foreground">Aucun compte trouvé</p>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {selectedConnection.bank_accounts.map((account) => (
-                      <Card 
-                        key={account.slug}
-                        className={`cursor-pointer transition-all ${selectedAccountSlug === account.slug ? 'ring-2 ring-primary' : ''}`}
-                        onClick={() => {
-                          setSelectedAccountSlug(account.slug);
-                          fetchTransactions(selectedConnection, account.slug);
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Aucune banque connectée</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Connectez votre première banque pour commencer à synchroniser vos données financières.
+                </p>
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter une banque
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {connections.map((connection) => (
+                <Card 
+                  key={connection.id} 
+                  className={`cursor-pointer transition-all hover:shadow-md ${selectedConnection?.id === connection.id ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => {
+                    setSelectedConnection(connection);
+                    if (connection.bank_accounts.length > 0) {
+                      setSelectedAccountSlug(connection.bank_accounts[0].slug);
+                    }
+                  }}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      {connection.organization_name}
+                    </CardTitle>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDisconnect(connection.id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Link2 className="w-4 h-4 text-green-500" />
+                        <span className="text-green-600">Connecté</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {connection.bank_accounts.length} compte(s) bancaire(s)
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Connecté le {new Date(connection.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedConnection(connection);
+                          if (connection.bank_accounts.length > 0) {
+                            setSelectedAccountSlug(connection.bank_accounts[0].slug);
+                          }
+                          setActiveTab('accounts');
                         }}
                       >
-                        <CardContent className="pt-4">
-                          <div className="space-y-2">
-                            <p className="font-medium">{account.name || 'Compte principal'}</p>
-                            <p className="text-2xl font-bold">
-                              {formatBalance(account.balance, account.currency)}
-                            </p>
-                            <p className="text-xs text-muted-foreground font-mono">
-                              {account.iban}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        Voir les comptes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
+        </TabsContent>
 
-          {selectedConnection && selectedAccountSlug && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Transactions</CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fetchTransactions(selectedConnection)}
-                  disabled={isLoadingTransactions}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
-                  Actualiser
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {isLoadingTransactions ? (
-                  <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-muted-foreground">Chargement...</span>
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Aucune transaction trouvée sur les 30 derniers jours
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Libellé</TableHead>
-                        <TableHead>Catégorie</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Montant</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((tx) => (
-                        <TableRow key={tx.id}>
-                          <TableCell>
-                            {new Date(tx.settled_at || tx.emitted_at).toLocaleDateString('fr-FR')}
-                          </TableCell>
-                          <TableCell className="flex items-center gap-2">
-                            {tx.side === 'credit' ? (
-                              <ArrowDownLeft className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <ArrowUpRight className="w-4 h-4 text-red-500" />
-                            )}
-                            {tx.label || 'Sans libellé'}
-                          </TableCell>
-                          <TableCell>{tx.category || '-'}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              tx.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                              tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {tx.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className={`text-right font-medium ${
-                            tx.side === 'credit' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatAmount(tx.amount, tx.currency, tx.side)}
-                          </TableCell>
-                        </TableRow>
+        <TabsContent value="accounts" className="mt-6 space-y-6">
+          {selectedConnection && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5" />
+                    Comptes - {selectedConnection.organization_name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedConnection.bank_accounts.length === 0 ? (
+                    <p className="text-muted-foreground">Aucun compte trouvé</p>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {selectedConnection.bank_accounts.map((account) => (
+                        <Card 
+                          key={account.slug}
+                          className={`cursor-pointer transition-all hover:shadow-md ${selectedAccountSlug === account.slug ? 'ring-2 ring-primary' : ''}`}
+                          onClick={() => {
+                            setSelectedAccountSlug(account.slug);
+                            fetchTransactions(selectedConnection, account.slug);
+                          }}
+                        >
+                          <CardContent className="pt-4">
+                            <div className="space-y-2">
+                              <p className="font-medium">{account.name || 'Compte principal'}</p>
+                              <p className="text-2xl font-bold">
+                                {formatBalance(account.balance, account.currency)}
+                              </p>
+                              <p className="text-xs text-muted-foreground font-mono">
+                                {account.iban}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {selectedAccountSlug && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Opérations</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => fetchTransactions(selectedConnection)}
+                      disabled={isLoadingTransactions}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingTransactions ? 'animate-spin' : ''}`} />
+                      Actualiser
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingTransactions ? (
+                      <div className="flex items-center justify-center py-8">
+                        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-muted-foreground">Chargement...</span>
+                      </div>
+                    ) : transactions.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucune opération trouvée sur les 30 derniers jours
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Libellé</TableHead>
+                            <TableHead>Catégorie</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {transactions.map((tx) => (
+                            <TableRow key={tx.id}>
+                              <TableCell>
+                                {new Date(tx.settled_at || tx.emitted_at).toLocaleDateString('fr-FR')}
+                              </TableCell>
+                              <TableCell className="flex items-center gap-2">
+                                {tx.side === 'credit' ? (
+                                  <ArrowDownLeft className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <ArrowUpRight className="w-4 h-4 text-red-500" />
+                                )}
+                                {tx.label || 'Sans libellé'}
+                              </TableCell>
+                              <TableCell>{tx.category || '-'}</TableCell>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  tx.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                  tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {tx.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className={`text-right font-medium ${
+                                tx.side === 'credit' ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {formatAmount(tx.amount, tx.currency, tx.side)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
-        </>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
