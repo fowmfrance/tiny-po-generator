@@ -171,38 +171,37 @@ const Banks = () => {
         throw new Error('Vous devez être connecté pour ajouter une banque');
       }
 
-      const { data, error } = await supabase.functions.invoke('qonto-proxy', {
-        body: { endpoint: 'organization' },
-        headers: {
-          'x-qonto-login': qontoLogin,
-          'x-qonto-secret': qontoSecretKey,
+      // Step 1: Validate credentials before storing (credentials sent once, not stored)
+      const { data: validateData, error: validateError } = await supabase.functions.invoke('qonto-proxy', {
+        body: { 
+          action: 'validate_credentials',
+          bankData: { login: qontoLogin, secretKey: qontoSecretKey }
         },
       });
 
-      if (error) throw new Error(error.message || 'Erreur de connexion');
-      if (data?.error) throw new Error(data.error);
+      if (validateError) throw new Error(validateError.message || 'Erreur de validation');
+      if (validateData?.error) throw new Error(validateData.error);
 
-      const bankAccounts = data.organization?.bank_accounts || [];
+      const bankAccounts = validateData.organization?.bank_accounts || [];
       
-      const { data: newConn, error: insertError } = await supabase
-        .from('bank_connections')
-        .insert({
-          user_id: user.id,
-          bank_name: selectedBank,
-          login: qontoLogin,
-          secret_key: qontoSecretKey,
-          organization_name: data.organization?.legal_name || 'Qonto',
-          bank_accounts: bankAccounts,
-          is_active: true,
-        })
-        .select()
-        .single();
+      // Step 2: Create connection with encrypted credentials (server-side encryption)
+      const { data: createData, error: createError } = await supabase.functions.invoke('qonto-proxy', {
+        body: { 
+          action: 'create_connection',
+          bankData: {
+            login: qontoLogin,
+            secretKey: qontoSecretKey,
+            bankName: selectedBank,
+            organizationName: validateData.organization?.legal_name || 'Qonto',
+            bankAccounts: bankAccounts,
+          }
+        },
+      });
 
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        throw new Error(insertError.message);
-      }
+      if (createError) throw new Error(createError.message || 'Erreur de création');
+      if (createData?.error) throw new Error(createData.error);
 
+      const newConn = createData.connection;
       const typedConn = {
         ...newConn,
         bank_accounts: bankAccounts as BankAccount[]
@@ -274,18 +273,17 @@ const Banks = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      // Use secure API with connectionId - credentials decrypted server-side
       const { data, error } = await supabase.functions.invoke('qonto-proxy', {
         body: { 
-          endpoint: `transactions`,
+          action: 'qonto_api',
+          connectionId: connection.id,
+          endpoint: 'transactions',
           params: {
             slug: slug,
             per_page: 100,
             settled_at_from: thirtyDaysAgo.toISOString().split('T')[0],
           }
-        },
-        headers: {
-          'x-qonto-login': connection.login,
-          'x-qonto-secret': connection.secret_key,
         },
       });
 
