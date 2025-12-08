@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Session } from '@supabase/supabase-js';
+import { ArrowLeft } from 'lucide-react';
+import { loginSchema, signupSchema, forgotPasswordSchema } from '@/schemas/authSchema';
 
 const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,10 +18,12 @@ const Auth: React.FC = () => {
   const [company, setCompany] = useState('');
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -29,7 +33,6 @@ const Auth: React.FC = () => {
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -42,26 +45,42 @@ const Auth: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setValidationErrors({});
+    
+    const result = signupSchema.safeParse({ email, password, fullName, company });
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      return;
+    }
 
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: result.data.email,
+        password: result.data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
-            full_name: fullName,
-            company: company
+            full_name: result.data.fullName,
+            company: result.data.company
           }
         }
       });
 
       if (error) throw error;
-
       toast.success('Inscription réussie ! Bienvenue sur Sapajoo.');
     } catch (error: any) {
-      toast.error(error.message || 'Une erreur est survenue lors de l\'inscription');
+      if (error.message.includes('already registered')) {
+        toast.error('Un compte existe déjà avec cet email');
+      } else {
+        toast.error(error.message || 'Une erreur est survenue lors de l\'inscription');
+      }
     } finally {
       setLoading(false);
     }
@@ -69,16 +88,28 @@ const Auth: React.FC = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setValidationErrors({});
+    
+    const result = loginSchema.safeParse({ email, password });
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      return;
+    }
 
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: result.data.email,
+        password: result.data.password,
       });
 
       if (error) throw error;
-
       toast.success('Connexion réussie !');
     } catch (error: any) {
       if (error.message.includes('Invalid login credentials')) {
@@ -86,6 +117,39 @@ const Auth: React.FC = () => {
       } else {
         toast.error(error.message || 'Une erreur est survenue lors de la connexion');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationErrors({});
+
+    const result = forgotPasswordSchema.safeParse({ email: forgotEmail });
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(result.data.email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) throw error;
+      toast.success('Un email de réinitialisation a été envoyé à votre adresse');
+      setShowForgotPassword(false);
+      setForgotEmail('');
+    } catch (error: any) {
+      toast.error(error.message || 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -109,7 +173,69 @@ const Auth: React.FC = () => {
   };
 
   if (session) {
-    return null; // Will redirect via useEffect
+    return null;
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sapajoo
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Réinitialisation du mot de passe
+          </p>
+        </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
+            <button
+              onClick={() => {
+                setShowForgotPassword(false);
+                setValidationErrors({});
+              }}
+              className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Retour à la connexion
+            </button>
+
+            <form className="space-y-6" onSubmit={handleForgotPassword}>
+              <div>
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="vous@entreprise.com"
+                  className="mt-1"
+                />
+                {validationErrors.email && (
+                  <p className="mt-1 text-sm text-destructive">{validationErrors.email}</p>
+                )}
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+              </p>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Envoi...' : 'Envoyer le lien de réinitialisation'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -141,11 +267,15 @@ const Auth: React.FC = () => {
                     type="email"
                     autoComplete="email"
                     required
+                    maxLength={255}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="vous@entreprise.com"
                     className="mt-1"
                   />
+                  {validationErrors.email && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -156,10 +286,27 @@ const Auth: React.FC = () => {
                     type="password"
                     autoComplete="current-password"
                     required
+                    maxLength={128}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="mt-1"
                   />
+                  {validationErrors.password && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.password}</p>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(true);
+                      setValidationErrors({});
+                    }}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Mot de passe oublié ?
+                  </button>
                 </div>
 
                 <Button 
@@ -204,11 +351,15 @@ const Auth: React.FC = () => {
                     name="fullname"
                     type="text"
                     required
+                    maxLength={100}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Jean Dupont"
                     className="mt-1"
                   />
+                  {validationErrors.fullName && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.fullName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -217,11 +368,16 @@ const Auth: React.FC = () => {
                     id="signup-company"
                     name="company"
                     type="text"
+                    required
+                    maxLength={100}
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="Mon Entreprise"
                     className="mt-1"
                   />
+                  {validationErrors.company && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.company}</p>
+                  )}
                 </div>
 
                 <div>
@@ -232,11 +388,15 @@ const Auth: React.FC = () => {
                     type="email"
                     autoComplete="email"
                     required
+                    maxLength={255}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="vous@entreprise.com"
                     className="mt-1"
                   />
+                  {validationErrors.email && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -247,11 +407,15 @@ const Auth: React.FC = () => {
                     type="password"
                     autoComplete="new-password"
                     required
+                    maxLength={128}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Au moins 6 caractères"
+                    placeholder="Min. 8 caractères, 1 majuscule, 1 chiffre"
                     className="mt-1"
                   />
+                  {validationErrors.password && (
+                    <p className="mt-1 text-sm text-destructive">{validationErrors.password}</p>
+                  )}
                 </div>
 
                 <Button 
