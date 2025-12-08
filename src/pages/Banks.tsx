@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useBudgetsData } from '@/hooks/useBudgetsData';
 
 interface BankAccount {
   slug: string;
@@ -93,6 +94,7 @@ const Banks = () => {
   const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
   const [activeTab, setActiveTab] = useState('banks');
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const { budgets } = useBudgetsData();
 
   useEffect(() => {
     loadConnections();
@@ -670,6 +672,7 @@ const Banks = () => {
                           <TableRow>
                             <TableHead>Date</TableHead>
                             <TableHead>Libellé</TableHead>
+                            <TableHead>Catégorie Qonto</TableHead>
                             <TableHead>Catégorie Sapajoo</TableHead>
                             <TableHead>Code projet</TableHead>
                             <TableHead>Status</TableHead>
@@ -691,7 +694,12 @@ const Banks = () => {
                                 {tx.qonto_label || 'Sans libellé'}
                               </TableCell>
                               <TableCell>
-                              <Select
+                                <span className="text-sm text-muted-foreground">
+                                  {tx.qonto_category || '-'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <Select
                                   value={tx.sapajoo_category_id || 'none'}
                                   onValueChange={(value) => updateTransaction(tx.id, 'sapajoo_category_id', value === 'none' ? null : value)}
                                 >
@@ -712,12 +720,22 @@ const Banks = () => {
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <Input
-                                  className="w-[120px]"
-                                  placeholder="Code projet"
-                                  value={tx.project_code || ''}
-                                  onChange={(e) => updateTransaction(tx.id, 'project_code', e.target.value || null)}
-                                />
+                                <Select
+                                  value={tx.project_code || 'none'}
+                                  onValueChange={(value) => updateTransaction(tx.id, 'project_code', value === 'none' ? null : value)}
+                                >
+                                  <SelectTrigger className="w-[150px]">
+                                    <SelectValue placeholder="Projet" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Aucun</SelectItem>
+                                    {budgets.map(budget => (
+                                      <SelectItem key={budget.id} value={budget.code}>
+                                        {budget.code}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs ${
