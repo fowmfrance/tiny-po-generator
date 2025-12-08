@@ -104,7 +104,7 @@ const Header = () => {
               </a>
             </li>
           </ul>
-          <a href="https://app.sapajoo.fr/auth">
+          <a href="https://app.sapajoo.fr/login">
             <Button 
               variant={scrolled ? "default" : "secondary"}
               size="sm"
