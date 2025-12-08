@@ -691,15 +691,15 @@ const Banks = () => {
                                 {tx.qonto_label || 'Sans libellé'}
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={tx.sapajoo_category_id || ''}
-                                  onValueChange={(value) => updateTransaction(tx.id, 'sapajoo_category_id', value || null)}
+                              <Select
+                                  value={tx.sapajoo_category_id || 'none'}
+                                  onValueChange={(value) => updateTransaction(tx.id, 'sapajoo_category_id', value === 'none' ? null : value)}
                                 >
                                   <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Catégorie" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">Aucune</SelectItem>
+                                    <SelectItem value="none">Aucune</SelectItem>
                                     {expenseCategories.map(cat => (
                                       <SelectItem key={cat.id} value={cat.id}>
                                         <span className="flex items-center gap-2">
