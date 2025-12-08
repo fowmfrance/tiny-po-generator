@@ -19,6 +19,9 @@ export type Database = {
           bank_accounts: Json | null
           bank_name: string
           created_at: string
+          encrypted_login: string | null
+          encrypted_secret_key: string | null
+          encryption_iv: string | null
           id: string
           is_active: boolean | null
           login: string
@@ -31,6 +34,9 @@ export type Database = {
           bank_accounts?: Json | null
           bank_name: string
           created_at?: string
+          encrypted_login?: string | null
+          encrypted_secret_key?: string | null
+          encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
           login: string
@@ -43,6 +49,9 @@ export type Database = {
           bank_accounts?: Json | null
           bank_name?: string
           created_at?: string
+          encrypted_login?: string | null
+          encrypted_secret_key?: string | null
+          encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
           login?: string
@@ -247,6 +256,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_encrypted_bank_connection: {
+        Args: {
+          p_bank_accounts: Json
+          p_bank_name: string
+          p_encrypted_login: string
+          p_encrypted_secret_key: string
+          p_organization_name: string
+        }
+        Returns: string
+      }
+      decrypt_credential: {
+        Args: { encrypted_text: string; encryption_key: string }
+        Returns: string
+      }
+      encrypt_credential: {
+        Args: { encryption_key: string; iv: string; plain_text: string }
+        Returns: string
+      }
+      get_decrypted_credentials: {
+        Args: { p_connection_id: string; p_encryption_key: string }
+        Returns: {
+          decrypted_login: string
+          decrypted_secret_key: string
+        }[]
+      }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       initialize_default_categories: {
         Args: { _user_id: string }
