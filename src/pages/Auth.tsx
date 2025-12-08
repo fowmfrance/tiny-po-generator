@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,18 @@ import { toast } from 'sonner';
 import { Session } from '@supabase/supabase-js';
 import { ArrowLeft } from 'lucide-react';
 import { loginSchema, signupSchema, forgotPasswordSchema } from '@/schemas/authSchema';
+import { z } from 'zod';
+
+const resetPasswordSchema = z.object({
+  password: z.string()
+    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+    .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
 
 const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,29 +31,45 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // Check if this is a password reset flow
+    const isReset = searchParams.get('reset') === 'true';
+    if (isReset) {
+      setShowResetPassword(true);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
-        if (session) {
+        // Don't redirect if we're in password reset mode
+        if (session && !showResetPassword && event !== 'PASSWORD_RECOVERY') {
           navigate('/dashboard');
+        }
+        // Handle password recovery event
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowResetPassword(true);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) {
+      // Don't redirect if we're in password reset mode
+      if (session && !isReset) {
         navigate('/dashboard');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams, showResetPassword]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,8 +200,107 @@ const Auth: React.FC = () => {
     }
   };
 
-  if (session) {
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationErrors({});
+
+    const result = resetPasswordSchema.safeParse({ password: newPassword, confirmPassword });
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: result.data.password,
+      });
+
+      if (error) throw error;
+      toast.success('Mot de passe mis à jour avec succès !');
+      setShowResetPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (session && !showResetPassword) {
     return null;
+  }
+
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sapajoo
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Nouveau mot de passe
+          </p>
+        </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
+            <form className="space-y-6" onSubmit={handleResetPassword}>
+              <div>
+                <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                <Input
+                  id="new-password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min. 8 caractères, 1 majuscule, 1 chiffre"
+                  className="mt-1"
+                />
+                {validationErrors.password && (
+                  <p className="mt-1 text-sm text-destructive">{validationErrors.password}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                <Input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-1"
+                />
+                {validationErrors.confirmPassword && (
+                  <p className="mt-1 text-sm text-destructive">{validationErrors.confirmPassword}</p>
+                )}
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (showForgotPassword) {
