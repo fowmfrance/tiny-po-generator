@@ -440,7 +440,7 @@ const Banks = () => {
                 Ajouter une banque
               </Button>
             </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Ajouter une connexion bancaire</DialogTitle>
               <DialogDescription>
