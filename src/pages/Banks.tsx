@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard } from 'lucide-react';
+import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
@@ -94,6 +95,7 @@ const Banks = () => {
   const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
   const [activeTab, setActiveTab] = useState('banks');
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const navigate = useNavigate();
   const { budgets } = useBudgetsData();
 
   useEffect(() => {
@@ -426,13 +428,18 @@ const Banks = () => {
           </p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter une banque
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/settings')}>
+            <Settings className="w-4 h-4 mr-2" />
+            Catégories
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter une banque
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Ajouter une connexion bancaire</DialogTitle>
@@ -506,6 +513,7 @@ const Banks = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
