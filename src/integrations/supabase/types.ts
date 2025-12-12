@@ -125,6 +125,113 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_bank_accounts: {
+        Row: {
+          archived_at: string | null
+          archived_reason: string | null
+          bank_name: string | null
+          created_at: string
+          currency: string
+          encrypted_bic: string
+          encrypted_iban: string
+          id: string
+          is_archived: boolean | null
+          is_primary: boolean | null
+          label: string
+          supplier_id: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_reason?: string | null
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          encrypted_bic: string
+          encrypted_iban: string
+          id?: string
+          is_archived?: boolean | null
+          is_primary?: boolean | null
+          label: string
+          supplier_id: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_reason?: string | null
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          encrypted_bic?: string
+          encrypted_iban?: string
+          id?: string
+          is_archived?: boolean | null
+          is_primary?: boolean | null
+          label?: string
+          supplier_id?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_bank_accounts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           bank_connection_id: string | null
@@ -256,6 +363,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_supplier_bank_account: {
+        Args: { p_bank_account_id: string; p_reason: string }
+        Returns: undefined
+      }
       create_encrypted_bank_connection: {
         Args: {
           p_bank_accounts: Json
@@ -274,11 +385,31 @@ export type Database = {
         Args: { encryption_key: string; iv: string; plain_text: string }
         Returns: string
       }
+      encrypt_supplier_bank_account: {
+        Args: {
+          p_bank_name: string
+          p_bic: string
+          p_currency: string
+          p_encryption_key: string
+          p_iban: string
+          p_is_primary: boolean
+          p_label: string
+          p_supplier_id: string
+        }
+        Returns: string
+      }
       get_decrypted_credentials: {
         Args: { p_connection_id: string; p_encryption_key: string }
         Returns: {
           decrypted_login: string
           decrypted_secret_key: string
+        }[]
+      }
+      get_decrypted_supplier_bank: {
+        Args: { p_bank_account_id: string; p_encryption_key: string }
+        Returns: {
+          decrypted_bic: string
+          decrypted_iban: string
         }[]
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
