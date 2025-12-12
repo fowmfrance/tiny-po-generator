@@ -80,7 +80,7 @@ export function validatePurchaseOrderAmount(
   if (poAmountInBudgetCurrency > budgetRemainingAmount) {
     return {
       valid: false,
-      message: `This purchase order would exceed the remaining budget by ${
+      message: `Ce bon de commande dépasserait le budget restant de ${
         (poAmountInBudgetCurrency - budgetRemainingAmount).toFixed(2)
       } ${budgetCurrency}`
     };
@@ -119,14 +119,14 @@ export function validateBudgetActive(
   if (budgetStartDate && today < budgetStartDate) {
     return {
       active: false,
-      message: `This budget is not active yet. It starts on ${budgetStartDate.toLocaleDateString()}.`
+      message: `Ce budget n'est pas encore actif. Il débute le ${budgetStartDate.toLocaleDateString('fr-FR')}.`
     };
   }
   
   if (budgetEndDate && today > budgetEndDate) {
     return {
       active: false,
-      message: `This budget has expired. It ended on ${budgetEndDate.toLocaleDateString()}.`
+      message: `Ce budget a expiré. Il s'est terminé le ${budgetEndDate.toLocaleDateString('fr-FR')}.`
     };
   }
   

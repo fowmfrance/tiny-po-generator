@@ -55,7 +55,7 @@ const CreateBudget = () => {
       code: '',
       name: '',
       type: 'Project',
-      currency: 'USD',
+      currency: 'EUR',
       initialAmount: 0,
       startDate: '',
       endDate: '',
@@ -69,8 +69,8 @@ const CreateBudget = () => {
     console.log('Form data:', data);
     
     toast({
-      title: "Budget Created",
-      description: "The budget has been created successfully.",
+      title: "Budget créé",
+      description: "Le budget a été créé avec succès.",
     });
     
     navigate('/budgets');
@@ -87,8 +87,8 @@ const CreateBudget = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Create Budget</h1>
-          <p className="text-muted-foreground">Set up a new budget for your projects or expenses</p>
+          <h1 className="text-2xl font-bold">Créer un budget</h1>
+          <p className="text-muted-foreground">Configurez un nouveau budget pour vos projets ou dépenses</p>
         </div>
       </div>
       
@@ -97,9 +97,9 @@ const CreateBudget = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>Informations de base</CardTitle>
                 <CardDescription>
-                  Enter the basic details for this budget
+                  Saisissez les informations de base pour ce budget
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -108,12 +108,12 @@ const CreateBudget = () => {
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget Code</FormLabel>
+                      <FormLabel>Code du budget</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., PRJ-2023-001" {...field} />
+                        <Input placeholder="ex: PRJ-2023-001" {...field} />
                       </FormControl>
                       <FormDescription>
-                        A unique identifier for this budget
+                        Un identifiant unique pour ce budget
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -125,12 +125,12 @@ const CreateBudget = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget Name</FormLabel>
+                      <FormLabel>Nom du budget</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Project Alpha Budget" {...field} />
+                        <Input placeholder="ex: Budget Projet Alpha" {...field} />
                       </FormControl>
                       <FormDescription>
-                        A descriptive name for this budget
+                        Un nom descriptif pour ce budget
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -142,23 +142,23 @@ const CreateBudget = () => {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget Type</FormLabel>
+                      <FormLabel>Type de budget</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a budget type" />
+                            <SelectValue placeholder="Sélectionnez un type de budget" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Project">Project</SelectItem>
-                          <SelectItem value="G&A">G&A</SelectItem>
+                          <SelectItem value="Project">Projet</SelectItem>
+                          <SelectItem value="G&A">Frais généraux</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        The type of expenses this budget covers
+                        Le type de dépenses couvert par ce budget
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -169,9 +169,9 @@ const CreateBudget = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Financial Details</CardTitle>
+                <CardTitle>Détails financiers</CardTitle>
                 <CardDescription>
-                  Set the financial parameters for this budget
+                  Définissez les paramètres financiers de ce budget
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -180,20 +180,20 @@ const CreateBudget = () => {
                   name="currency"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Currency</FormLabel>
+                      <FormLabel>Devise</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a currency" />
+                            <SelectValue placeholder="Sélectionnez une devise" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="USD">USD - US Dollar</SelectItem>
                           <SelectItem value="EUR">EUR - Euro</SelectItem>
-                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                          <SelectItem value="USD">USD - Dollar Américain</SelectItem>
+                          <SelectItem value="GBP">GBP - Livre Sterling</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -206,17 +206,17 @@ const CreateBudget = () => {
                   name="initialAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Initial Amount</FormLabel>
+                      <FormLabel>Montant initial</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
-                          placeholder="0.00" 
+                          placeholder="0,00" 
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value))} 
                         />
                       </FormControl>
                       <FormDescription>
-                        The starting amount for this budget
+                        Le montant de départ de ce budget
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -229,7 +229,7 @@ const CreateBudget = () => {
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Date</FormLabel>
+                        <FormLabel>Date de début</FormLabel>
                         <div className="relative">
                           <FormControl>
                             <Input 
@@ -250,7 +250,7 @@ const CreateBudget = () => {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Date</FormLabel>
+                        <FormLabel>Date de fin</FormLabel>
                         <div className="relative">
                           <FormControl>
                             <Input 
@@ -271,9 +271,9 @@ const CreateBudget = () => {
             
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Cost Recognition</CardTitle>
+                <CardTitle>Reconnaissance des charges</CardTitle>
                 <CardDescription>
-                  Define how costs will be recognized for accounting purposes
+                  Définissez comment les charges seront reconnues à des fins comptables
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -282,7 +282,7 @@ const CreateBudget = () => {
                   name="recognitionType"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Recognition Method</FormLabel>
+                      <FormLabel>Méthode de reconnaissance</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={(value: BudgetRecognitionType) => {
@@ -297,7 +297,7 @@ const CreateBudget = () => {
                               <RadioGroupItem value="linear" />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              Linear recognition (based on elapsed time)
+                              Reconnaissance linéaire (basée sur le temps écoulé)
                             </FormLabel>
                           </FormItem>
                           <FormItem className="flex items-center space-x-3 space-y-0">
@@ -305,15 +305,15 @@ const CreateBudget = () => {
                               <RadioGroupItem value="completion" />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              Service completion based recognition
+                              Reconnaissance à l'avancement
                             </FormLabel>
                           </FormItem>
                         </RadioGroup>
                       </FormControl>
                       <FormDescription>
-                        Linear: Costs are recognized evenly over the budget timeframe.
+                        Linéaire : Les charges sont reconnues uniformément sur la durée du budget.
                         <br />
-                        Completion: Costs are recognized based on service completion percentage.
+                        Avancement : Les charges sont reconnues en fonction du pourcentage d'avancement.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -326,7 +326,7 @@ const CreateBudget = () => {
                     name="completionPercentage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Current Completion Percentage</FormLabel>
+                        <FormLabel>Pourcentage d'avancement actuel</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
@@ -338,7 +338,7 @@ const CreateBudget = () => {
                           />
                         </FormControl>
                         <FormDescription>
-                          The current percentage of service completion (0-100%)
+                          Le pourcentage actuel d'avancement de la prestation (0-100%)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -347,12 +347,12 @@ const CreateBudget = () => {
                 )}
                 
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-                  <h4 className="text-sm font-medium text-blue-800 mb-2">How Cost Recognition Works</h4>
+                  <h4 className="text-sm font-medium text-blue-800 mb-2">Fonctionnement de la reconnaissance des charges</h4>
                   <p className="text-sm text-blue-700">
-                    <strong>Linear Recognition:</strong> Costs are spread evenly over the budget period. For example, if your budget spans 10 months and you've completed 5 months, 50% of the budget is considered recognized.
+                    <strong>Reconnaissance linéaire :</strong> Les charges sont réparties uniformément sur la période du budget. Par exemple, si votre budget couvre 10 mois et que 5 mois se sont écoulés, 50% du budget est considéré comme reconnu.
                   </p>
                   <p className="text-sm text-blue-700 mt-2">
-                    <strong>Completion Based:</strong> Costs are recognized based on the completion percentage you specify. You'll need to manually update this percentage as the project progresses.
+                    <strong>À l'avancement :</strong> Les charges sont reconnues en fonction du pourcentage d'avancement que vous spécifiez. Vous devrez mettre à jour manuellement ce pourcentage au fur et à mesure de l'avancement du projet.
                   </p>
                 </div>
               </CardContent>
@@ -365,13 +365,13 @@ const CreateBudget = () => {
               variant="outline" 
               onClick={() => navigate('/budgets')}
             >
-              Cancel
+              Annuler
             </Button>
             <Button 
               type="submit"
               className="bg-po-blue hover:bg-blue-600"
             >
-              Create Budget
+              Créer le budget
             </Button>
           </div>
         </form>

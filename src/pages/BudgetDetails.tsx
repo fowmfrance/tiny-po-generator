@@ -66,8 +66,8 @@ const BudgetDetails = () => {
       {
         id: '1',
         code: 'PRJ-2023-001',
-        name: 'Project Alpha Budget',
-        currency: 'USD',
+        name: 'Budget Projet Alpha',
+        currency: 'EUR',
         initialAmount: 100000,
         sentAmount: 75000,
         remainingAmount: 20000,
@@ -80,7 +80,7 @@ const BudgetDetails = () => {
       {
         id: '2',
         code: 'GA-2023-002',
-        name: 'G&A Expenses Q3',
+        name: 'Frais généraux T3',
         currency: 'EUR',
         initialAmount: 50000,
         sentAmount: 35000,
@@ -94,7 +94,7 @@ const BudgetDetails = () => {
       {
         id: '3',
         code: 'PRJ-2023-003',
-        name: 'Project Beta Budget',
+        name: 'Budget Projet Beta',
         currency: 'GBP',
         initialAmount: 75000,
         sentAmount: 15000,
@@ -114,12 +114,12 @@ const BudgetDetails = () => {
         poNumber: 'PRJ-2023-001-001',
         budgetId: '1',
         vendor: 'Dell Technologies',
-        currency: 'USD',
+        currency: 'EUR',
         amount: 15000,
-        amountInEUR: 13800, // USD to EUR at 0.92 exchange rate
-        exchangeRate: 0.92,
-        invoiceExchangeRate: 0.91,
-        fxGainLoss: -150, // (0.92 - 0.91) * 15000 = -150 EUR loss
+        amountInEUR: 15000,
+        exchangeRate: 1.0,
+        invoiceExchangeRate: 1.0,
+        fxGainLoss: 0,
         invoicedAmount: 15000,
         invoiceDate: new Date(),
         createdAt: new Date(),
@@ -129,12 +129,12 @@ const BudgetDetails = () => {
         poNumber: 'PRJ-2023-001-002',
         budgetId: '1',
         vendor: 'Amazon Business',
-        currency: 'USD',
+        currency: 'EUR',
         amount: 20000,
-        amountInEUR: 18400, // USD to EUR at 0.92 exchange rate
-        exchangeRate: 0.92,
+        amountInEUR: 20000,
+        exchangeRate: 1.0,
         invoiceExchangeRate: null,
-        fxGainLoss: null, // No invoice yet
+        fxGainLoss: null, // Pas encore de facture
         invoicedAmount: 5000,
         invoiceDate: null,
         createdAt: new Date(),
@@ -146,10 +146,10 @@ const BudgetDetails = () => {
         vendor: 'Software Inc.',
         currency: 'EUR',
         amount: 10000,
-        amountInEUR: 10000, // Already in EUR
+        amountInEUR: 10000,
         exchangeRate: 1.0,
         invoiceExchangeRate: 1.0,
-        fxGainLoss: 0, // No FX difference for EUR
+        fxGainLoss: 0,
         invoicedAmount: 10000,
         invoiceDate: new Date(),
         createdAt: new Date(),
@@ -174,17 +174,17 @@ const BudgetDetails = () => {
   const totalFxGainLoss = purchaseOrders.reduce((sum, po) => sum + (po.fxGainLoss || 0), 0);
 
   if (loading) {
-    return <div className="p-8 text-center">Loading budget details...</div>;
+    return <div className="p-8 text-center">Chargement des détails du budget...</div>;
   }
 
   if (!budget) {
     return (
       <div className="p-8">
         <Button variant="ghost" onClick={() => navigate('/budgets')}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Budgets
+          <ArrowLeft className="w-4 h-4 mr-2" /> Retour aux budgets
         </Button>
         <div className="text-center mt-8">
-          <p className="text-lg text-gray-500">Budget not found</p>
+          <p className="text-lg text-gray-500">Budget introuvable</p>
         </div>
       </div>
     );
@@ -206,16 +206,16 @@ const BudgetDetails = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <Button variant="ghost" onClick={() => navigate('/budgets')} className="mr-2">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Budgets
+            <ArrowLeft className="w-4 h-4 mr-2" /> Retour aux budgets
           </Button>
-          <h1 className="text-2xl font-bold">Budget Details</h1>
+          <h1 className="text-2xl font-bold">Détails du budget</h1>
         </div>
         <Button 
           onClick={handleCreatePO}
           className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Create Purchase Order
+          Créer un bon de commande
         </Button>
       </div>
 
@@ -230,41 +230,41 @@ const BudgetDetails = () => {
             </div>
             <div className="text-right">
               <div className="font-medium">
-                Initial Amount: {formatCurrency(budget.currency, budget.initialAmount)}
+                Montant initial : {formatCurrency(budget.currency, budget.initialAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Sent: {formatCurrency(budget.currency, budget.sentAmount)}
+                Envoyé : {formatCurrency(budget.currency, budget.sentAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Received: {formatCurrency(budget.currency, budget.receivedAmount)}
+                Reçu : {formatCurrency(budget.currency, budget.receivedAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Remaining: {formatCurrency(budget.currency, budget.remainingAmount)}
+                Restant : {formatCurrency(budget.currency, budget.remainingAmount)}
               </div>
               <div className="text-sm text-muted-foreground">
-                Available: {formatCurrency(budget.currency, budget.availableAmount)}
+                Disponible : {formatCurrency(budget.currency, budget.availableAmount)}
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex justify-between items-center">
-            <h2 className="text-lg font-medium">Purchase Orders</h2>
+            <h2 className="text-lg font-medium">Bons de commande</h2>
             <div className="text-sm space-x-4">
               <span>
-                <span className="text-gray-500">Total PO Amount: </span>
+                <span className="text-gray-500">Total BC : </span>
                 <span className="font-medium">{formatCurrency(budget.currency, totalPoAmount)}</span>
               </span>
               <span>
-                <span className="text-gray-500">Total in EUR: </span>
+                <span className="text-gray-500">Total en EUR : </span>
                 <span className="font-medium">{formatCurrency('EUR', totalPoAmountInEUR)}</span>
               </span>
               <span>
-                <span className="text-gray-500">Invoiced: </span>
+                <span className="text-gray-500">Facturé : </span>
                 <span className="font-medium">{formatCurrency(budget.currency, totalInvoicedAmount)}</span>
               </span>
               <span>
-                <span className="text-gray-500">FX Gain/Loss: </span>
+                <span className="text-gray-500">Gain/Perte de change : </span>
                 <span className={`font-medium ${totalFxGainLoss > 0 ? 'text-green-600' : totalFxGainLoss < 0 ? 'text-red-600' : ''}`}>
                   {formatCurrency('EUR', totalFxGainLoss)}
                 </span>
@@ -277,18 +277,18 @@ const BudgetDetails = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>PO Number</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead className="text-center">Currency</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Amount (EUR)</TableHead>
-                    <TableHead className="text-right">Invoiced Amount</TableHead>
-                    <TableHead className="text-right">Exchange Rate</TableHead>
+                    <TableHead>N° BC</TableHead>
+                    <TableHead>Fournisseur</TableHead>
+                    <TableHead className="text-center">Devise</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead className="text-right">Montant (EUR)</TableHead>
+                    <TableHead className="text-right">Montant facturé</TableHead>
+                    <TableHead className="text-right">Taux de change</TableHead>
                     <TableHead className="text-right">
-                      FX Gain/Loss at booking
+                      Gain/Perte de change
                     </TableHead>
-                    <TableHead className="text-right">Invoice Date</TableHead>
-                    <TableHead className="text-right">Created</TableHead>
+                    <TableHead className="text-right">Date facture</TableHead>
+                    <TableHead className="text-right">Créé le</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -321,10 +321,10 @@ const BudgetDetails = () => {
                         ) : 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {po.invoiceDate ? po.invoiceDate.toLocaleDateString() : 'Not invoiced'}
+                        {po.invoiceDate ? po.invoiceDate.toLocaleDateString('fr-FR') : 'Non facturé'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {po.createdAt.toLocaleDateString()}
+                        {po.createdAt.toLocaleDateString('fr-FR')}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -333,7 +333,7 @@ const BudgetDetails = () => {
             </div>
           ) : (
             <div className="bg-white p-6 rounded-md border text-center">
-              <p className="text-gray-500">No purchase orders found for this budget.</p>
+              <p className="text-gray-500">Aucun bon de commande trouvé pour ce budget.</p>
             </div>
           )}
         </CardContent>

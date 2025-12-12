@@ -166,28 +166,28 @@ const PurchaseOrderDetail = () => {
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      draft: 'Draft',
-      pending: 'Pending Approval',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      matched: 'Invoice Matched',
-      paid: 'Paid'
+      draft: 'Brouillon',
+      pending: 'En attente d\'approbation',
+      approved: 'Approuvé',
+      rejected: 'Rejeté',
+      matched: 'Facture rapprochée',
+      paid: 'Payé'
     };
     
     return statusMap[status] || status;
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center p-8">Loading...</div>;
+    return <div className="flex justify-center items-center p-8">Chargement...</div>;
   }
 
   if (!purchaseOrder) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Purchase Order Not Found</h2>
-        <p className="mb-4">The purchase order you are looking for does not exist.</p>
+        <h2 className="text-2xl font-bold mb-4">Bon de commande introuvable</h2>
+        <p className="mb-4">Le bon de commande que vous recherchez n'existe pas.</p>
         <Button onClick={() => navigate('/purchase-orders')}>
-          Back to Purchase Orders
+          Retour aux bons de commande
         </Button>
       </div>
     );
@@ -204,8 +204,8 @@ const PurchaseOrderDetail = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Purchase Order #{purchaseOrder.poNumber}</h1>
-          <p className="text-muted-foreground">Created on {purchaseOrder.date}</p>
+          <h1 className="text-2xl font-bold">Bon de commande #{purchaseOrder.poNumber}</h1>
+          <p className="text-muted-foreground">Créé le {purchaseOrder.date}</p>
         </div>
         
         {vendor && purchaseOrder.status !== 'draft' && (
@@ -215,7 +215,7 @@ const PurchaseOrderDetail = () => {
             onClick={handleSendPO}
           >
             <Send className="h-4 w-4" />
-            Send to Supplier
+            Envoyer au fournisseur
           </Button>
         )}
       </div>
@@ -223,7 +223,7 @@ const PurchaseOrderDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Status</CardTitle>
+            <CardTitle>Statut</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -236,7 +236,7 @@ const PurchaseOrderDetail = () => {
             {(purchaseOrder.status === 'approved' || purchaseOrder.status === 'matched' || purchaseOrder.status === 'paid') && (
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1">
-                  <span>Payment Progress</span>
+                  <span>Avancement paiement</span>
                   <span>{purchaseOrder.paymentProgress ?? 0}%</span>
                 </div>
                 <div className="h-2 w-full bg-gray-100 rounded overflow-hidden">
@@ -251,31 +251,31 @@ const PurchaseOrderDetail = () => {
           <CardFooter className="flex flex-wrap gap-2">
             {purchaseOrder.status === 'draft' && (
               <Button size="sm" onClick={() => handleStatusChange('pending')}>
-                Submit for Approval
+                Soumettre pour approbation
               </Button>
             )}
             {purchaseOrder.status === 'pending' && (
               <>
                 <Button size="sm" variant="outline" className="bg-red-50 text-red-600 border-red-200" 
                   onClick={() => handleStatusChange('rejected')}>
-                  Reject
+                  Rejeter
                 </Button>
                 <Button size="sm" className="bg-green-600" 
                   onClick={() => handleStatusChange('approved')}>
-                  Approve
+                  Approuver
                 </Button>
               </>
             )}
             {purchaseOrder.status === 'approved' && (
               <Button size="sm" className="bg-blue-600" 
                 onClick={() => handleStatusChange('matched')}>
-                Mark as Matched
+                Marquer comme rapproché
               </Button>
             )}
             {purchaseOrder.status === 'matched' && (
               <Button size="sm" className="bg-purple-600" 
                 onClick={() => handleStatusChange('paid')}>
-                Mark as Paid
+                Marquer comme payé
               </Button>
             )}
           </CardFooter>
@@ -283,16 +283,16 @@ const PurchaseOrderDetail = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Supplier</CardTitle>
+            <CardTitle>Fournisseur</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-start">
               <div>
                 <p className="font-medium text-lg">{purchaseOrder.vendor}</p>
-                <p className="text-sm text-muted-foreground">Vendor ID: {purchaseOrder.vendorId}</p>
+                <p className="text-sm text-muted-foreground">ID Fournisseur : {purchaseOrder.vendorId}</p>
               </div>
               <Link to={`/vendors/${purchaseOrder.vendorId}`} className="text-po-blue flex items-center gap-1 text-sm">
-                View Profile
+                Voir le profil
                 <ExternalLink className="h-4 w-4" />
               </Link>
             </div>
@@ -301,17 +301,17 @@ const PurchaseOrderDetail = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Amount</CardTitle>
+            <CardTitle>Montant</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{purchaseOrder.currency} {purchaseOrder.amount.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{purchaseOrder.currency} {purchaseOrder.amount.toLocaleString('fr-FR')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>Articles</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="border rounded-md overflow-hidden">
@@ -319,8 +319,8 @@ const PurchaseOrderDetail = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Description</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">Quantity</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Unit Price</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">Quantité</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Prix unitaire</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Total</th>
                 </tr>
               </thead>
@@ -330,10 +330,10 @@ const PurchaseOrderDetail = () => {
                     <td className="px-4 py-3 text-sm">{item.description}</td>
                     <td className="px-4 py-3 text-sm text-center">{item.quantity}</td>
                     <td className="px-4 py-3 text-sm text-right">
-                      {purchaseOrder.currency} {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {purchaseOrder.currency} {item.unitPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-right">
-                      {purchaseOrder.currency} {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {purchaseOrder.currency} {item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
                 ))}
@@ -341,10 +341,10 @@ const PurchaseOrderDetail = () => {
               <tfoot className="bg-gray-50">
                 <tr>
                   <td colSpan={3} className="px-4 py-3 text-right text-sm font-medium">
-                    Total:
+                    Total :
                   </td>
                   <td className="px-4 py-3 text-right font-bold">
-                    {purchaseOrder.currency} {purchaseOrder.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {purchaseOrder.currency} {purchaseOrder.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               </tfoot>
@@ -355,7 +355,7 @@ const PurchaseOrderDetail = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Activity Timeline</CardTitle>
+          <CardTitle>Historique</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -368,7 +368,7 @@ const PurchaseOrderDetail = () => {
                 </div>
                 <div>
                   <p className="font-medium">{event.action}</p>
-                  <p className="text-sm text-muted-foreground">By {event.user} on {event.date}</p>
+                  <p className="text-sm text-muted-foreground">Par {event.user} le {event.date}</p>
                 </div>
               </div>
             ))}
