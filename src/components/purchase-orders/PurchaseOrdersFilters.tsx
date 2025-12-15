@@ -33,7 +33,7 @@ export const PurchaseOrdersFilters: React.FC<PurchaseOrdersFiltersProps> = ({
       <div className="relative flex-1">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Search purchase orders..."
+          placeholder="Rechercher un bon de commande..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -45,10 +45,10 @@ export const PurchaseOrdersFilters: React.FC<PurchaseOrdersFiltersProps> = ({
           <Filter className="h-4 w-4 text-gray-500" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending">Pending Approval</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
