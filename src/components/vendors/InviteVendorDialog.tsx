@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { AtSign, Send } from 'lucide-react';
+import { AtSign, Phone, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyVendorInvited } from '@/services/notificationService';
 
@@ -28,6 +28,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [sendCopy, setSendCopy] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +64,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       onOpenChange(false);
       setEmail("");
       setName("");
+      setPhone("");
       setMessage("");
       setSendCopy(false);
     } catch (error) {
@@ -116,6 +118,23 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                   className="pl-8"
                   placeholder="email@fournisseur.com"
                   required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="phone" className="text-right">
+                Téléphone
+              </Label>
+              <div className="col-span-3 relative">
+                <Phone className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="pl-8"
+                  placeholder="+33 6 12 34 56 78"
                 />
               </div>
             </div>

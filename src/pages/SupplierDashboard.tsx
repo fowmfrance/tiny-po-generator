@@ -28,9 +28,9 @@ const SupplierDashboard = () => {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-gray-500">Vendor not found. Please log in again.</p>
+            <p className="text-center text-gray-500">Fournisseur non trouvé. Veuillez vous reconnecter.</p>
             <div className="flex justify-center mt-4">
-              <Button onClick={() => navigate('/supplier')}>Back to Login</Button>
+              <Button onClick={() => navigate('/supplier')}>Retour à la connexion</Button>
             </div>
           </CardContent>
         </Card>
@@ -75,8 +75,8 @@ const SupplierDashboard = () => {
 
   const handleSendEmail = (subject: string, message: string) => {
     toast({
-      title: "Email Sent",
-      description: "Your message has been sent to the procurement team.",
+      title: "Email envoyé",
+      description: "Votre message a été envoyé à l'équipe achats.",
     });
   };
 
@@ -90,10 +90,10 @@ const SupplierDashboard = () => {
             size="sm"
             className="mb-4"
           >
-            <ChevronLeft className="h-4 w-4 mr-2" /> Log Out
+            <ChevronLeft className="h-4 w-4 mr-2" /> Déconnexion
           </Button>
-          <h1 className="text-3xl font-bold">Supplier Dashboard</h1>
-          <p className="text-gray-500">Welcome, {vendor.name}</p>
+          <h1 className="text-3xl font-bold">Espace Fournisseur</h1>
+          <p className="text-gray-500">Bienvenue, {vendor.name}</p>
         </div>
         
         <div className="flex gap-3">
@@ -103,7 +103,7 @@ const SupplierDashboard = () => {
             onClick={() => navigate('/supplier/invoices/create')}
           >
             <Plus className="h-4 w-4" />
-            Upload Invoice
+            Déposer une facture
           </Button>
         </div>
       </div>
@@ -111,30 +111,30 @@ const SupplierDashboard = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-md p-4 flex items-start">
         <FileText className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
         <div>
-          <h3 className="text-sm font-medium text-blue-800">API Access Coming Soon</h3>
+          <h3 className="text-sm font-medium text-blue-800">API bientôt disponible</h3>
           <p className="text-sm text-blue-700 mt-1">
-            We're working on an API to allow your systems to submit invoices automatically. 
-            This will enable you to create automation within your invoice tools. 
-            <span className="font-medium"> Contact us for early access.</span>
+            Nous travaillons sur une API pour permettre à vos systèmes de soumettre des factures automatiquement. 
+            Cela vous permettra de créer des automatisations avec vos outils de facturation. 
+            <span className="font-medium"> Contactez-nous pour un accès anticipé.</span>
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Purchase Orders & Invoices</CardTitle>
+          <CardTitle>Bons de commande & Factures</CardTitle>
           <CardDescription>
-            View your purchase orders and related invoices
+            Consultez vos bons de commande et les factures associées
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all">
             <TabsList className="mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="invoiced">Invoiced</TabsTrigger>
-              <TabsTrigger value="paid">Paid</TabsTrigger>
+              <TabsTrigger value="all">Tous</TabsTrigger>
+              <TabsTrigger value="pending">En attente</TabsTrigger>
+              <TabsTrigger value="approved">Approuvés</TabsTrigger>
+              <TabsTrigger value="invoiced">Facturés</TabsTrigger>
+              <TabsTrigger value="paid">Payés</TabsTrigger>
             </TabsList>
             
             <TabsContent value="all">

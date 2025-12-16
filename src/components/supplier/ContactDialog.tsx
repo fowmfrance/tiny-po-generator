@@ -22,8 +22,8 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ onSendEmail }) => {
     if (!subject || !message) {
       toast({
         variant: "destructive",
-        title: "Missing information",
-        description: "Please provide both subject and message.",
+        title: "Informations manquantes",
+        description: "Veuillez remplir l'objet et le message.",
       });
       return;
     }
@@ -39,26 +39,26 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ onSendEmail }) => {
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           <Mail className="h-4 w-4" />
-          Contact Us
+          Nous contacter
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Contact Procurement Team</DialogTitle>
+            <DialogTitle>Contacter l'équipe Achats</DialogTitle>
             <DialogDescription>
-              Send a message to invoice@loreal.com regarding your purchase orders or invoices.
+              Envoyez un message concernant vos bons de commande ou factures.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="subject">Subject</Label>
+              <Label htmlFor="subject">Objet</Label>
               <input
                 id="subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="e.g., Question about PO #2023-001"
+                placeholder="ex: Question sur le BC #2023-001"
                 required
               />
             </div>
@@ -68,7 +68,7 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ onSendEmail }) => {
                 id="message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message here..."
+                placeholder="Saisissez votre message ici..."
                 className="min-h-[100px]"
                 required
               />
@@ -76,7 +76,7 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ onSendEmail }) => {
           </div>
           <DialogFooter>
             <Button type="submit" className="bg-po-blue hover:bg-blue-600">
-              Send Message
+              Envoyer
             </Button>
           </DialogFooter>
         </form>
