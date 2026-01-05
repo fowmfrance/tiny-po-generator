@@ -8,7 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Settings } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Settings, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
@@ -95,6 +100,11 @@ const Banks = () => {
   const [selectedAccountSlug, setSelectedAccountSlug] = useState<string>('');
   const [activeTab, setActiveTab] = useState('banks');
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [syncStartDate, setSyncStartDate] = useState<Date>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date;
+  });
   const navigate = useNavigate();
   const { budgets } = useBudgetsData();
 
@@ -291,7 +301,7 @@ const Banks = () => {
     setIsLoadingTransactions(false);
   };
 
-  const syncTransactions = async (connection: BankConnection, accountSlug?: string) => {
+  const syncTransactions = async (connection: BankConnection, accountSlug?: string, startDate?: Date) => {
     const slug = accountSlug || selectedAccountSlug;
     if (!slug) {
       toast({
@@ -308,8 +318,7 @@ const Banks = () => {
     setIsSyncing(true);
 
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const fromDate = startDate || syncStartDate;
 
       // Use secure API with connectionId - credentials decrypted server-side
       const { data, error } = await supabase.functions.invoke('qonto-proxy', {
@@ -320,7 +329,7 @@ const Banks = () => {
           params: {
             slug: slug,
             per_page: 100,
-            settled_at_from: thirtyDaysAgo.toISOString().split('T')[0],
+            settled_at_from: format(fromDate, 'yyyy-MM-dd'),
           }
         },
       });
@@ -699,15 +708,45 @@ const Banks = () => {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Opérations</CardTitle>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => syncTransactions(selectedConnection)}
-                      disabled={isLoadingTransactions || isSyncing}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                      {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm text-muted-foreground whitespace-nowrap">Depuis le</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "w-[160px] justify-start text-left font-normal",
+                                !syncStartDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {syncStartDate ? format(syncStartDate, "dd MMM yyyy", { locale: fr }) : "Choisir..."}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={syncStartDate}
+                              onSelect={(date) => date && setSyncStartDate(date)}
+                              initialFocus
+                              locale={fr}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => syncTransactions(selectedConnection, undefined, syncStartDate)}
+                        disabled={isLoadingTransactions || isSyncing}
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {isLoadingTransactions ? (
@@ -717,7 +756,7 @@ const Banks = () => {
                       </div>
                     ) : transactions.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
-                        Aucune opération trouvée sur les 30 derniers jours
+                        Aucune opération trouvée depuis le {format(syncStartDate, "dd MMMM yyyy", { locale: fr })}
                       </p>
                     ) : (
                       <Table>
