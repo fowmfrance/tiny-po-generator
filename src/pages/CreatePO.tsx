@@ -26,8 +26,7 @@ import {
   Trash2,
   Calendar,
   AlertCircle,
-  CircleCheck,
-  BarChart3
+  Lock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -40,6 +39,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import CreateBudgetDialog from '@/components/purchase-orders/CreateBudgetDialog';
+import InviteVendorQuickDialog from '@/components/purchase-orders/InviteVendorQuickDialog';
 
 interface BudgetNavState {
   budgetId?: string;
@@ -50,6 +51,18 @@ interface BudgetNavState {
   budgetCurrency?: BudgetCurrency;
   budgetRecognitionType?: BudgetRecognitionType;
   budgetCompletionPercentage?: number;
+}
+
+interface BudgetOption {
+  id: string;
+  name: string;
+  code: string;
+  currency: string;
+}
+
+interface VendorOption {
+  id: string;
+  name: string;
 }
 
 const CreatePO = () => {
@@ -72,13 +85,29 @@ const CreatePO = () => {
   const [isFromBudget, setIsFromBudget] = useState<boolean>(!!budgetId);
   const [budgetStatus, setBudgetStatus] = useState<{ active: boolean; message?: string }>({ active: true });
   const [selectedBudget, setSelectedBudget] = useState<string>(budgetId || "");
+  const [selectedVendor, setSelectedVendor] = useState<string>("");
+  
+  // Dialog states
+  const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
+  const [isInviteVendorOpen, setIsInviteVendorOpen] = useState(false);
+  
+  // Mock: in production, this would come from user context
+  const isAdmin = true; // TODO: Get from auth context
 
   // Mock budget list for selector
-  const budgetList = [
+  const [budgetList, setBudgetList] = useState<BudgetOption[]>([
     { id: '1', name: 'Budget Projet Alpha', code: 'PRJ-2023-001', currency: 'EUR' },
     { id: '2', name: 'Frais G&A Q3', code: 'GA-2023-002', currency: 'EUR' },
     { id: '3', name: 'Budget Projet Beta', code: 'PRJ-2023-003', currency: 'GBP' },
-  ];
+  ]);
+
+  const [vendorList, setVendorList] = useState<VendorOption[]>([
+    { id: '1', name: 'Apple Inc.' },
+    { id: '2', name: 'Microsoft Corp' },
+    { id: '3', name: 'Dell Technologies' },
+    { id: '4', name: 'Amazon Business' },
+    { id: '5', name: 'Samsung Electronics' },
+  ]);
 
   useEffect(() => {
     if (budgetId && (budgetStartDate || budgetEndDate)) {
@@ -89,14 +118,6 @@ const CreatePO = () => {
       setBudgetStatus(status);
     }
   }, [budgetId, budgetStartDate, budgetEndDate]);
-
-  const vendorList = [
-    { id: '1', name: 'Apple Inc.' },
-    { id: '2', name: 'Microsoft Corp' },
-    { id: '3', name: 'Dell Technologies' },
-    { id: '4', name: 'Amazon Business' },
-    { id: '5', name: 'Samsung Electronics' },
-  ];
 
   const exampleItems = [
     {
@@ -127,6 +148,53 @@ const CreatePO = () => {
       new Date(budgetEndDate),
       budgetCompletionPercentage
     ) : null;
+
+  const handleBudgetSelectChange = (value: string) => {
+    if (value === 'create-new') {
+      if (isAdmin) {
+        setIsCreateBudgetOpen(true);
+      }
+      return;
+    }
+    setSelectedBudget(value);
+  };
+
+  const handleVendorSelectChange = (value: string) => {
+    if (value === 'invite-new') {
+      setIsInviteVendorOpen(true);
+      return;
+    }
+    setSelectedVendor(value);
+  };
+
+  const handleBudgetCreated = (budget: { id: string; name: string; code: string; currency: string }) => {
+    // Add the new budget to the list
+    setBudgetList(prev => [...prev, { 
+      id: budget.id, 
+      name: budget.name, 
+      code: budget.code, 
+      currency: budget.currency 
+    }]);
+    // Select the new budget
+    setSelectedBudget(budget.id);
+    setIsCreateBudgetOpen(false);
+  };
+
+  const handleVendorInvited = (vendor: { id: string; name: string; email: string }) => {
+    // Add the new vendor to the list with a pending status indication
+    setVendorList(prev => [...prev, { 
+      id: vendor.id, 
+      name: `${vendor.name} (KYC en attente)` 
+    }]);
+    // Select the new vendor
+    setSelectedVendor(vendor.id);
+    setIsInviteVendorOpen(false);
+    
+    toast({
+      title: "Bon de commande en brouillon",
+      description: "Ce bon de commande sera conservé en brouillon jusqu'à validation du KYC du fournisseur.",
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,37 +260,37 @@ const CreatePO = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {!budgetId && (
-                  <div className="space-y-2">
-                    <Label htmlFor="budget">Budget</Label>
-                    <Select 
-                      value={selectedBudget} 
-                      onValueChange={(value) => setSelectedBudget(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un budget" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {budgetList.map(budget => (
-                          <SelectItem key={budget.id} value={budget.id}>
-                            {budget.name} ({budget.code}) - {budget.currency}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
+              {!budgetId && (
                 <div className="space-y-2">
-                  <Label htmlFor="poNumberFormat">Format du N° BC</Label>
-                  <Input 
-                    id="poNumberFormat" 
-                    placeholder="PR-{YYYY}-{000}" 
-                    defaultValue={budgetCode ? `${budgetCode}-` : "BC-2023-"} 
-                  />
+                  <Label htmlFor="budget">Budget</Label>
+                  <Select 
+                    value={selectedBudget} 
+                    onValueChange={handleBudgetSelectChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un budget" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {budgetList.map(budget => (
+                        <SelectItem key={budget.id} value={budget.id}>
+                          {budget.name} ({budget.code}) - {budget.currency}
+                        </SelectItem>
+                      ))}
+                      <SelectItem 
+                        value="create-new" 
+                        disabled={!isAdmin}
+                        className={!isAdmin ? "opacity-50" : "text-primary font-medium"}
+                      >
+                        <span className="flex items-center gap-2">
+                          {!isAdmin && <Lock className="h-3 w-3" />}
+                          <Plus className="h-3 w-3" />
+                          Créer un budget
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
+              )}
 
               {budgetId && (
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-md">
@@ -256,7 +324,7 @@ const CreatePO = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="vendor">Fournisseur</Label>
-                <Select>
+                <Select value={selectedVendor} onValueChange={handleVendorSelectChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un fournisseur" />
                   </SelectTrigger>
@@ -266,6 +334,12 @@ const CreatePO = () => {
                         {vendor.name}
                       </SelectItem>
                     ))}
+                    <SelectItem value="invite-new" className="text-primary font-medium">
+                      <span className="flex items-center gap-2">
+                        <Plus className="h-3 w-3" />
+                        Inviter un fournisseur
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -293,7 +367,7 @@ const CreatePO = () => {
                       type="date"
                       className="pl-10"
                     />
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
               </div>
@@ -335,14 +409,14 @@ const CreatePO = () => {
                 <div className="flex items-center justify-between">
                   <Label>Étapes d'Approbation</Label>
                 </div>
-                <div className="space-y-2 border rounded-md p-3 bg-gray-50">
-                  <div className="text-sm text-gray-500">
+                <div className="space-y-2 border rounded-md p-3 bg-muted/50">
+                  <div className="text-sm text-muted-foreground">
                     1. Responsable de Département
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">
                     2. Approbation Financière
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">
                     3. Approbation Finale
                   </div>
                 </div>
@@ -368,13 +442,13 @@ const CreatePO = () => {
             <CardContent>
               <div className="border rounded-md overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Description</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantité</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Prix Unitaire</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Total</th>
-                      <th className="px-4 py-3 text-right text-sm font-medium text-gray-500"></th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Description</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Quantité</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Prix Unitaire</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Total</th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -393,14 +467,14 @@ const CreatePO = () => {
                           €{item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-gray-50">
+                  <tfoot className="bg-muted/50">
                     <tr>
                       <td colSpan={3} className="px-4 py-3 text-right text-sm font-medium">
                         Total:
@@ -427,13 +501,26 @@ const CreatePO = () => {
           </Button>
           <Button 
             type="submit"
-            className="bg-po-blue hover:bg-blue-600"
+            className="bg-primary hover:bg-primary/90"
             disabled={budgetId && !budgetStatus.active}
           >
             Créer Bon de Commande
           </Button>
         </div>
       </form>
+
+      {/* Dialogs */}
+      <CreateBudgetDialog
+        isOpen={isCreateBudgetOpen}
+        onOpenChange={setIsCreateBudgetOpen}
+        onBudgetCreated={handleBudgetCreated}
+      />
+
+      <InviteVendorQuickDialog
+        isOpen={isInviteVendorOpen}
+        onOpenChange={setIsInviteVendorOpen}
+        onVendorInvited={handleVendorInvited}
+      />
     </div>
   );
 };
