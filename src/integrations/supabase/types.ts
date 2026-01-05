@@ -62,6 +62,78 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_label_mappings: {
+        Row: {
+          bank_label_id: string
+          created_at: string
+          expense_category_id: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_label_id: string
+          created_at?: string
+          expense_category_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_label_id?: string
+          created_at?: string
+          expense_category_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_label_mappings_bank_label_id_fkey"
+            columns: ["bank_label_id"]
+            isOneToOne: false
+            referencedRelation: "bank_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_label_mappings_expense_category_id_fkey"
+            columns: ["expense_category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_labels: {
+        Row: {
+          bank_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          label_code: string
+          label_name: string
+        }
+        Insert: {
+          bank_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_code: string
+          label_name: string
+        }
+        Update: {
+          bank_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_code?: string
+          label_name?: string
+        }
+        Relationships: []
+      }
       budget_types: {
         Row: {
           created_at: string
