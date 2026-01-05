@@ -1,0 +1,125 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import type { SupplierInvoice, InvoiceWithPaymentStatus } from '@/types/payment';
+import { enrichInvoiceWithStatus } from '@/utils/paymentUtils';
+import { useToast } from '@/hooks/use-toast';
+
+export function useSupplierInvoices() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['supplier-invoices'],
+    queryFn: async (): Promise<InvoiceWithPaymentStatus[]> => {
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .select(`
+          *,
+          supplier:suppliers(id, name, email)
+        `)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map((invoice: any) => enrichInvoiceWithStatus(invoice));
+    },
+  });
+
+  const createInvoice = useMutation({
+    mutationFn: async (invoice: Omit<SupplierInvoice, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .insert({
+          ...invoice,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-invoices'] });
+      toast({
+        title: 'Facture créée',
+        description: 'La facture a été ajoutée avec succès.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de créer la facture: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateInvoice = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<SupplierInvoice> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-invoices'] });
+      toast({
+        title: 'Facture mise à jour',
+        description: 'Les modifications ont été enregistrées.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de mettre à jour la facture: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const markAsPaid = useMutation({
+    mutationFn: async (invoiceIds: string[]) => {
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update({ 
+          paid_date: new Date().toISOString().split('T')[0],
+          status: 'paid' 
+        })
+        .in('id', invoiceIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-invoices'] });
+      toast({
+        title: 'Factures payées',
+        description: 'Les factures ont été marquées comme payées.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: `Impossible de marquer les factures comme payées: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  return {
+    invoices: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+    createInvoice,
+    updateInvoice,
+    markAsPaid,
+  };
+}

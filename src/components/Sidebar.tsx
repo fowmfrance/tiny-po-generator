@@ -4,12 +4,11 @@ import { NavLink } from 'react-router-dom';
 import { 
   FileText, 
   Users, 
-  Receipt, 
   PieChart, 
   Settings, 
   Home,
   Euro,
-  File,
+  CreditCard,
   Calculator,
   Building2
 } from 'lucide-react';
@@ -82,15 +81,15 @@ const Sidebar = () => {
           </li>
           <li>
             <NavLink 
-              to="/invoices" 
+              to="/payments" 
               className={({ isActive }) => 
                 `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
                   isActive ? 'bg-sidebar-accent font-medium' : ''
                 }`
               }
             >
-              <File className="w-5 h-5 mr-3" />
-              Factures
+              <CreditCard className="w-5 h-5 mr-3" />
+              Paiements
             </NavLink>
           </li>
           <li>
