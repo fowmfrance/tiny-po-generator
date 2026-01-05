@@ -337,11 +337,22 @@ const Banks = () => {
         description: `${qontoTxns.length} transactions synchronisées.`,
       });
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de synchroniser les transactions.",
-        variant: "destructive",
-      });
+      const errorMessage = error instanceof Error ? error.message : "Impossible de synchroniser les transactions.";
+      
+      // Check if connection needs to be reconfigured
+      if (errorMessage.includes('reconfigurée') || errorMessage.includes('CREDENTIALS_NOT_ENCRYPTED')) {
+        toast({
+          title: "Connexion bancaire invalide",
+          description: "Cette connexion doit être supprimée et recréée. Veuillez la déconnecter puis la reconnecter.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSyncing(false);
     }
