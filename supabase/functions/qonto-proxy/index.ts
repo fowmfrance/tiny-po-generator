@@ -124,6 +124,32 @@ serve(async (req) => {
         );
       }
 
+      // First check if encrypted credentials exist
+      const { data: connData, error: connDataError } = await supabaseAdmin
+        .from('bank_connections')
+        .select('encrypted_login, encrypted_secret_key')
+        .eq('id', connectionId)
+        .single();
+
+      if (connDataError || !connData) {
+        console.error('Connection data error:', connDataError);
+        return new Response(
+          JSON.stringify({ error: 'Connection not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!connData.encrypted_login || !connData.encrypted_secret_key) {
+        console.error('Connection has no encrypted credentials - needs to be reconnected');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Cette connexion bancaire doit être reconfigurée. Veuillez la supprimer et la recréer.',
+            code: 'CREDENTIALS_NOT_ENCRYPTED'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Get decrypted credentials
       const { data: credentials, error: decryptError } = await supabaseAdmin.rpc(
         'get_decrypted_credentials',
@@ -142,7 +168,7 @@ serve(async (req) => {
 
       if (!decrypted_login || !decrypted_secret_key) {
         return new Response(
-          JSON.stringify({ error: 'Invalid stored credentials' }),
+          JSON.stringify({ error: 'Invalid stored credentials - please reconnect the bank' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
