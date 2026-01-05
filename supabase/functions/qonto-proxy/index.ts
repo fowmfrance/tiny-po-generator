@@ -228,15 +228,17 @@ serve(async (req) => {
         headers: {
           'Authorization': `${login}:${secretKey}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        const detail = data?.errors?.[0]?.detail || data?.message || 'Identifiants invalides';
         console.error(`Qonto validation error: ${JSON.stringify(data)}`);
         return new Response(
-          JSON.stringify({ error: data.message || 'Invalid credentials', details: data }),
+          JSON.stringify({ error: detail, code: 'QONTO_UNAUTHORIZED', details: data }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

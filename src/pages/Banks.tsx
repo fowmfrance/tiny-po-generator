@@ -158,7 +158,10 @@ const Banks = () => {
   };
 
   const handleConnect = async () => {
-    if (!selectedBank || !qontoLogin || !qontoSecretKey) {
+    const login = qontoLogin.trim();
+    const secretKey = qontoSecretKey.trim();
+
+    if (!selectedBank || !login || !secretKey) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs",
@@ -169,6 +172,28 @@ const Banks = () => {
 
     setIsConnecting(true);
 
+    const getInvokeMessage = (err: unknown) => {
+      const anyErr = err as any;
+      const status = anyErr?.context?.status;
+      const body = anyErr?.context?.body;
+
+      // Supabase functions errors often come as generic message; try to surface JSON body
+      if (typeof body === 'string') {
+        try {
+          const parsed = JSON.parse(body);
+          return {
+            status,
+            message: parsed?.error || parsed?.message || anyErr?.message || 'Erreur inconnue',
+            code: parsed?.code,
+          };
+        } catch {
+          return { status, message: anyErr?.message || body, code: undefined };
+        }
+      }
+
+      return { status, message: anyErr?.message || 'Erreur inconnue', code: undefined };
+    };
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -177,24 +202,30 @@ const Banks = () => {
 
       // Step 1: Validate credentials before storing (credentials sent once, not stored)
       const { data: validateData, error: validateError } = await supabase.functions.invoke('qonto-proxy', {
-        body: { 
+        body: {
           action: 'validate_credentials',
-          bankData: { login: qontoLogin, secretKey: qontoSecretKey }
+          bankData: { login, secretKey }
         },
       });
 
-      if (validateError) throw new Error(validateError.message || 'Erreur de validation');
+      if (validateError) {
+        const info = getInvokeMessage(validateError);
+        if (info.status === 401) {
+          throw new Error("Identifiants Qonto invalides (vérifiez login + clé secrète).");
+        }
+        throw new Error(info.message || 'Erreur de validation');
+      }
       if (validateData?.error) throw new Error(validateData.error);
 
       const bankAccounts = validateData.organization?.bank_accounts || [];
-      
+
       // Step 2: Create connection with encrypted credentials (server-side encryption)
       const { data: createData, error: createError } = await supabase.functions.invoke('qonto-proxy', {
-        body: { 
+        body: {
           action: 'create_connection',
           bankData: {
-            login: qontoLogin,
-            secretKey: qontoSecretKey,
+            login,
+            secretKey,
             bankName: selectedBank,
             organizationName: validateData.organization?.legal_name || 'Qonto',
             bankAccounts: bankAccounts,
@@ -202,7 +233,10 @@ const Banks = () => {
         },
       });
 
-      if (createError) throw new Error(createError.message || 'Erreur de création');
+      if (createError) {
+        const info = getInvokeMessage(createError);
+        throw new Error(info.message || 'Erreur de création');
+      }
       if (createData?.error) throw new Error(createData.error);
 
       const newConn = createData.connection;
