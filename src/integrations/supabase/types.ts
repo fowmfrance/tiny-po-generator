@@ -62,6 +62,45 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_types: {
+        Row: {
+          created_at: string
+          current_sequence: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          po_format: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_sequence?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          po_format?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_sequence?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          po_format?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           color: string | null
@@ -393,6 +432,39 @@ export type Database = {
         }
         Relationships: []
       }
+      teams: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           bank_connection_id: string | null
@@ -574,7 +646,15 @@ export type Database = {
         }[]
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      initialize_default_budget_types: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       initialize_default_categories: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      initialize_default_teams: {
         Args: { _user_id: string }
         Returns: undefined
       }
