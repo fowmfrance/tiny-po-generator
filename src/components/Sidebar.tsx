@@ -120,7 +120,7 @@ const Sidebar = () => {
           </li>
           <li>
             <NavLink 
-              to="/banks" 
+              to="/banques" 
               className={({ isActive }) => 
                 `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
                   isActive ? 'bg-sidebar-accent font-medium' : ''
@@ -133,20 +133,6 @@ const Sidebar = () => {
           </li>
         </ul>
       </nav>
-      
-      <div className="p-4 border-t border-sidebar-border">
-        <NavLink 
-          to="/settings" 
-          className={({ isActive }) => 
-            `flex items-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-              isActive ? 'bg-sidebar-accent font-medium' : ''
-            }`
-          }
-        >
-          <Settings className="w-5 h-5 mr-3" />
-          Paramètres
-        </NavLink>
-      </div>
     </div>
   );
 };

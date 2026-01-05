@@ -37,7 +37,8 @@ function App() {
         <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
         <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
-        <Route path="/banks" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
+        <Route path="/banques" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
+        <Route path="/banks" element={<Navigate to="/banques" replace />} />
         <Route path="/budgets" element={<ProtectedRoute><Layout><Budgets /></Layout></ProtectedRoute>} />
         <Route path="/budgets/create" element={<ProtectedRoute><Layout><CreateBudget /></Layout></ProtectedRoute>} />
         <Route path="/budgets/:id" element={<ProtectedRoute><Layout><BudgetDetails /></Layout></ProtectedRoute>} />
