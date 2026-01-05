@@ -19,8 +19,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon, Tags } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash } from 'lucide-react';
 import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
+import NumberingTab from '@/components/settings/NumberingTab';
 
 interface CurrencyRate {
   currency: BudgetCurrency;
@@ -92,8 +93,12 @@ const Settings = () => {
         <p className="text-gray-500">Gérez les paramètres de votre application.</p>
       </div>
       
-      <Tabs defaultValue="categories">
+      <Tabs defaultValue="numbering">
         <TabsList>
+          <TabsTrigger value="numbering">
+            <Hash className="h-4 w-4 mr-2" />
+            Numérotation
+          </TabsTrigger>
           <TabsTrigger value="categories">
             <Tags className="h-4 w-4 mr-2" />
             Catégories
@@ -111,6 +116,10 @@ const Settings = () => {
             Général
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="numbering" className="mt-6">
+          <NumberingTab />
+        </TabsContent>
         
         <TabsContent value="categories" className="mt-6">
           <ExpenseCategoriesTab />
