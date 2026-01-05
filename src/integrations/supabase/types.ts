@@ -98,6 +98,93 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_batch_invoices: {
+        Row: {
+          amount_paid: number
+          batch_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+        }
+        Insert: {
+          amount_paid: number
+          batch_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+        }
+        Update: {
+          amount_paid?: number
+          batch_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_batch_invoices_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "payment_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_batch_invoices_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_batches: {
+        Row: {
+          batch_reference: string
+          created_at: string
+          currency: string
+          generated_at: string | null
+          id: string
+          invoice_count: number
+          notes: string | null
+          sepa_xml: string | null
+          status: string
+          submitted_at: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_reference: string
+          created_at?: string
+          currency?: string
+          generated_at?: string | null
+          id?: string
+          invoice_count: number
+          notes?: string | null
+          sepa_xml?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch_reference?: string
+          created_at?: string
+          currency?: string
+          generated_at?: string | null
+          id?: string
+          invoice_count?: number
+          notes?: string | null
+          sepa_xml?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null
@@ -180,6 +267,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supplier_bank_accounts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_invoices: {
+        Row: {
+          amount: number
+          attachment_url: string | null
+          created_at: string
+          currency: string
+          due_date: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          notes: string | null
+          paid_date: string | null
+          po_number: string | null
+          project_code: string | null
+          received_date: string
+          status: string
+          supplier_id: string
+          updated_at: string
+          user_id: string
+          vat_amount: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          amount: number
+          attachment_url?: string | null
+          created_at?: string
+          currency?: string
+          due_date: string
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          notes?: string | null
+          paid_date?: string | null
+          po_number?: string | null
+          project_code?: string | null
+          received_date?: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          user_id: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          amount?: number
+          attachment_url?: string | null
+          created_at?: string
+          currency?: string
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_date?: string | null
+          po_number?: string | null
+          project_code?: string | null
+          received_date?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoices_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
