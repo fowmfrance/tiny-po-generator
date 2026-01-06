@@ -250,8 +250,124 @@ serve(async (req) => {
       );
     }
 
+    // Action: Get categories from Qonto transactions
+    if (action === 'get_categories' && connectionId) {
+      // Verify user owns this connection
+      const { data: connCheck, error: connCheckError } = await supabaseAdmin
+        .from('bank_connections')
+        .select('id, user_id, bank_accounts')
+        .eq('id', connectionId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (connCheckError || !connCheck) {
+        return new Response(
+          JSON.stringify({ error: 'Bank connection not found or unauthorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get decrypted credentials
+      const { data: credentials, error: decryptError } = await supabaseAdmin.rpc(
+        'get_decrypted_credentials',
+        { p_connection_id: connectionId, p_encryption_key: encryptionKey }
+      );
+
+      if (decryptError || !credentials || credentials.length === 0) {
+        console.error('Decrypt error:', decryptError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to decrypt credentials' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { decrypted_login, decrypted_secret_key } = credentials[0];
+
+      if (!decrypted_login || !decrypted_secret_key) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid stored credentials - please reconnect the bank' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const qontoHeaders = {
+        'Authorization': `${decrypted_login}:${decrypted_secret_key}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      // Get organization to find account IBAN
+      const orgResponse = await fetch('https://thirdparty.qonto.com/v2/organization', {
+        method: 'GET',
+        headers: qontoHeaders,
+      });
+
+      if (!orgResponse.ok) {
+        const orgError = await orgResponse.json();
+        console.error('Qonto org error:', orgError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch organization' }),
+          { status: orgResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const orgData = await orgResponse.json();
+      const accountIban = orgData.organization?.bank_accounts?.[0]?.iban;
+
+      if (!accountIban) {
+        return new Response(
+          JSON.stringify({ error: 'No bank account found in organization' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch transactions to extract unique categories
+      const categoriesSet = new Set<string>();
+      let page = 1;
+      const maxPages = 10;
+
+      while (page <= maxPages) {
+        const transUrl = `https://thirdparty.qonto.com/v2/transactions?iban=${encodeURIComponent(accountIban)}&current_page=${page}&per_page=100`;
+        
+        console.log(`Fetching categories page ${page}: ${transUrl}`);
+        
+        const transResponse = await fetch(transUrl, {
+          method: 'GET',
+          headers: qontoHeaders,
+        });
+
+        if (!transResponse.ok) {
+          console.error(`Transactions fetch error on page ${page}`);
+          break;
+        }
+
+        const transData = await transResponse.json();
+        const transactions = transData.transactions || [];
+
+        if (transactions.length === 0) break;
+
+        for (const transaction of transactions) {
+          if (transaction.category) {
+            categoriesSet.add(transaction.category);
+          }
+        }
+
+        const metadata = transData.meta || {};
+        if (!metadata.next_page || metadata.next_page <= page) break;
+        page = metadata.next_page;
+      }
+
+      const categories = Array.from(categoriesSet).sort();
+      console.log(`Found ${categories.length} Qonto categories: ${categories.join(', ')}`);
+
+      return new Response(
+        JSON.stringify({ categories }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Invalid action. Use: create_connection, qonto_api, or validate_credentials' }),
+      JSON.stringify({ error: 'Invalid action. Use: create_connection, qonto_api, validate_credentials, or get_categories' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
