@@ -26,14 +26,11 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Save, RefreshCw, AlertCircle } from "lucide-react";
+import { Building2, Save, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 
-interface BankLabel {
-  id: string;
-  bank_name: string;
-  label_code: string;
-  label_name: string;
-  description: string | null;
+interface QontoCategory {
+  code: string;
+  name: string;
 }
 
 interface ExpenseCategory {
@@ -48,20 +45,15 @@ interface BankConnection {
   organization_name: string | null;
 }
 
-interface Mapping {
-  id?: string;
-  bank_label_id: string;
-  expense_category_id: string | null;
-}
-
 const BankMappingTab = () => {
   const { toast } = useToast();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [bankLabels, setBankLabels] = useState<BankLabel[]>([]);
+  const [qontoCategories, setQontoCategories] = useState<QontoCategory[]>([]);
   const [connectedBanks, setConnectedBanks] = useState<BankConnection[]>([]);
-  const [mappings, setMappings] = useState<Record<string, Record<string, string | null>>>({});
-  const [originalMappings, setOriginalMappings] = useState<Record<string, Record<string, string | null>>>({});
+  const [mappings, setMappings] = useState<Record<string, string | null>>({});
+  const [originalMappings, setOriginalMappings] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch user's expense categories
@@ -74,21 +66,6 @@ const BankMappingTab = () => {
 
     if (error) {
       console.error('Error fetching categories:', error);
-      return [];
-    }
-    return data || [];
-  };
-
-  // Fetch all bank labels
-  const fetchBankLabels = async () => {
-    const { data, error } = await supabase
-      .from('bank_labels')
-      .select('*')
-      .eq('is_active', true)
-      .order('label_name');
-
-    if (error) {
-      console.error('Error fetching bank labels:', error);
       return [];
     }
     return data || [];
@@ -112,51 +89,91 @@ const BankMappingTab = () => {
     return data || [];
   };
 
-  // Fetch user's existing mappings
-  const fetchMappings = async (labels: BankLabel[]) => {
+  // Fetch Qonto categories via edge function
+  const fetchQontoCategories = async (connectionId: string) => {
+    setIsLoadingCategories(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        console.error('No session found');
+        return [];
+      }
+
+      const response = await supabase.functions.invoke('qonto-proxy', {
+        body: {
+          action: 'get_categories',
+          connectionId,
+        },
+      });
+
+      if (response.error) {
+        console.error('Error fetching Qonto categories:', response.error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de récupérer les catégories Qonto.",
+        });
+        return [];
+      }
+
+      const categoriesData = response.data?.categories || [];
+      // Transform string array to QontoCategory objects
+      return categoriesData.map((cat: string) => ({
+        code: cat,
+        name: formatQontoCategoryName(cat),
+      }));
+    } catch (error) {
+      console.error('Error fetching Qonto categories:', error);
+      return [];
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  // Format Qonto category name for display
+  const formatQontoCategoryName = (code: string): string => {
+    // Replace underscores with spaces and capitalize
+    return code
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Fetch user's existing mappings from localStorage
+  const fetchMappings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return {};
 
-    const { data, error } = await supabase
-      .from('bank_label_mappings')
-      .select('bank_label_id, expense_category_id')
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error fetching mappings:', error);
-      return {};
-    }
-
-    // Organize mappings by bank_name -> label_code -> category_id
-    const mappingsMap: Record<string, Record<string, string | null>> = {};
-    
-    (data || []).forEach(m => {
-      const label = labels.find(l => l.id === m.bank_label_id);
-      if (label) {
-        if (!mappingsMap[label.bank_name]) {
-          mappingsMap[label.bank_name] = {};
-        }
-        mappingsMap[label.bank_name][label.label_code] = m.expense_category_id;
+    const storedMappings = localStorage.getItem(`qonto_mappings_${user.id}`);
+    if (storedMappings) {
+      try {
+        return JSON.parse(storedMappings);
+      } catch {
+        return {};
       }
-    });
-    
-    return mappingsMap;
+    }
+    return {};
   };
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      const [categoriesData, labelsData, banksData] = await Promise.all([
+      const [categoriesData, banksData] = await Promise.all([
         fetchCategories(),
-        fetchBankLabels(),
         fetchConnectedBanks(),
       ]);
       
       setCategories(categoriesData);
-      setBankLabels(labelsData);
       setConnectedBanks(banksData);
       
-      const mappingsData = await fetchMappings(labelsData);
+      // Fetch Qonto categories if we have a Qonto connection
+      const qontoConnection = banksData.find(b => b.bank_name.toLowerCase() === 'qonto');
+      if (qontoConnection) {
+        const qontoCats = await fetchQontoCategories(qontoConnection.id);
+        setQontoCategories(qontoCats);
+      }
+      
+      const mappingsData = await fetchMappings();
       setMappings(mappingsData);
       setOriginalMappings(JSON.parse(JSON.stringify(mappingsData)));
       
@@ -165,15 +182,11 @@ const BankMappingTab = () => {
     loadData();
   }, []);
 
-  const handleMappingChange = (bankName: string, labelCode: string, categoryId: string | null) => {
-    setMappings(prev => {
-      const newMappings = { ...prev };
-      if (!newMappings[bankName]) {
-        newMappings[bankName] = {};
-      }
-      newMappings[bankName][labelCode] = categoryId === 'none' ? null : categoryId;
-      return newMappings;
-    });
+  const handleMappingChange = (qontoCategory: string, categoryId: string | null) => {
+    setMappings(prev => ({
+      ...prev,
+      [qontoCategory]: categoryId === 'none' ? null : categoryId,
+    }));
   };
 
   const hasChanges = () => {
@@ -194,44 +207,15 @@ const BankMappingTab = () => {
     }
 
     try {
-      // Delete all existing mappings for this user
-      const { error: deleteError } = await supabase
-        .from('bank_label_mappings')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (deleteError) throw deleteError;
-
-      // Build new mappings
-      const newMappings: { user_id: string; bank_label_id: string; expense_category_id: string }[] = [];
+      // Save mappings to localStorage
+      localStorage.setItem(`qonto_mappings_${user.id}`, JSON.stringify(mappings));
       
-      for (const [bankName, labelMappings] of Object.entries(mappings)) {
-        for (const [labelCode, categoryId] of Object.entries(labelMappings)) {
-          if (categoryId) {
-            const label = bankLabels.find(l => l.bank_name === bankName && l.label_code === labelCode);
-            if (label) {
-              newMappings.push({
-                user_id: user.id,
-                bank_label_id: label.id,
-                expense_category_id: categoryId,
-              });
-            }
-          }
-        }
-      }
-
-      if (newMappings.length > 0) {
-        const { error: insertError } = await supabase
-          .from('bank_label_mappings')
-          .insert(newMappings);
-
-        if (insertError) throw insertError;
-      }
+      const mappingCount = Object.values(mappings).filter(v => v !== null).length;
 
       setOriginalMappings(JSON.parse(JSON.stringify(mappings)));
       toast({
         title: "Mappings sauvegardés",
-        description: `${newMappings.length} association(s) enregistrée(s).`,
+        description: `${mappingCount} association(s) enregistrée(s).`,
       });
     } catch (error: any) {
       console.error('Error saving mappings:', error);
@@ -245,35 +229,17 @@ const BankMappingTab = () => {
     }
   };
 
-  // Get unique bank names from connected banks
-  const connectedBankNames = [...new Set(connectedBanks.map(b => b.bank_name))];
-  
-  // Get labels for connected banks only
-  const labelsForConnectedBanks = bankLabels.filter(l => 
-    connectedBankNames.includes(l.bank_name)
-  );
-
-  // Group labels by label_code for display across banks
-  const labelsByCode: Record<string, { code: string; name: string; banks: Record<string, BankLabel> }> = {};
-  labelsForConnectedBanks.forEach(label => {
-    if (!labelsByCode[label.label_code]) {
-      labelsByCode[label.label_code] = {
-        code: label.label_code,
-        name: label.label_name,
-        banks: {},
-      };
-    }
-    labelsByCode[label.label_code].banks[label.bank_name] = label;
-  });
-
-  const getMappedCategory = (bankName: string, labelCode: string): string | null => {
-    return mappings[bankName]?.[labelCode] || null;
+  const getMappedCategory = (qontoCategory: string): string | null => {
+    return mappings[qontoCategory] || null;
   };
 
   const getCategoryById = (categoryId: string | null): ExpenseCategory | undefined => {
     if (!categoryId) return undefined;
     return categories.find(c => c.id === categoryId);
   };
+
+  // Check if we have a Qonto connection
+  const qontoConnection = connectedBanks.find(b => b.bank_name.toLowerCase() === 'qonto');
 
   if (isLoading) {
     return (
@@ -293,24 +259,24 @@ const BankMappingTab = () => {
     );
   }
 
-  if (connectedBanks.length === 0) {
+  if (connectedBanks.length === 0 || !qontoConnection) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Mapping des Catégories Bancaires
+            Mapping des Catégories Qonto
           </CardTitle>
           <CardDescription>
-            Associez les libellés de vos banques à vos catégories personnalisées.
+            Associez les catégories Qonto à vos catégories personnalisées.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">Aucune banque connectée</p>
+            <p className="font-medium">Aucune banque Qonto connectée</p>
             <p className="text-sm mt-1">
-              Connectez une banque depuis la page Banques pour configurer le mapping des catégories.
+              Connectez votre compte Qonto depuis la page Banques pour configurer le mapping des catégories.
             </p>
           </div>
         </CardContent>
@@ -325,10 +291,10 @@ const BankMappingTab = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Mapping des Catégories Bancaires
+              Mapping des Catégories Qonto
             </CardTitle>
             <CardDescription>
-              Pour chaque libellé bancaire, définissez la catégorie Sapajoo correspondante.
+              Pour chaque catégorie Qonto, définissez la catégorie Sapajoo correspondante.
             </CardDescription>
           </div>
           {hasChanges() && (
@@ -347,125 +313,113 @@ const BankMappingTab = () => {
         <div className="space-y-6">
           {/* Summary badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground">Banques connectées :</span>
-            {connectedBanks.map(bank => (
-              <Badge key={bank.id} variant="secondary">
-                {bank.organization_name || bank.bank_name}
-              </Badge>
-            ))}
+            <span className="text-sm text-muted-foreground">Compte connecté :</span>
+            <Badge variant="secondary">
+              Qonto - {qontoConnection.organization_name || 'Mon compte'}
+            </Badge>
+            <Badge variant="outline">
+              {qontoCategories.length} catégories Qonto
+            </Badge>
           </div>
 
-          {/* Main mapping table - Categories as rows, Banks as columns */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold w-[200px]">Catégorie Sapajoo</TableHead>
-                  {connectedBankNames.map(bankName => (
-                    <TableHead key={bankName} className="font-semibold text-center">
-                      {bankName}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map(category => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0" 
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <span className="font-medium">{category.name}</span>
-                      </div>
-                    </TableCell>
-                    {connectedBankNames.map(bankName => {
-                      // Find labels for this bank that are mapped to this category
-                      const bankLabelsForBank = labelsForConnectedBanks.filter(l => l.bank_name === bankName);
-                      const mappedLabels = bankLabelsForBank.filter(label => 
-                        getMappedCategory(bankName, label.label_code) === category.id
+          {isLoadingCategories ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span className="text-muted-foreground">Chargement des catégories Qonto...</span>
+            </div>
+          ) : qontoCategories.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">Aucune catégorie Qonto trouvée</p>
+              <p className="text-sm mt-1">
+                Les catégories seront disponibles une fois que vous aurez des transactions dans Qonto.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Main mapping table - Sapajoo categories as rows */}
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold w-[200px]">Catégorie Sapajoo</TableHead>
+                      <TableHead className="font-semibold">Catégories Qonto associées</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map(category => {
+                      // Find Qonto categories mapped to this Sapajoo category
+                      const mappedQontoCategories = qontoCategories.filter(qc => 
+                        getMappedCategory(qc.code) === category.id
                       );
                       
                       return (
-                        <TableCell key={bankName} className="text-center">
-                          {mappedLabels.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 justify-center">
-                              {mappedLabels.map(label => (
-                                <Badge 
-                                  key={label.id} 
-                                  variant="outline" 
-                                  className="text-xs"
-                                  title={label.description || label.label_name}
-                                >
-                                  {label.label_name}
-                                </Badge>
-                              ))}
+                        <TableRow key={category.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                style={{ backgroundColor: category.color }}
+                              />
+                              <span className="font-medium">{category.name}</span>
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
+                          </TableCell>
+                          <TableCell>
+                            {mappedQontoCategories.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {mappedQontoCategories.map(qc => (
+                                  <Badge 
+                                    key={qc.code} 
+                                    variant="outline" 
+                                    className="text-xs"
+                                  >
+                                    {qc.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Detailed mapping section by bank */}
-          <div className="space-y-6 pt-4">
-            <h3 className="text-lg font-medium border-b pb-2">Configuration par banque</h3>
-            
-            {connectedBankNames.map(bankName => {
-              const bankLabelsForBank = labelsForConnectedBanks.filter(l => l.bank_name === bankName);
-              
-              if (bankLabelsForBank.length === 0) {
-                return (
-                  <div key={bankName} className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-2">{bankName}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Aucun libellé disponible pour cette banque.
-                    </p>
-                  </div>
-                );
-              }
-              
-              return (
-                <div key={bankName} className="border rounded-lg p-4">
+              {/* Detailed mapping section for Qonto categories */}
+              <div className="space-y-6 pt-4">
+                <h3 className="text-lg font-medium border-b pb-2">Configuration des catégories Qonto</h3>
+                
+                <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-4 flex items-center gap-2">
-                    {bankName}
-                    <Badge variant="secondary">{bankLabelsForBank.length} libellés</Badge>
+                    Qonto
+                    <Badge variant="secondary">{qontoCategories.length} catégories</Badge>
                   </h4>
                   
                   <div className="grid gap-3">
-                    {bankLabelsForBank.map(label => {
-                      const mappedCategoryId = getMappedCategory(bankName, label.label_code);
+                    {qontoCategories.map(qontoCategory => {
+                      const mappedCategoryId = getMappedCategory(qontoCategory.code);
                       const mappedCategory = getCategoryById(mappedCategoryId);
                       
                       return (
                         <div 
-                          key={label.id} 
+                          key={qontoCategory.code} 
                           className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{label.label_name}</span>
+                              <span className="font-medium">{qontoCategory.name}</span>
                               <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                {label.label_code}
+                                {qontoCategory.code}
                               </code>
                             </div>
-                            {label.description && (
-                              <p className="text-sm text-muted-foreground">
-                                {label.description}
-                              </p>
-                            )}
                           </div>
                           
                           <Select
                             value={mappedCategoryId || 'none'}
-                            onValueChange={(value) => handleMappingChange(bankName, label.label_code, value)}
+                            onValueChange={(value) => handleMappingChange(qontoCategory.code, value)}
                           >
                             <SelectTrigger className="w-[200px]">
                               <SelectValue>
@@ -504,13 +458,9 @@ const BankMappingTab = () => {
                     })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            Ces associations seront utilisées pour catégoriser automatiquement les transactions lors de la synchronisation bancaire.
-          </p>
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
