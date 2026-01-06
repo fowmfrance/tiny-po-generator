@@ -320,6 +320,28 @@ const BankMappingTab = () => {
             <Badge variant="outline">
               {qontoCategories.length} catégories Qonto
             </Badge>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                if (qontoConnection) {
+                  const qontoCats = await fetchQontoCategories(qontoConnection.id);
+                  setQontoCategories(qontoCats);
+                  toast({
+                    title: "Catégories actualisées",
+                    description: `${qontoCats.length} catégorie(s) Qonto chargée(s).`,
+                  });
+                }
+              }}
+              disabled={isLoadingCategories}
+            >
+              {isLoadingCategories ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-1">Rafraîchir</span>
+            </Button>
           </div>
 
           {isLoadingCategories ? (
