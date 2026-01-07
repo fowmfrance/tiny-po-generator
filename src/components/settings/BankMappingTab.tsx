@@ -117,6 +117,10 @@ const BankMappingTab = () => {
       }
 
       const categoriesData = response.data?.categories || [];
+      
+      // Sync categories with bank_labels table
+      await syncBankLabels(categoriesData);
+      
       // Transform string array to QontoCategory objects
       return categoriesData.map((cat: string) => ({
         code: cat,
@@ -127,6 +131,38 @@ const BankMappingTab = () => {
       return [];
     } finally {
       setIsLoadingCategories(false);
+    }
+  };
+
+  // Sync Qonto categories with bank_labels table
+  const syncBankLabels = async (categoryCodes: string[]) => {
+    if (categoryCodes.length === 0) return;
+
+    // Get existing bank_labels for Qonto
+    const { data: existingLabels } = await supabase
+      .from('bank_labels')
+      .select('label_code')
+      .eq('bank_name', 'qonto');
+
+    const existingCodes = new Set(existingLabels?.map(l => l.label_code) || []);
+    
+    // Find new categories that need to be added
+    const newCategories = categoryCodes.filter(code => !existingCodes.has(code));
+    
+    if (newCategories.length > 0) {
+      const labelsToInsert = newCategories.map(code => ({
+        bank_name: 'qonto',
+        label_code: code,
+        label_name: formatQontoCategoryName(code),
+      }));
+
+      const { error } = await supabase
+        .from('bank_labels')
+        .insert(labelsToInsert);
+
+      if (error) {
+        console.error('Error syncing bank labels:', error);
+      }
     }
   };
 
