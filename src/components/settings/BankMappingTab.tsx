@@ -139,20 +139,60 @@ const BankMappingTab = () => {
       .join(' ');
   };
 
-  // Fetch user's existing mappings from localStorage
+  // Fetch or create bank_label for a Qonto category
+  const getOrCreateBankLabel = async (qontoCode: string): Promise<string | null> => {
+    // Check if label exists
+    const { data: existing } = await supabase
+      .from('bank_labels')
+      .select('id')
+      .eq('bank_name', 'qonto')
+      .eq('label_code', qontoCode)
+      .single();
+
+    if (existing) return existing.id;
+
+    // Label doesn't exist - we can't create it as bank_labels has no INSERT policy
+    // This is expected behavior - labels should be pre-populated
+    return null;
+  };
+
+  // Fetch user's existing mappings from database
   const fetchMappings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return {};
 
-    const storedMappings = localStorage.getItem(`qonto_mappings_${user.id}`);
-    if (storedMappings) {
-      try {
-        return JSON.parse(storedMappings);
-      } catch {
-        return {};
-      }
+    // Get all bank_labels for Qonto
+    const { data: bankLabels } = await supabase
+      .from('bank_labels')
+      .select('id, label_code')
+      .eq('bank_name', 'qonto');
+
+    if (!bankLabels || bankLabels.length === 0) return {};
+
+    const labelCodeToId = new Map(bankLabels.map(bl => [bl.label_code, bl.id]));
+    const labelIdToCode = new Map(bankLabels.map(bl => [bl.id, bl.label_code]));
+
+    // Get user's mappings
+    const { data: userMappings, error } = await supabase
+      .from('bank_label_mappings')
+      .select('bank_label_id, expense_category_id')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error fetching mappings:', error);
+      return {};
     }
-    return {};
+
+    // Transform to { qontoCode: categoryId } format
+    const mappingsObj: Record<string, string | null> = {};
+    userMappings?.forEach(m => {
+      const code = labelIdToCode.get(m.bank_label_id);
+      if (code) {
+        mappingsObj[code] = m.expense_category_id;
+      }
+    });
+
+    return mappingsObj;
   };
 
   useEffect(() => {
@@ -207,15 +247,54 @@ const BankMappingTab = () => {
     }
 
     try {
-      // Save mappings to localStorage
-      localStorage.setItem(`qonto_mappings_${user.id}`, JSON.stringify(mappings));
+      // Get all bank_labels for Qonto
+      const { data: bankLabels } = await supabase
+        .from('bank_labels')
+        .select('id, label_code')
+        .eq('bank_name', 'qonto');
+
+      const labelCodeToId = new Map(bankLabels?.map(bl => [bl.label_code, bl.id]) || []);
+
+      // Delete existing mappings for this user's Qonto labels
+      const qontoLabelIds = bankLabels?.map(bl => bl.id) || [];
+      if (qontoLabelIds.length > 0) {
+        await supabase
+          .from('bank_label_mappings')
+          .delete()
+          .eq('user_id', user.id)
+          .in('bank_label_id', qontoLabelIds);
+      }
+
+      // Insert new mappings
+      const mappingsToInsert = Object.entries(mappings)
+        .filter(([_, categoryId]) => categoryId !== null)
+        .map(([qontoCode, categoryId]) => {
+          const labelId = labelCodeToId.get(qontoCode);
+          if (!labelId) return null;
+          return {
+            user_id: user.id,
+            bank_label_id: labelId,
+            expense_category_id: categoryId,
+          };
+        })
+        .filter(Boolean);
+
+      if (mappingsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('bank_label_mappings')
+          .insert(mappingsToInsert as any[]);
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
       
       const mappingCount = Object.values(mappings).filter(v => v !== null).length;
 
       setOriginalMappings(JSON.parse(JSON.stringify(mappings)));
       toast({
         title: "Mappings sauvegardés",
-        description: `${mappingCount} association(s) enregistrée(s).`,
+        description: `${mappingCount} association(s) enregistrée(s) en base.`,
       });
     } catch (error: any) {
       console.error('Error saving mappings:', error);
