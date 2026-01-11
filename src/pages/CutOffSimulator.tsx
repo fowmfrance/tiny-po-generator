@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarIcon, Download, Calculator, TrendingUp, TrendingDown, FileText, Receipt, ArrowRight, Sparkles } from 'lucide-react';
+import { CalendarIcon, Download, Calculator, TrendingUp, TrendingDown, FileText, Receipt, ArrowRight, Sparkles, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const recognitionModes = [
   { value: 'linear', label: 'Linéaire', description: 'Prorata temporis' },
@@ -504,6 +505,79 @@ const CutOffSimulator = () => {
                       <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
                         {results.filter(r => r.type === 'cost').length} charges
                       </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bar Chart */}
+                <div className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Répartition des ajustements</h3>
+                  </div>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={results.map(r => ({
+                          name: r.label.length > 20 ? r.label.substring(0, 20) + '...' : r.label,
+                          fullName: r.label,
+                          amount: r.amount,
+                          type: r.type
+                        }))}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                        <XAxis 
+                          type="number" 
+                          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`}
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis 
+                          type="category" 
+                          dataKey="name" 
+                          width={130}
+                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                          formatter={(value: number) => [
+                            `${value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
+                            'Montant'
+                          ]}
+                          labelFormatter={(label, payload) => {
+                            if (payload && payload[0]) {
+                              return payload[0].payload.fullName;
+                            }
+                            return label;
+                          }}
+                        />
+                        <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                          {results.map((result, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={result.type === 'revenue' ? 'hsl(142, 71%, 45%)' : 'hsl(25, 95%, 53%)'} 
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-border/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+                      <span className="text-xs text-muted-foreground">Produits</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-orange-500" />
+                      <span className="text-xs text-muted-foreground">Charges</span>
                     </div>
                   </div>
                 </div>
