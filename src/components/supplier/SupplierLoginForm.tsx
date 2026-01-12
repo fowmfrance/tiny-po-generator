@@ -21,16 +21,23 @@ const SupplierLoginForm: React.FC<SupplierLoginFormProps> = ({ setError }) => {
     setLoading(true);
     setError('');
 
-    // For demonstration, using fixed credentials or checking against mock vendors
+    // Demo mode only available in development environment
     setTimeout(() => {
       // Find the vendor with the provided email
       const vendor = mockVendors.find(v => v.email.toLowerCase() === email.toLowerCase());
       
-      if (vendor && password === 'password') {
-        // Success - navigate to the supplier dashboard with vendor ID
+      // Only allow demo credentials in development mode
+      const isDemoModeAllowed = import.meta.env.DEV;
+      const isDemoCredentialsValid = isDemoModeAllowed && password === 'demo123';
+      
+      if (vendor && isDemoCredentialsValid) {
+        // Success - navigate to the supplier dashboard with vendor ID (dev only)
         navigate(`/supplier/purchaseorders/${vendor.id}`);
+      } else if (!isDemoModeAllowed) {
+        // Production: inform user that demo mode is not available
+        setError('L\'authentification fournisseur nécessite une configuration complète. Contactez l\'administrateur.');
       } else {
-        // Show error message
+        // Development: show invalid credentials error
         setError('Email ou mot de passe incorrect.');
       }
       setLoading(false);
