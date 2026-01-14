@@ -1,14 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
@@ -28,49 +28,98 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { ArrowLeft, Calendar, HelpCircle, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { BudgetCurrency, BudgetRecognitionType } from '@/services/budgetService';
+import { BudgetCurrency } from '@/services/budgetService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormValues {
-  code: string;
+  budgetTypeId: string;
   name: string;
-  type: 'Project' | 'G&A';
   currency: BudgetCurrency;
   initialAmount: number;
   startDate: string;
   endDate: string;
-  recognitionType: BudgetRecognitionType;
-  completionPercentage?: number;
+  recognitionMethodId: string;
 }
+
+// Mock budget types (sera remplacé par DB)
+const BUDGET_TYPES = [
+  { id: 'project', name: 'Projet', poFormat: 'PRJ-{YYYY}-{NNN}', currentSequence: 42 },
+  { id: 'ga', name: 'Frais généraux', poFormat: 'GA-{YYYY}-{NNN}', currentSequence: 15 },
+  { id: 'capex', name: 'CAPEX', poFormat: 'CPX-{YYYY}-{NNN}', currentSequence: 8 },
+];
+
+const formatBudgetCode = (format: string, sequence: number): string => {
+  const year = new Date().getFullYear().toString();
+  const paddedSequence = (sequence + 1).toString().padStart(3, '0');
+  return format
+    .replace('{YYYY}', year)
+    .replace('{NNN}', paddedSequence);
+};
 
 const CreateBudget = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [recognitionType, setRecognitionType] = useState<BudgetRecognitionType>('linear');
+
+  // Fetch recognition methods from DB
+  const { data: recognitionMethods = [] } = useQuery({
+    queryKey: ['recognition-methods'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recognition_methods')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const form = useForm<FormValues>({
     defaultValues: {
-      code: '',
+      budgetTypeId: '',
       name: '',
-      type: 'Project',
       currency: 'EUR',
       initialAmount: 0,
       startDate: '',
       endDate: '',
-      recognitionType: 'linear',
-      completionPercentage: 0,
+      recognitionMethodId: '',
     },
   });
 
+  // Watch budget type to auto-generate code
+  const selectedBudgetTypeId = useWatch({ control: form.control, name: 'budgetTypeId' });
+  const selectedRecognitionMethodId = useWatch({ control: form.control, name: 'recognitionMethodId' });
+
+  const generatedCode = useMemo(() => {
+    const budgetType = BUDGET_TYPES.find(t => t.id === selectedBudgetTypeId);
+    if (!budgetType) return '';
+    return formatBudgetCode(budgetType.poFormat, budgetType.currentSequence);
+  }, [selectedBudgetTypeId]);
+
+  const selectedMethod = useMemo(() => {
+    return recognitionMethods.find(m => m.id === selectedRecognitionMethodId);
+  }, [recognitionMethods, selectedRecognitionMethodId]);
+
   const onSubmit = (data: FormValues) => {
-    // In a real app, this would save to the backend
-    console.log('Form data:', data);
+    const budgetType = BUDGET_TYPES.find(t => t.id === data.budgetTypeId);
+    console.log('Form data:', {
+      ...data,
+      code: generatedCode,
+      type: budgetType?.name,
+    });
     
     toast({
       title: "Budget créé",
-      description: "Le budget a été créé avec succès.",
+      description: `Le budget ${generatedCode} a été créé avec succès.`,
     });
     
     navigate('/budgets');
@@ -103,22 +152,57 @@ const CreateBudget = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* 1. Type de budget EN PREMIER - pilote le format du code */}
                 <FormField
                   control={form.control}
-                  name="code"
+                  name="budgetTypeId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Code du budget</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ex: PRJ-2023-001" {...field} />
-                      </FormControl>
+                      <FormLabel>Type de budget</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez un type de budget" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {BUDGET_TYPES.map(type => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormDescription>
-                        Un identifiant unique pour ce budget
+                        Détermine le format de numérotation du code
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* 2. Code du budget AUTO-GÉNÉRÉ (lecture seule) */}
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    Code du budget
+                    <Lock className="h-3 w-3 text-muted-foreground" />
+                  </FormLabel>
+                  <div className="relative">
+                    <Input 
+                      value={generatedCode} 
+                      readOnly 
+                      disabled
+                      placeholder="Sélectionnez un type de budget"
+                      className="bg-muted cursor-not-allowed"
+                    />
+                  </div>
+                  <FormDescription>
+                    Auto-généré selon le type de budget sélectionné
+                  </FormDescription>
+                </FormItem>
                 
                 <FormField
                   control={form.control}
@@ -131,34 +215,6 @@ const CreateBudget = () => {
                       </FormControl>
                       <FormDescription>
                         Un nom descriptif pour ce budget
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type de budget</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez un type de budget" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Project">Projet</SelectItem>
-                          <SelectItem value="G&A">Frais généraux</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Le type de dépenses couvert par ce budget
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -277,84 +333,69 @@ const CreateBudget = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* 3. Méthode de reconnaissance en SÉLECTEUR SIMPLE */}
                 <FormField
                   control={form.control}
-                  name="recognitionType"
+                  name="recognitionMethodId"
                   render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Méthode de reconnaissance</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={(value: BudgetRecognitionType) => {
-                            field.onChange(value);
-                            setRecognitionType(value);
-                          }}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="linear" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Reconnaissance linéaire (basée sur le temps écoulé)
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="completion" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Reconnaissance à l'avancement
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        Méthode de reconnaissance
+                        {selectedMethod && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm">
+                                <p className="font-medium mb-1">{selectedMethod.name_expense}</p>
+                                <p className="text-sm">{selectedMethod.description}</p>
+                                {selectedMethod.example && (
+                                  <p className="text-sm mt-2 text-muted-foreground italic">
+                                    Ex: {selectedMethod.example}
+                                  </p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez une méthode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {recognitionMethods.map(method => (
+                            <SelectItem key={method.id} value={method.id}>
+                              {method.name_expense}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormDescription>
-                        Linéaire : Les charges sont reconnues uniformément sur la durée du budget.
-                        <br />
-                        Avancement : Les charges sont reconnues en fonction du pourcentage d'avancement.
+                        Détermine comment les charges sont réparties dans le temps
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {recognitionType === 'completion' && (
-                  <FormField
-                    control={form.control}
-                    name="completionPercentage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pourcentage d'avancement actuel</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="0" 
-                            min="0"
-                            max="100"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Le pourcentage actuel d'avancement de la prestation (0-100%)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                {selectedMethod && (
+                  <div className="bg-muted/50 p-4 rounded-md border">
+                    <h4 className="text-sm font-medium mb-2">{selectedMethod.name_expense}</h4>
+                    <p className="text-sm text-muted-foreground">{selectedMethod.description}</p>
+                    {selectedMethod.use_cases && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        <strong>Cas d'usage :</strong> {selectedMethod.use_cases}
+                      </p>
                     )}
-                  />
+                  </div>
                 )}
-                
-                <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-                  <h4 className="text-sm font-medium text-blue-800 mb-2">Fonctionnement de la reconnaissance des charges</h4>
-                  <p className="text-sm text-blue-700">
-                    <strong>Reconnaissance linéaire :</strong> Les charges sont réparties uniformément sur la période du budget. Par exemple, si votre budget couvre 10 mois et que 5 mois se sont écoulés, 50% du budget est considéré comme reconnu.
-                  </p>
-                  <p className="text-sm text-blue-700 mt-2">
-                    <strong>À l'avancement :</strong> Les charges sont reconnues en fonction du pourcentage d'avancement que vous spécifiez. Vous devrez mettre à jour manuellement ce pourcentage au fur et à mesure de l'avancement du projet.
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
