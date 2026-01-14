@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,20 +95,64 @@ const CreatePO = () => {
   // Mock: in production, this would come from user context
   const isAdmin = true; // TODO: Get from auth context
 
-  // Mock budget list for selector
-  const [budgetList, setBudgetList] = useState<BudgetOption[]>([
-    { id: '1', name: 'Budget Projet Alpha', code: 'PRJ-2023-001', currency: 'EUR' },
-    { id: '2', name: 'Frais G&A Q3', code: 'GA-2023-002', currency: 'EUR' },
-    { id: '3', name: 'Budget Projet Beta', code: 'PRJ-2023-003', currency: 'GBP' },
-  ]);
+  // Budgets et fournisseurs depuis la base de données
+  const [budgetList, setBudgetList] = useState<BudgetOption[]>([]);
+  const [vendorList, setVendorList] = useState<VendorOption[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [vendorList, setVendorList] = useState<VendorOption[]>([
-    { id: '1', name: 'Apple Inc.' },
-    { id: '2', name: 'Microsoft Corp' },
-    { id: '3', name: 'Dell Technologies' },
-    { id: '4', name: 'Amazon Business' },
-    { id: '5', name: 'Samsung Electronics' },
-  ]);
+  // Charger les budgets et fournisseurs depuis la base
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoadingData(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setIsLoadingData(false);
+          return;
+        }
+
+        // Charger les budgets
+        const { data: budgets, error: budgetsError } = await supabase
+          .from('budgets')
+          .select('id, name, code, currency')
+          .eq('status', 'active')
+          .order('name');
+        
+        if (budgetsError) {
+          console.error('Error loading budgets:', budgetsError);
+        } else if (budgets) {
+          setBudgetList(budgets.map(b => ({
+            id: b.id,
+            name: b.name,
+            code: b.code,
+            currency: b.currency
+          })));
+        }
+
+        // Charger les fournisseurs
+        const { data: suppliers, error: suppliersError } = await supabase
+          .from('suppliers')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (suppliersError) {
+          console.error('Error loading suppliers:', suppliersError);
+        } else if (suppliers) {
+          setVendorList(suppliers.map(s => ({
+            id: s.id,
+            name: s.name
+          })));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Note: Les dates du budget sont les dates de réalisation du projet
   // Un bon de commande peut être émis avant la date de début pour lancer les travaux
