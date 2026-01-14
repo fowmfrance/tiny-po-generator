@@ -227,17 +227,27 @@ const CreateBudget = () => {
       return budget;
     },
     onSuccess: (budget) => {
+      if (!budget?.id) {
+        console.error('[CreateBudget] Mutation success but missing budget id:', budget);
+        toast({
+          title: "Erreur",
+          description: "Le budget a été créé mais n'a pas été renvoyé par le backend (RLS/returning).",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Budget créé",
         description: `Le budget ${generatedCode} a été créé avec succès.`,
       });
       navigate(`/budgets/${budget.id}`);
     },
-    onError: (error) => {
-      console.error('Error creating budget:', error);
+    onError: (error: any) => {
+      console.error('[CreateBudget] Error creating budget:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer le budget. Veuillez réessayer.",
+        description: error?.message || "Impossible de créer le budget. Veuillez réessayer.",
         variant: "destructive",
       });
     },

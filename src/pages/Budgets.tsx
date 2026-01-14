@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react';
 
 const Budgets = () => {
   const { toast } = useToast();
-  const { budgets, isLoading, error } = useBudgetsData();
+  const { budgets, isLoading, error, user } = useBudgetsData();
   const [viewType, setViewType] = useState<ViewType>('list');
 
   const handleViewChange = (view: ViewType) => {
@@ -34,6 +34,14 @@ const Budgets = () => {
       return (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (!user) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          Vous n’êtes pas connecté. Connectez-vous pour voir vos budgets.
         </div>
       );
     }
