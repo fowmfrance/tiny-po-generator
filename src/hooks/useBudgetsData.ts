@@ -7,9 +7,12 @@ export function useBudgetsData() {
   const { data: budgets = [], isLoading, error, refetch } = useQuery({
     queryKey: ['budgets'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      console.log('[useBudgetsData] Auth check:', { user: user?.id, authError });
       
       if (!user) {
+        console.log('[useBudgetsData] No user found, returning empty array');
         return [];
       }
 
@@ -31,8 +34,10 @@ export function useBudgetsData() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      console.log('[useBudgetsData] Query result:', { data, error, userId: user.id });
+
       if (error) {
-        console.error('Error fetching budgets:', error);
+        console.error('[useBudgetsData] Error fetching budgets:', error);
         throw error;
       }
 
