@@ -134,6 +134,56 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_milestones: {
+        Row: {
+          budget_id: string
+          completed_date: string | null
+          completion_percentage: number
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean
+          order_index: number
+          target_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget_id: string
+          completed_date?: string | null
+          completion_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          order_index?: number
+          target_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          budget_id?: string
+          completed_date?: string | null
+          completion_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          order_index?: number
+          target_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_milestones_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_types: {
         Row: {
           created_at: string
@@ -173,6 +223,68 @@ export type Database = {
         }
         Relationships: []
       }
+      budgets: {
+        Row: {
+          budget_type_id: string
+          code: string
+          created_at: string
+          currency: string
+          end_date: string | null
+          expense_types: string[] | null
+          id: string
+          initial_amount: number
+          name: string
+          recognition_method_id: string | null
+          resale_price: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_type_id: string
+          code: string
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          expense_types?: string[] | null
+          id?: string
+          initial_amount?: number
+          name: string
+          recognition_method_id?: string | null
+          resale_price?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_type_id?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          expense_types?: string[] | null
+          id?: string
+          initial_amount?: number
+          name?: string
+          recognition_method_id?: string | null
+          resale_price?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_recognition_method_id_fkey"
+            columns: ["recognition_method_id"]
+            isOneToOne: false
+            referencedRelation: "recognition_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_categories: {
         Row: {
           color: string | null
@@ -208,6 +320,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      milestone_confirmations: {
+        Row: {
+          confirmed_at: string
+          confirmed_by: string
+          created_at: string
+          id: string
+          is_on_time: boolean
+          milestone_id: string
+          new_target_date: string | null
+          notes: string | null
+        }
+        Insert: {
+          confirmed_at?: string
+          confirmed_by: string
+          created_at?: string
+          id?: string
+          is_on_time?: boolean
+          milestone_id: string
+          new_target_date?: string | null
+          notes?: string | null
+        }
+        Update: {
+          confirmed_at?: string
+          confirmed_by?: string
+          created_at?: string
+          id?: string
+          is_on_time?: boolean
+          milestone_id?: string
+          new_target_date?: string | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_confirmations_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "budget_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_batch_invoices: {
         Row: {

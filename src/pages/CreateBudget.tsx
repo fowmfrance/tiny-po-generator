@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -35,10 +35,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Calendar, HelpCircle, Lock, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Calendar, HelpCircle, Lock, TrendingUp, TrendingDown, Flag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetCurrency } from '@/services/budgetService';
 import { supabase } from '@/integrations/supabase/client';
+import { MilestoneTimelineDialog, Milestone } from '@/components/budget/MilestoneTimelineDialog';
 
 // Types de dépenses disponibles
 const EXPENSE_TYPES = [
@@ -71,6 +72,9 @@ interface FormValues {
   expenseTypes: string[];
 }
 
+// Code de la méthode milestone
+const MILESTONE_METHOD_CODE = 'poc_milestone';
+
 // Mock budget types (sera remplacé par DB)
 const BUDGET_TYPES = [
   { id: 'project', name: 'Projet', poFormat: 'PRJ-{YYYY}-{NNN}', currentSequence: 42 },
@@ -89,6 +93,10 @@ const formatBudgetCode = (format: string, sequence: number): string => {
 const CreateBudget = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // State pour les milestones
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
 
   // Fetch recognition methods from DB
   const { data: recognitionMethods = [] } = useQuery({
@@ -124,6 +132,8 @@ const CreateBudget = () => {
   const selectedRecognitionMethodId = useWatch({ control: form.control, name: 'recognitionMethodId' });
   const initialAmount = useWatch({ control: form.control, name: 'initialAmount' });
   const resalePrice = useWatch({ control: form.control, name: 'resalePrice' });
+  const startDate = useWatch({ control: form.control, name: 'startDate' });
+  const endDate = useWatch({ control: form.control, name: 'endDate' });
 
   const isProjectType = selectedBudgetTypeId === 'project';
 
@@ -136,6 +146,9 @@ const CreateBudget = () => {
   const selectedMethod = useMemo(() => {
     return recognitionMethods.find(m => m.id === selectedRecognitionMethodId);
   }, [recognitionMethods, selectedRecognitionMethodId]);
+
+  // Déterminer si la méthode sélectionnée est "Milestone"
+  const isMilestoneMethod = selectedMethod?.code === MILESTONE_METHOD_CODE;
 
   // Calcul de la marge pour les projets
   const margin = useMemo(() => {
@@ -154,6 +167,7 @@ const CreateBudget = () => {
       ...data,
       code: generatedCode,
       type: budgetType?.name,
+      milestones: isMilestoneMethod ? milestones : [],
     });
     
     toast({
@@ -560,6 +574,73 @@ const CreateBudget = () => {
                     )}
                   </div>
                 )}
+
+                {/* Section Milestones - uniquement pour méthode PoC Milestone */}
+                {isMilestoneMethod && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          <Flag className="h-4 w-4 text-primary" />
+                          Jalons du projet (Milestones)
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          Définissez les livrables attendus pour calculer l'avancement
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setMilestoneDialogOpen(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Flag className="h-4 w-4" />
+                        {milestones.length > 0 
+                          ? `Modifier (${milestones.length} jalons)` 
+                          : 'Définir les jalons'
+                        }
+                      </Button>
+                    </div>
+
+                    {milestones.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Jalons définis</span>
+                          <span className="font-medium">{milestones.length} livrable(s)</span>
+                        </div>
+                        <div className="space-y-1">
+                          {milestones.slice(0, 3).map((m, i) => (
+                            <div 
+                              key={m.id}
+                              className="flex items-center gap-2 text-sm p-2 bg-background rounded border"
+                            >
+                              <span className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                                #{i + 1}
+                              </span>
+                              <span className="truncate flex-1">{m.title}</span>
+                              <span className="text-muted-foreground text-xs">
+                                {m.targetDate.toLocaleDateString('fr-FR')}
+                              </span>
+                            </div>
+                          ))}
+                          {milestones.length > 3 && (
+                            <p className="text-xs text-muted-foreground text-center py-1">
+                              + {milestones.length - 3} autre(s) jalon(s)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {milestones.length === 0 && (
+                      <div className="p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground">
+                        <Flag className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">Aucun jalon défini</p>
+                        <p className="text-xs">Cliquez sur le bouton ci-dessus pour ajouter des livrables</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -581,6 +662,16 @@ const CreateBudget = () => {
           </div>
         </form>
       </Form>
+
+      {/* Modale de définition des milestones */}
+      <MilestoneTimelineDialog
+        open={milestoneDialogOpen}
+        onOpenChange={setMilestoneDialogOpen}
+        milestones={milestones}
+        onMilestonesChange={setMilestones}
+        projectStartDate={startDate ? new Date(startDate) : undefined}
+        projectEndDate={endDate ? new Date(endDate) : undefined}
+      />
     </div>
   );
 };
