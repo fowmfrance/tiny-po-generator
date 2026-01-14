@@ -157,26 +157,37 @@ const CreatePO = () => {
   // Note: Les dates du budget sont les dates de réalisation du projet
   // Un bon de commande peut être émis avant la date de début pour lancer les travaux
 
-  const exampleItems = [
-    {
-      description: 'MacBook Pro 14"',
-      quantity: 2,
-      unitPrice: 1999.99,
-      total: 3999.98
-    },
-    {
-      description: 'Souris sans fil',
-      quantity: 5,
-      unitPrice: 99.99,
-      total: 499.95
-    },
-    {
-      description: 'Adaptateur USB-C',
-      quantity: 10,
-      unitPrice: 49.99,
-      total: 499.90
+  // Gestion des articles du bon de commande
+  interface LineItem {
+    id: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+  }
+
+  const [items, setItems] = useState<LineItem[]>([
+    { id: crypto.randomUUID(), description: '', quantity: 1, unitPrice: 0 }
+  ]);
+
+  const addItem = () => {
+    setItems(prev => [...prev, { id: crypto.randomUUID(), description: '', quantity: 1, unitPrice: 0 }]);
+  };
+
+  const removeItem = (id: string) => {
+    if (items.length > 1) {
+      setItems(prev => prev.filter(item => item.id !== id));
     }
-  ];
+  };
+
+  const updateItem = (id: string, field: keyof Omit<LineItem, 'id'>, value: string | number) => {
+    setItems(prev => prev.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  };
 
   const recognitionData = budgetId && budgetRecognitionType && budgetStartDate && budgetEndDate ? 
     calculateRecognizedAmount(
@@ -453,7 +464,7 @@ const CreatePO = () => {
                     Ajoutez des articles à ce bon de commande
                   </CardDescription>
                 </div>
-                <Button type="button" variant="outline" className="flex items-center gap-2">
+                <Button type="button" variant="outline" className="flex items-center gap-2" onClick={addItem}>
                   <Plus className="w-4 h-4" />
                   Ajouter Article
                 </Button>
@@ -472,22 +483,46 @@ const CreatePO = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {exampleItems.map(item => (
-                      <tr key={item.description}>
+                    {items.map(item => (
+                      <tr key={item.id}>
                         <td className="px-4 py-3">
-                          <Input placeholder="Description de l'article" defaultValue={item.description} />
+                          <Input 
+                            placeholder="Description de l'article" 
+                            value={item.description}
+                            onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                          />
                         </td>
                         <td className="px-4 py-3">
-                          <Input type="number" defaultValue={item.quantity} min="1" className="w-20" />
+                          <Input 
+                            type="number" 
+                            value={item.quantity} 
+                            min="1" 
+                            className="w-20"
+                            onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                          />
                         </td>
                         <td className="px-4 py-3">
-                          <Input type="number" defaultValue={item.unitPrice} min="0" step="0.01" className="w-32" />
+                          <Input 
+                            type="number" 
+                            value={item.unitPrice} 
+                            min="0" 
+                            step="0.01" 
+                            className="w-32"
+                            onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          />
                         </td>
                         <td className="px-4 py-3 text-sm font-medium">
-                          €{item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          €{(item.quantity * item.unitPrice).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeItem(item.id)}
+                            disabled={items.length === 1}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </td>
@@ -500,7 +535,7 @@ const CreatePO = () => {
                         Total:
                       </td>
                       <td className="px-4 py-3 text-sm font-bold">
-                        €{exampleItems.reduce((total, item) => total + item.total, 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        €{calculateTotal().toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td></td>
                     </tr>
