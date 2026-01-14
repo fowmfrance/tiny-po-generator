@@ -34,19 +34,41 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ArrowLeft, Calendar, HelpCircle, Lock } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowLeft, Calendar, HelpCircle, Lock, TrendingUp, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetCurrency } from '@/services/budgetService';
 import { supabase } from '@/integrations/supabase/client';
+
+// Types de dépenses disponibles
+const EXPENSE_TYPES = [
+  { 
+    id: 'supplier_invoices', 
+    label: 'FACTURES FOURNISSEURS', 
+    description: 'Prestations de services avec bon de commande et paiement différé' 
+  },
+  { 
+    id: 'card_purchases', 
+    label: 'ACHATS CARTE BANCAIRE', 
+    description: 'Dépenses immédiates par CB professionnelle avec justificatif direct' 
+  },
+  { 
+    id: 'recurring_debits', 
+    label: 'PRÉLÈVEMENTS RÉCURRENTS', 
+    description: 'Abonnements et charges automatiques avec mandat SEPA' 
+  },
+];
 
 interface FormValues {
   budgetTypeId: string;
   name: string;
   currency: BudgetCurrency;
   initialAmount: number;
+  resalePrice: number;
   startDate: string;
   endDate: string;
   recognitionMethodId: string;
+  expenseTypes: string[];
 }
 
 // Mock budget types (sera remplacé par DB)
@@ -89,15 +111,21 @@ const CreateBudget = () => {
       name: '',
       currency: 'EUR',
       initialAmount: 0,
+      resalePrice: 0,
       startDate: '',
       endDate: '',
       recognitionMethodId: '',
+      expenseTypes: [],
     },
   });
 
   // Watch budget type to auto-generate code
   const selectedBudgetTypeId = useWatch({ control: form.control, name: 'budgetTypeId' });
   const selectedRecognitionMethodId = useWatch({ control: form.control, name: 'recognitionMethodId' });
+  const initialAmount = useWatch({ control: form.control, name: 'initialAmount' });
+  const resalePrice = useWatch({ control: form.control, name: 'resalePrice' });
+
+  const isProjectType = selectedBudgetTypeId === 'project';
 
   const generatedCode = useMemo(() => {
     const budgetType = BUDGET_TYPES.find(t => t.id === selectedBudgetTypeId);
@@ -108,6 +136,17 @@ const CreateBudget = () => {
   const selectedMethod = useMemo(() => {
     return recognitionMethods.find(m => m.id === selectedRecognitionMethodId);
   }, [recognitionMethods, selectedRecognitionMethodId]);
+
+  // Calcul de la marge pour les projets
+  const margin = useMemo(() => {
+    if (!isProjectType) return null;
+    return resalePrice - initialAmount;
+  }, [isProjectType, resalePrice, initialAmount]);
+
+  const marginPercentage = useMemo(() => {
+    if (!isProjectType || resalePrice === 0) return null;
+    return ((margin || 0) / resalePrice) * 100;
+  }, [isProjectType, resalePrice, margin]);
 
   const onSubmit = (data: FormValues) => {
     const budgetType = BUDGET_TYPES.find(t => t.id === data.budgetTypeId);
@@ -262,22 +301,86 @@ const CreateBudget = () => {
                   name="initialAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Montant initial</FormLabel>
+                      <FormLabel>{isProjectType ? 'Budget des coûts' : 'Montant initial'}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           placeholder="0,00" 
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
                         />
                       </FormControl>
                       <FormDescription>
-                        Le montant de départ de ce budget
+                        {isProjectType ? 'Somme des coûts prévisionnels du projet' : 'Le montant de départ de ce budget'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Prix de revente - uniquement pour les projets */}
+                {isProjectType && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="resalePrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Prix de revente extérieur</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="0,00" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Montant facturé au client final
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Affichage de la marge */}
+                    {(resalePrice > 0 || initialAmount > 0) && (
+                      <div className={`p-4 rounded-md border ${
+                        margin && margin >= 0 
+                          ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' 
+                          : 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium flex items-center gap-2">
+                            {margin && margin >= 0 ? (
+                              <TrendingUp className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-600" />
+                            )}
+                            Marge prévisionnelle
+                          </span>
+                          <div className="text-right">
+                            <span className={`font-bold ${
+                              margin && margin >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {new Intl.NumberFormat('fr-FR', { 
+                                style: 'currency', 
+                                currency: form.watch('currency') || 'EUR' 
+                              }).format(margin || 0)}
+                            </span>
+                            {marginPercentage !== null && (
+                              <span className={`ml-2 text-sm ${
+                                marginPercentage >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                ({marginPercentage.toFixed(1)}%)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
                 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -325,6 +428,67 @@ const CreateBudget = () => {
               </CardContent>
             </Card>
             
+            {/* Types de dépenses */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Types de dépenses autorisées</CardTitle>
+                <CardDescription>
+                  Sélectionnez les types de dépenses acceptés pour ce budget
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="expenseTypes"
+                  render={() => (
+                    <FormItem>
+                      <div className="grid gap-4">
+                        {EXPENSE_TYPES.map((type) => (
+                          <FormField
+                            key={type.id}
+                            control={form.control}
+                            name="expenseTypes"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={type.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-muted/50 transition-colors"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(type.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, type.id])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== type.id
+                                              )
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-semibold cursor-pointer">
+                                      {type.label}
+                                    </FormLabel>
+                                    <FormDescription className="text-sm">
+                                      {type.description}
+                                    </FormDescription>
+                                  </div>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Reconnaissance des charges</CardTitle>
