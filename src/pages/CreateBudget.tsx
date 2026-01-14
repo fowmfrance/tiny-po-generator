@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Calendar, HelpCircle, Lock, TrendingUp, TrendingDown, Flag } from 'lucide-react';
+import { ArrowLeft, Calendar, HelpCircle, Lock, TrendingUp, TrendingDown, Flag, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetCurrency } from '@/services/budgetService';
 import { supabase } from '@/integrations/supabase/client';
@@ -161,22 +161,106 @@ const CreateBudget = () => {
     return ((margin || 0) / resalePrice) * 100;
   }, [isProjectType, resalePrice, margin]);
 
+  // Mutation pour sauvegarder le budget
+  const createBudgetMutation = useMutation({
+    mutationFn: async (data: FormValues) => {
+      // Vérifier l'authentification
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      // 1. Créer le budget
+      const { data: budget, error: budgetError } = await supabase
+        .from('budgets')
+        .insert({
+          user_id: user.id,
+          code: generatedCode,
+          name: data.name,
+          budget_type_id: data.budgetTypeId,
+          currency: data.currency,
+          initial_amount: data.initialAmount,
+          resale_price: isProjectType ? data.resalePrice : null,
+          recognition_method_id: data.recognitionMethodId || null,
+          expense_types: data.expenseTypes,
+          start_date: data.startDate || null,
+          end_date: data.endDate || null,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (budgetError) throw budgetError;
+
+      // 2. Si méthode milestone, créer les milestones
+      if (isMilestoneMethod && milestones.length > 0) {
+        const milestonesData = milestones.map((m, index) => ({
+          budget_id: budget.id,
+          title: m.title,
+          description: m.description || null,
+          target_date: m.targetDate.toISOString().split('T')[0],
+          completion_percentage: m.completionPercentage,
+          is_completed: false,
+          order_index: index,
+        }));
+
+        const { error: milestonesError } = await supabase
+          .from('budget_milestones')
+          .insert(milestonesData);
+
+        if (milestonesError) throw milestonesError;
+      }
+
+      return budget;
+    },
+    onSuccess: (budget) => {
+      toast({
+        title: "Budget créé",
+        description: `Le budget ${generatedCode} a été créé avec succès.`,
+      });
+      navigate(`/budgets/${budget.id}`);
+    },
+    onError: (error) => {
+      console.error('Error creating budget:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le budget. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: FormValues) => {
-    const budgetType = BUDGET_TYPES.find(t => t.id === data.budgetTypeId);
-    console.log('Form data:', {
-      ...data,
-      code: generatedCode,
-      type: budgetType?.name,
-      milestones: isMilestoneMethod ? milestones : [],
-    });
-    
-    toast({
-      title: "Budget créé",
-      description: `Le budget ${generatedCode} a été créé avec succès.`,
-    });
-    
-    navigate('/budgets');
+    // Validation
+    if (!data.budgetTypeId) {
+      toast({
+        title: "Champ requis",
+        description: "Veuillez sélectionner un type de budget.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.name.trim()) {
+      toast({
+        title: "Champ requis",
+        description: "Veuillez saisir un nom pour le budget.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isMilestoneMethod && milestones.length === 0) {
+      toast({
+        title: "Jalons requis",
+        description: "Veuillez définir au moins un jalon pour la méthode Milestone.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createBudgetMutation.mutate(data);
   };
+
+  const isSubmitting = createBudgetMutation.isPending;
   
   return (
     <div className="space-y-6">
@@ -650,14 +734,23 @@ const CreateBudget = () => {
               type="button" 
               variant="outline" 
               onClick={() => navigate('/budgets')}
+              disabled={isSubmitting}
             >
               Annuler
             </Button>
             <Button 
               type="submit"
               className="bg-po-blue hover:bg-blue-600"
+              disabled={isSubmitting}
             >
-              Créer le budget
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Création en cours...
+                </>
+              ) : (
+                'Créer le budget'
+              )}
             </Button>
           </div>
         </form>
