@@ -12,10 +12,11 @@ import BudgetViewToggle, { ViewType } from '@/components/budget/BudgetViewToggle
 import BudgetCardView from '@/components/budget/BudgetCardView';
 import BudgetKanbanView from '@/components/budget/BudgetKanbanView';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
+import { Loader2 } from 'lucide-react';
 
 const Budgets = () => {
   const { toast } = useToast();
-  const { budgets } = useBudgetsData();
+  const { budgets, isLoading, error } = useBudgetsData();
   const [viewType, setViewType] = useState<ViewType>('list');
 
   const handleViewChange = (view: ViewType) => {
@@ -29,6 +30,30 @@ const Budgets = () => {
   };
 
   const renderBudgetView = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12 text-destructive">
+          Erreur lors du chargement des budgets
+        </div>
+      );
+    }
+
+    if (budgets.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          Aucun budget trouvé. Créez votre premier budget pour commencer.
+        </div>
+      );
+    }
+
     switch (viewType) {
       case 'grid':
         return <BudgetCardView budgets={budgets} />;
