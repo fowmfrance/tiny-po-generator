@@ -323,6 +323,66 @@ export type Database = {
         }
         Relationships: []
       }
+      recognition_methods: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          display_order: number
+          example: string | null
+          formula_expense: string | null
+          formula_revenue: string | null
+          id: string
+          ifrs15_justification: string | null
+          is_active: boolean | null
+          is_system: boolean | null
+          name_expense: string
+          name_revenue: string
+          relation_type: string
+          trigger_type: string
+          updated_at: string
+          use_cases: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          display_order?: number
+          example?: string | null
+          formula_expense?: string | null
+          formula_revenue?: string | null
+          id?: string
+          ifrs15_justification?: string | null
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name_expense: string
+          name_revenue: string
+          relation_type?: string
+          trigger_type: string
+          updated_at?: string
+          use_cases?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          example?: string | null
+          formula_expense?: string | null
+          formula_revenue?: string | null
+          id?: string
+          ifrs15_justification?: string | null
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name_expense?: string
+          name_revenue?: string
+          relation_type?: string
+          trigger_type?: string
+          updated_at?: string
+          use_cases?: string | null
+        }
+        Relationships: []
+      }
       supplier_bank_accounts: {
         Row: {
           archived_at: string | null
