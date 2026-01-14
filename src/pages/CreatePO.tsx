@@ -109,15 +109,8 @@ const CreatePO = () => {
     { id: '5', name: 'Samsung Electronics' },
   ]);
 
-  useEffect(() => {
-    if (budgetId && (budgetStartDate || budgetEndDate)) {
-      const status = validateBudgetActive(
-        budgetStartDate ? new Date(budgetStartDate) : null,
-        budgetEndDate ? new Date(budgetEndDate) : null
-      );
-      setBudgetStatus(status);
-    }
-  }, [budgetId, budgetStartDate, budgetEndDate]);
+  // Note: Les dates du budget sont les dates de réalisation du projet
+  // Un bon de commande peut être émis avant la date de début pour lancer les travaux
 
   const exampleItems = [
     {
@@ -199,15 +192,6 @@ const CreatePO = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (budgetId && !budgetStatus.active) {
-      toast({
-        variant: "destructive",
-        title: "Impossible de créer le Bon de Commande",
-        description: budgetStatus.message,
-      });
-      return;
-    }
-    
     toast({
       title: "Bon de Commande Créé",
       description: "Le bon de commande a été créé avec succès.",
@@ -240,15 +224,6 @@ const CreatePO = () => {
         </div>
       </div>
 
-      {budgetId && !budgetStatus.active && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Budget inactif</AlertTitle>
-          <AlertDescription>
-            {budgetStatus.message} Vous ne pouvez pas créer de bons de commande pour ce budget.
-          </AlertDescription>
-        </Alert>
-      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
