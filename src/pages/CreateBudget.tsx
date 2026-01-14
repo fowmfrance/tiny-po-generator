@@ -164,31 +164,46 @@ const CreateBudget = () => {
   // Mutation pour sauvegarder le budget
   const createBudgetMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      console.log('[CreateBudget] Starting mutation with data:', data);
+      
       // Vérifier l'authentification
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Non authentifié');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('[CreateBudget] Auth check:', { userId: user?.id, authError });
+      if (!user) {
+        console.error('[CreateBudget] No user found!');
+        throw new Error('Non authentifié');
+      }
+
+      const insertData = {
+        user_id: user.id,
+        code: generatedCode,
+        name: data.name,
+        budget_type_id: data.budgetTypeId,
+        currency: data.currency,
+        initial_amount: data.initialAmount,
+        resale_price: isProjectType ? data.resalePrice : null,
+        recognition_method_id: data.recognitionMethodId || null,
+        expense_types: data.expenseTypes,
+        start_date: data.startDate || null,
+        end_date: data.endDate || null,
+        status: 'active',
+      };
+      
+      console.log('[CreateBudget] Inserting budget:', insertData);
 
       // 1. Créer le budget
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
-        .insert({
-          user_id: user.id,
-          code: generatedCode,
-          name: data.name,
-          budget_type_id: data.budgetTypeId,
-          currency: data.currency,
-          initial_amount: data.initialAmount,
-          resale_price: isProjectType ? data.resalePrice : null,
-          recognition_method_id: data.recognitionMethodId || null,
-          expense_types: data.expenseTypes,
-          start_date: data.startDate || null,
-          end_date: data.endDate || null,
-          status: 'active',
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (budgetError) throw budgetError;
+      console.log('[CreateBudget] Insert result:', { budget, budgetError });
+
+      if (budgetError) {
+        console.error('[CreateBudget] Budget insert error:', budgetError);
+        throw budgetError;
+      }
 
       // 2. Si méthode milestone, créer les milestones
       if (isMilestoneMethod && milestones.length > 0) {
@@ -229,6 +244,9 @@ const CreateBudget = () => {
   });
 
   const onSubmit = (data: FormValues) => {
+    console.log('[CreateBudget] Form submitted with data:', data);
+    console.log('[CreateBudget] Generated code:', generatedCode);
+    console.log('[CreateBudget] Milestones:', milestones);
     // Validation
     if (!data.budgetTypeId) {
       toast({
