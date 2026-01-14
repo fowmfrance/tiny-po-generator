@@ -10,7 +10,8 @@ import {
   Euro,
   CreditCard,
   Calculator,
-  Building2
+  Building2,
+  Flag
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -103,6 +104,19 @@ const Sidebar = () => {
             >
               <PieChart className="w-5 h-5 min-w-5 group-hover:mr-3" />
               <span className="hidden group-hover:inline whitespace-nowrap">Rapports</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/milestones" 
+              className={({ isActive }) => 
+                `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                }`
+              }
+            >
+              <Flag className="w-5 h-5 min-w-5 group-hover:mr-3" />
+              <span className="hidden group-hover:inline whitespace-nowrap">Suivi jalons</span>
             </NavLink>
           </li>
           <li>
