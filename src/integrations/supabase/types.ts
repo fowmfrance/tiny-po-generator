@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_types: {
+        Row: {
+          created_at: string
+          default_unit_price: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          supplier_type_id: string
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_unit_price?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          supplier_type_id: string
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_unit_price?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          supplier_type_id?: string
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_types_supplier_type_id_fkey"
+            columns: ["supplier_type_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_connections: {
         Row: {
           bank_accounts: Json | null
@@ -672,50 +719,144 @@ export type Database = {
           },
         ]
       }
+      supplier_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          po_id: string | null
+          rating: number
+          service_date: string | null
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          po_id?: string | null
+          rating: number
+          service_date?: string | null
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          po_id?: string | null
+          rating?: number
+          service_date?: string | null
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_ratings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_types: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null
+          business_volume: number | null
           city: string | null
           country: string | null
           created_at: string
           email: string
+          has_negotiated_rates: boolean | null
           id: string
           is_active: boolean | null
           name: string
           phone: string | null
+          specialty: string | null
+          supplier_type_id: string | null
           tax_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           address?: string | null
+          business_volume?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
           email: string
+          has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
           name: string
           phone?: string | null
+          specialty?: string | null
+          supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           address?: string | null
+          business_volume?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
           email?: string
+          has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
           name?: string
           phone?: string | null
+          specialty?: string | null
+          supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_supplier_type_id_fkey"
+            columns: ["supplier_type_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teams: {
         Row: {
