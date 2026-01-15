@@ -12,31 +12,63 @@ const Vendors = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   
-  // Add filter states
+  // Filter states
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
+  const [specialtyFilter, setSpecialtyFilter] = useState('all');
+  const [negotiatedRatesFilter, setNegotiatedRatesFilter] = useState('all');
+  const [volumeFilter, setVolumeFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get unique categories, cities, countries for filter options
+  // Get unique values for filter options
   const categories = ['all', ...new Set(mockVendors.map(v => v.category))];
   const cities = ['all', ...new Set(mockVendors.map(v => v.city).filter(Boolean))];
   const countries = ['all', ...new Set(mockVendors.map(v => v.country).filter(Boolean))];
+  const specialties = ['all', ...new Set(mockVendors.map(v => v.specialty).filter(Boolean))];
 
-  // Filter vendors based on search term and filters
+  // Filter vendors based on all criteria
   const filteredVendors = mockVendors.filter(vendor => {
     const matchesSearch = 
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.email.toLowerCase().includes(searchTerm.toLowerCase());
+      vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (vendor.specialty?.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesCategory = categoryFilter === 'all' || vendor.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || vendor.status === statusFilter;
     const matchesCountry = countryFilter === 'all' || vendor.country === countryFilter;
     const matchesCity = cityFilter === 'all' || vendor.city === cityFilter;
+    const matchesSpecialty = specialtyFilter === 'all' || vendor.specialty === specialtyFilter;
     
-    return matchesSearch && matchesCategory && matchesStatus && matchesCountry && matchesCity;
+    const matchesNegotiatedRates = 
+      negotiatedRatesFilter === 'all' ||
+      (negotiatedRatesFilter === 'yes' && vendor.hasNegotiatedRates) ||
+      (negotiatedRatesFilter === 'no' && !vendor.hasNegotiatedRates);
+    
+    const matchesVolume = (() => {
+      if (volumeFilter === 'all') return true;
+      const volume = vendor.businessVolume || 0;
+      switch (volumeFilter) {
+        case 'low': return volume < 10000;
+        case 'medium': return volume >= 10000 && volume < 50000;
+        case 'high': return volume >= 50000 && volume < 100000;
+        case 'very-high': return volume >= 100000;
+        default: return true;
+      }
+    })();
+    
+    const matchesRating = (() => {
+      if (ratingFilter === 'all') return true;
+      const rating = vendor.averageRating || 0;
+      return rating >= parseFloat(ratingFilter);
+    })();
+    
+    return matchesSearch && matchesCategory && matchesStatus && 
+           matchesCountry && matchesCity && matchesSpecialty && 
+           matchesNegotiatedRates && matchesVolume && matchesRating;
   });
 
   const toggleFilters = () => {
@@ -48,6 +80,10 @@ const Vendors = () => {
     setStatusFilter('all');
     setCountryFilter('all');
     setCityFilter('all');
+    setSpecialtyFilter('all');
+    setNegotiatedRatesFilter('all');
+    setVolumeFilter('all');
+    setRatingFilter('all');
   };
 
   return (
@@ -64,7 +100,7 @@ const Vendors = () => {
             Inviter un Fournisseur
           </Button>
           <Link to="/vendors/new">
-            <Button className="bg-po-blue hover:bg-blue-600 text-white flex items-center gap-2">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Ajouter un Fournisseur
             </Button>
@@ -72,32 +108,43 @@ const Vendors = () => {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher des fournisseurs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par nom, spécialité, catégorie..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <VendorFilters 
+            showFilters={showFilters}
+            toggleFilters={toggleFilters}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            cityFilter={cityFilter}
+            setCityFilter={setCityFilter}
+            countryFilter={countryFilter}
+            setCountryFilter={setCountryFilter}
+            specialtyFilter={specialtyFilter}
+            setSpecialtyFilter={setSpecialtyFilter}
+            negotiatedRatesFilter={negotiatedRatesFilter}
+            setNegotiatedRatesFilter={setNegotiatedRatesFilter}
+            volumeFilter={volumeFilter}
+            setVolumeFilter={setVolumeFilter}
+            ratingFilter={ratingFilter}
+            setRatingFilter={setRatingFilter}
+            resetFilters={resetFilters}
+            categories={categories}
+            cities={cities as string[]}
+            countries={countries as string[]}
+            specialties={specialties as string[]}
           />
         </div>
-        <VendorFilters 
-          showFilters={showFilters}
-          toggleFilters={toggleFilters}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          cityFilter={cityFilter}
-          setCityFilter={setCityFilter}
-          countryFilter={countryFilter}
-          setCountryFilter={setCountryFilter}
-          resetFilters={resetFilters}
-          categories={categories}
-          cities={cities}
-          countries={countries}
-        />
       </div>
 
       <VendorsList vendors={filteredVendors} />
