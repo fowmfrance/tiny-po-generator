@@ -183,6 +183,8 @@ export type Database = {
       }
       budget_milestones: {
         Row: {
+          article_type_id: string | null
+          assignment_status: string | null
           budget_id: string
           completed_date: string | null
           completion_percentage: number
@@ -192,11 +194,15 @@ export type Database = {
           is_completed: boolean
           order_index: number
           supplier_id: string | null
+          supplier_type_id: string | null
+          supplier_type_id_original: string | null
           target_date: string
           title: string
           updated_at: string
         }
         Insert: {
+          article_type_id?: string | null
+          assignment_status?: string | null
           budget_id: string
           completed_date?: string | null
           completion_percentage?: number
@@ -206,11 +212,15 @@ export type Database = {
           is_completed?: boolean
           order_index?: number
           supplier_id?: string | null
+          supplier_type_id?: string | null
+          supplier_type_id_original?: string | null
           target_date: string
           title: string
           updated_at?: string
         }
         Update: {
+          article_type_id?: string | null
+          assignment_status?: string | null
           budget_id?: string
           completed_date?: string | null
           completion_percentage?: number
@@ -220,11 +230,20 @@ export type Database = {
           is_completed?: boolean
           order_index?: number
           supplier_id?: string | null
+          supplier_type_id?: string | null
+          supplier_type_id_original?: string | null
           target_date?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "budget_milestones_article_type_id_fkey"
+            columns: ["article_type_id"]
+            isOneToOne: false
+            referencedRelation: "article_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "budget_milestones_budget_id_fkey"
             columns: ["budget_id"]
@@ -237,6 +256,20 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_milestones_supplier_type_id_fkey"
+            columns: ["supplier_type_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_milestones_supplier_type_id_original_fkey"
+            columns: ["supplier_type_id_original"]
+            isOneToOne: false
+            referencedRelation: "supplier_types"
             referencedColumns: ["id"]
           },
         ]
@@ -290,6 +323,7 @@ export type Database = {
           expense_types: string[] | null
           id: string
           initial_amount: number
+          milestone_mode: string | null
           name: string
           recognition_method_id: string | null
           resale_price: number | null
@@ -307,6 +341,7 @@ export type Database = {
           expense_types?: string[] | null
           id?: string
           initial_amount?: number
+          milestone_mode?: string | null
           name: string
           recognition_method_id?: string | null
           resale_price?: number | null
@@ -324,6 +359,7 @@ export type Database = {
           expense_types?: string[] | null
           id?: string
           initial_amount?: number
+          milestone_mode?: string | null
           name?: string
           recognition_method_id?: string | null
           resale_price?: number | null

@@ -40,6 +40,8 @@ import { useToast } from '@/hooks/use-toast';
 import { BudgetCurrency } from '@/services/budgetService';
 import { supabase } from '@/integrations/supabase/client';
 import { MilestoneTimelineDialog, Milestone } from '@/components/budget/MilestoneTimelineDialog';
+import { SupplierBlock } from '@/components/budget/PerSupplierMilestoneView';
+import { MilestoneMode } from '@/models/Budget';
 
 // Types de dépenses disponibles
 const EXPENSE_TYPES = [
@@ -97,6 +99,8 @@ const CreateBudget = () => {
   // State pour les milestones
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [milestoneMode, setMilestoneMode] = useState<MilestoneMode>('global');
+  const [supplierBlocks, setSupplierBlocks] = useState<SupplierBlock[]>([]);
 
   // Fetch recognition methods from DB
   const { data: recognitionMethods = [] } = useQuery({
@@ -187,6 +191,7 @@ const CreateBudget = () => {
         start_date: data.startDate || null,
         end_date: data.endDate || null,
         status: 'active',
+        milestone_mode: milestoneMode,
       };
       
       console.log('[CreateBudget] Inserting budget:', insertData);
@@ -206,23 +211,50 @@ const CreateBudget = () => {
       }
 
       // 2. Si méthode milestone, créer les milestones
-      if (isMilestoneMethod && milestones.length > 0) {
-        const milestonesData = milestones.map((m, index) => ({
-          budget_id: budget.id,
-          title: m.title,
-          description: m.description || null,
-          target_date: m.targetDate.toISOString().split('T')[0],
-          completion_percentage: m.completionPercentage,
-          is_completed: false,
-          order_index: index,
-          supplier_id: m.supplierId || null,
-        }));
+      if (isMilestoneMethod) {
+        let milestonesData: any[] = [];
+        
+        if (milestoneMode === 'global' && milestones.length > 0) {
+          milestonesData = milestones.map((m, index) => ({
+            budget_id: budget.id,
+            title: m.title,
+            description: m.description || null,
+            target_date: m.targetDate.toISOString().split('T')[0],
+            completion_percentage: m.completionPercentage,
+            is_completed: false,
+            order_index: index,
+            supplier_id: m.supplierId || null,
+            assignment_status: 'pending',
+          }));
+        } else if (milestoneMode === 'per_supplier') {
+          let globalIndex = 0;
+          supplierBlocks.forEach(block => {
+            block.milestones.forEach(m => {
+              milestonesData.push({
+                budget_id: budget.id,
+                title: m.title,
+                description: m.description || null,
+                target_date: m.targetDate.toISOString().split('T')[0],
+                completion_percentage: m.completionPercentage,
+                is_completed: false,
+                order_index: globalIndex++,
+                supplier_id: m.supplierId || null,
+                supplier_type_id: m.supplierTypeId || null,
+                supplier_type_id_original: m.supplierTypeIdOriginal || null,
+                article_type_id: m.articleTypeId || null,
+                assignment_status: m.assignmentStatus || 'pending',
+              });
+            });
+          });
+        }
 
-        const { error: milestonesError } = await supabase
-          .from('budget_milestones')
-          .insert(milestonesData);
+        if (milestonesData.length > 0) {
+          const { error: milestonesError } = await supabase
+            .from('budget_milestones')
+            .insert(milestonesData);
 
-        if (milestonesError) throw milestonesError;
+          if (milestonesError) throw milestonesError;
+        }
       }
 
       return budget;
@@ -277,7 +309,11 @@ const CreateBudget = () => {
       return;
     }
 
-    if (isMilestoneMethod && milestones.length === 0) {
+    const hasMilestones = milestoneMode === 'global' 
+      ? milestones.length > 0 
+      : supplierBlocks.some(b => b.milestones.length > 0);
+
+    if (isMilestoneMethod && !hasMilestones) {
       toast({
         title: "Jalons requis",
         description: "Veuillez définir au moins un jalon pour la méthode Milestone.",
@@ -795,6 +831,10 @@ const CreateBudget = () => {
         onMilestonesChange={setMilestones}
         projectStartDate={startDate ? new Date(startDate) : undefined}
         projectEndDate={endDate ? new Date(endDate) : undefined}
+        milestoneMode={milestoneMode}
+        onMilestoneModeChange={setMilestoneMode}
+        supplierBlocks={supplierBlocks}
+        onSupplierBlocksChange={setSupplierBlocks}
       />
     </div>
   );
