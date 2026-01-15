@@ -198,6 +198,7 @@ const SupplierInvoiceCreate = () => {
                         step="0.01"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         className="pl-10"
                         required
                       />

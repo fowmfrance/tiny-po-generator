@@ -287,6 +287,7 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({
                         placeholder="0,00"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </FormControl>
                     <FormMessage />
@@ -394,6 +395,7 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({
                           max="100"
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
                         />
                       </FormControl>
                       <FormDescription>

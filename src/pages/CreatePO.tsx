@@ -499,6 +499,7 @@ const CreatePO = () => {
                             min="1" 
                             className="w-20"
                             onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -509,6 +510,7 @@ const CreatePO = () => {
                             step="0.01" 
                             className="w-32"
                             onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
                           />
                         </td>
                         <td className="px-4 py-3 text-sm font-medium">
