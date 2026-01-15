@@ -162,6 +162,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                 step="0.01"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onFocus={(e) => e.target.select()}
                 required
               />
             </div>
@@ -192,6 +193,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                 step="0.1"
                 value={formData.vat_rate}
                 onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                onFocus={(e) => e.target.select()}
               />
             </div>
           </div>

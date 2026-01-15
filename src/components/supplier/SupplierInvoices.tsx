@@ -261,6 +261,7 @@ const CreateInvoiceDrawer: React.FC<CreateInvoiceDrawerProps> = ({
                       step="0.01"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       placeholder="0,00"
                       required
                     />

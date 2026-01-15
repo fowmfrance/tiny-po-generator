@@ -65,6 +65,7 @@ const DateInputSplit: React.FC<DateInputSplitProps> = ({
         placeholder="JJ"
         value={day ?? ''}
         onChange={handleDayChange}
+        onFocus={(e) => e.target.select()}
         disabled={disabled}
         className="w-14 h-10 text-center px-2 bg-background border-border/60 focus:border-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
@@ -76,6 +77,7 @@ const DateInputSplit: React.FC<DateInputSplitProps> = ({
         placeholder="MM"
         value={month ?? ''}
         onChange={handleMonthChange}
+        onFocus={(e) => e.target.select()}
         disabled={disabled}
         className="w-14 h-10 text-center px-2 bg-background border-border/60 focus:border-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
@@ -87,6 +89,7 @@ const DateInputSplit: React.FC<DateInputSplitProps> = ({
         placeholder="AAAA"
         value={year ?? ''}
         onChange={handleYearChange}
+        onFocus={(e) => e.target.select()}
         disabled={disabled}
         className="w-20 h-10 text-center px-2 bg-background border-border/60 focus:border-primary/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />

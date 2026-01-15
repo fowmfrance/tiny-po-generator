@@ -408,14 +408,14 @@ const CreateBudget = () => {
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez une devise" />
+                          <SelectTrigger className="w-24">
+                            <SelectValue placeholder="EUR" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="EUR">EUR - Euro</SelectItem>
-                          <SelectItem value="USD">USD - Dollar Américain</SelectItem>
-                          <SelectItem value="GBP">GBP - Livre Sterling</SelectItem>
+                        <SelectContent className="min-w-[80px]">
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -434,7 +434,8 @@ const CreateBudget = () => {
                           type="number" 
                           placeholder="0,00" 
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
                         />
                       </FormControl>
                       <FormDescription>
@@ -459,7 +460,8 @@ const CreateBudget = () => {
                               type="number" 
                               placeholder="0,00" 
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              onFocus={(e) => e.target.select()}
                             />
                           </FormControl>
                           <FormDescription>

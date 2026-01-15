@@ -234,6 +234,7 @@ const CutOffSimulator = () => {
                                     className="pr-8 h-10 bg-background border-border/60 focus:border-primary/50"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                   />
                                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
                                 </div>
@@ -257,6 +258,7 @@ const CutOffSimulator = () => {
                                     className="pr-8 h-10 bg-background border-border/60 focus:border-primary/50"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                   />
                                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
                                 </div>
