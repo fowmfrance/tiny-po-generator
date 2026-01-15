@@ -35,6 +35,7 @@ interface BudgetMilestone {
   completion_percentage: number;
   is_completed: boolean;
   order_index: number;
+  supplier_id: string | null;
 }
 
 interface Budget {
@@ -77,7 +78,8 @@ const MilestoneReport = () => {
             completed_date,
             completion_percentage,
             is_completed,
-            order_index
+            order_index,
+            supplier_id
           )
         `)
         .eq('user_id', user.id)

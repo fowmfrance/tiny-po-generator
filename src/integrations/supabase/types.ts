@@ -191,6 +191,7 @@ export type Database = {
           id: string
           is_completed: boolean
           order_index: number
+          supplier_id: string | null
           target_date: string
           title: string
           updated_at: string
@@ -204,6 +205,7 @@ export type Database = {
           id?: string
           is_completed?: boolean
           order_index?: number
+          supplier_id?: string | null
           target_date: string
           title: string
           updated_at?: string
@@ -217,6 +219,7 @@ export type Database = {
           id?: string
           is_completed?: boolean
           order_index?: number
+          supplier_id?: string | null
           target_date?: string
           title?: string
           updated_at?: string
@@ -227,6 +230,13 @@ export type Database = {
             columns: ["budget_id"]
             isOneToOne: false
             referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_milestones_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]

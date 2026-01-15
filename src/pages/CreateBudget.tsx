@@ -215,6 +215,7 @@ const CreateBudget = () => {
           completion_percentage: m.completionPercentage,
           is_completed: false,
           order_index: index,
+          supplier_id: m.supplierId || null,
         }));
 
         const { error: milestonesError } = await supabase

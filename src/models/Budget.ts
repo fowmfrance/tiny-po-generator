@@ -10,6 +10,8 @@ export interface BudgetMilestone {
   completionPercentage: number;
   isCompleted: boolean;
   orderIndex: number;
+  supplierId?: string | null;
+  supplierName?: string;
 }
 
 export interface Budget {
