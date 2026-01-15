@@ -12,7 +12,13 @@ export interface BudgetMilestone {
   orderIndex: number;
   supplierId?: string | null;
   supplierName?: string;
+  supplierTypeId?: string | null;
+  supplierTypeIdOriginal?: string | null;
+  articleTypeId?: string | null;
+  assignmentStatus?: 'pending' | 'assigned' | 'confirmed';
 }
+
+export type MilestoneMode = 'global' | 'per_supplier';
 
 export interface Budget {
   id: string;
@@ -34,4 +40,5 @@ export interface Budget {
   resalePrice?: number;
   status?: string;
   milestones?: BudgetMilestone[];
+  milestoneMode?: MilestoneMode;
 }
