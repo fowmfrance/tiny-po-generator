@@ -81,8 +81,8 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           bank_name: bankName,
-          login: '***ENCRYPTED***',
-          secret_key: '***ENCRYPTED***',
+          login: '***REDACTED***',
+          secret_key: '***REDACTED***',
           encrypted_login: encryptedLogin,
           encrypted_secret_key: encryptedSecret,
           organization_name: organizationName || 'Qonto',
