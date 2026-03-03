@@ -66,8 +66,8 @@ export type Database = {
           bank_accounts: Json | null
           bank_name: string
           created_at: string
-          encrypted_login: string | null
-          encrypted_secret_key: string | null
+          encrypted_login: string
+          encrypted_secret_key: string
           encryption_iv: string | null
           id: string
           is_active: boolean | null
@@ -81,8 +81,8 @@ export type Database = {
           bank_accounts?: Json | null
           bank_name: string
           created_at?: string
-          encrypted_login?: string | null
-          encrypted_secret_key?: string | null
+          encrypted_login: string
+          encrypted_secret_key: string
           encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
@@ -96,8 +96,8 @@ export type Database = {
           bank_accounts?: Json | null
           bank_name?: string
           created_at?: string
-          encrypted_login?: string | null
-          encrypted_secret_key?: string | null
+          encrypted_login?: string
+          encrypted_secret_key?: string
           encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
