@@ -1,34 +1,46 @@
 import React from 'react';
 import { FileText, Users, DollarSign, Receipt } from 'lucide-react';
-
-const stats = [
-  {
-    title: 'Total Bons de Commande',
-    value: '24',
-    change: '+2 depuis le mois dernier',
-    icon: FileText,
-  },
-  {
-    title: 'Fournisseurs Actifs',
-    value: '12',
-    change: '+3 nouveaux ce trimestre',
-    icon: Users,
-  },
-  {
-    title: 'Utilisation du Budget',
-    value: '68%',
-    change: '68 000 € sur 100 000 €',
-    icon: DollarSign,
-  },
-  {
-    title: 'Factures en Attente',
-    value: '8',
-    change: 'Valeur totale de 24 500 €',
-    icon: Receipt,
-  },
-];
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
+import { formatCurrency } from '@/utils/paymentUtils';
 
 const StatsOverview = () => {
+  const { purchaseOrders } = usePurchaseOrders();
+  const { suppliers } = useSuppliers();
+  const { invoices } = useSupplierInvoices();
+
+  const activeSuppliers = suppliers.filter(s => s.is_active).length;
+  const pendingInvoices = invoices.filter(inv => inv.payment_status !== 'paid');
+  const totalPOAmount = purchaseOrders.reduce((sum, po) => sum + Number(po.total_amount), 0);
+
+  const stats = [
+    {
+      title: 'Total Bons de Commande',
+      value: String(purchaseOrders.length),
+      change: `${purchaseOrders.filter(po => po.status === 'draft').length} brouillon(s)`,
+      icon: FileText,
+    },
+    {
+      title: 'Fournisseurs Actifs',
+      value: String(activeSuppliers),
+      change: `${suppliers.length} au total`,
+      icon: Users,
+    },
+    {
+      title: 'Volume Engagé',
+      value: formatCurrency(totalPOAmount),
+      change: `Sur ${purchaseOrders.length} BC`,
+      icon: DollarSign,
+    },
+    {
+      title: 'Factures en Attente',
+      value: String(pendingInvoices.length),
+      change: `${formatCurrency(pendingInvoices.reduce((s, i) => s + Number(i.amount), 0))} à payer`,
+      icon: Receipt,
+    },
+  ];
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (

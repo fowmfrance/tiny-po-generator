@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserPlus, Plus, Search } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
-import { mockVendors, Vendor } from '@/types/vendor';
+import { useSuppliers, Supplier } from '@/hooks/useSuppliers';
+import { Vendor } from '@/types/vendor';
+
+// Map Supplier from DB to the Vendor interface used by components
+function supplierToVendor(s: Supplier): Vendor {
+  return {
+    id: s.id,
+    name: s.name,
+    category: s.supplier_type?.name || 'Non classé',
+    email: s.email,
+    phone: s.phone || '',
+    status: s.is_active ? 'active' : 'inactive',
+    totalPOs: s.po_count || 0,
+    poIds: [],
+    city: s.city || undefined,
+    country: s.country || undefined,
+    specialty: s.specialty || undefined,
+    hasNegotiatedRates: s.has_negotiated_rates,
+    businessVolume: s.business_volume,
+    averageRating: s.average_rating || 0,
+    totalRatings: s.total_ratings || 0,
+    supplierTypeId: s.supplier_type_id || undefined,
+  };
+}
 
 const Vendors = () => {
+  const { suppliers, isLoading } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   
@@ -23,14 +46,16 @@ const Vendors = () => {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get unique values for filter options
-  const categories = ['all', ...new Set(mockVendors.map(v => v.category))];
-  const cities = ['all', ...new Set(mockVendors.map(v => v.city).filter(Boolean))];
-  const countries = ['all', ...new Set(mockVendors.map(v => v.country).filter(Boolean))];
-  const specialties = ['all', ...new Set(mockVendors.map(v => v.specialty).filter(Boolean))];
+  const vendors = useMemo(() => suppliers.map(supplierToVendor), [suppliers]);
 
-  // Filter vendors based on all criteria
-  const filteredVendors = mockVendors.filter(vendor => {
+  // Get unique values for filter options
+  const categories = useMemo(() => ['all', ...new Set(vendors.map(v => v.category))], [vendors]);
+  const cities = useMemo(() => ['all', ...new Set(vendors.map(v => v.city).filter(Boolean) as string[])], [vendors]);
+  const countries = useMemo(() => ['all', ...new Set(vendors.map(v => v.country).filter(Boolean) as string[])], [vendors]);
+  const specialties = useMemo(() => ['all', ...new Set(vendors.map(v => v.specialty).filter(Boolean) as string[])], [vendors]);
+
+  // Filter vendors
+  const filteredVendors = useMemo(() => vendors.filter(vendor => {
     const matchesSearch = 
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,11 +94,9 @@ const Vendors = () => {
     return matchesSearch && matchesCategory && matchesStatus && 
            matchesCountry && matchesCity && matchesSpecialty && 
            matchesNegotiatedRates && matchesVolume && matchesRating;
-  });
+  }), [vendors, searchTerm, categoryFilter, statusFilter, countryFilter, cityFilter, specialtyFilter, negotiatedRatesFilter, volumeFilter, ratingFilter]);
 
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
-  };
+  const toggleFilters = () => setShowFilters(!showFilters);
 
   const resetFilters = () => {
     setCategoryFilter('all');
@@ -85,6 +108,19 @@ const Vendors = () => {
     setVolumeFilter('all');
     setRatingFilter('all');
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Fournisseurs</h1>
+        </div>
+        <div className="flex items-center justify-center p-12">
+          <p className="text-muted-foreground">Chargement des fournisseurs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -99,12 +135,6 @@ const Vendors = () => {
             <UserPlus className="w-4 h-4" />
             Inviter un Fournisseur
           </Button>
-          <Link to="/vendors/new">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Ajouter un Fournisseur
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -140,9 +170,9 @@ const Vendors = () => {
             setRatingFilter={setRatingFilter}
             resetFilters={resetFilters}
             categories={categories}
-            cities={cities as string[]}
-            countries={countries as string[]}
-            specialties={specialties as string[]}
+            cities={cities}
+            countries={countries}
+            specialties={specialties}
           />
         </div>
       </div>

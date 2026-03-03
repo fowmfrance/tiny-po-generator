@@ -569,6 +569,123 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_items: {
+        Row: {
+          article_type_id: string | null
+          created_at: string
+          description: string
+          id: string
+          purchase_order_id: string
+          quantity: number
+          total: number | null
+          unit_price: number
+        }
+        Insert: {
+          article_type_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          purchase_order_id: string
+          quantity?: number
+          total?: number | null
+          unit_price?: number
+        }
+        Update: {
+          article_type_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          purchase_order_id?: string
+          quantity?: number
+          total?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_article_type_id_fkey"
+            columns: ["article_type_id"]
+            isOneToOne: false
+            referencedRelation: "article_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          budget_id: string | null
+          created_at: string
+          currency: string
+          expected_delivery_date: string | null
+          id: string
+          notes: string | null
+          po_number: string
+          sent_at: string | null
+          status: string
+          supplier_id: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_id?: string | null
+          created_at?: string
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number: string
+          sent_at?: string | null
+          status?: string
+          supplier_id: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_id?: string | null
+          created_at?: string
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recognition_methods: {
         Row: {
           code: string
@@ -705,6 +822,7 @@ export type Database = {
           paid_date: string | null
           po_number: string | null
           project_code: string | null
+          purchase_order_id: string | null
           received_date: string
           status: string
           supplier_id: string
@@ -726,6 +844,7 @@ export type Database = {
           paid_date?: string | null
           po_number?: string | null
           project_code?: string | null
+          purchase_order_id?: string | null
           received_date?: string
           status?: string
           supplier_id: string
@@ -747,6 +866,7 @@ export type Database = {
           paid_date?: string | null
           po_number?: string | null
           project_code?: string | null
+          purchase_order_id?: string | null
           received_date?: string
           status?: string
           supplier_id?: string
@@ -756,6 +876,13 @@ export type Database = {
           vat_rate?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_invoices_supplier_id_fkey"
             columns: ["supplier_id"]

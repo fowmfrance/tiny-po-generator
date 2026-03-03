@@ -1,78 +1,11 @@
-
 import React, { useState } from 'react';
 import { PurchaseOrdersFilters } from '@/components/purchase-orders/PurchaseOrdersFilters';
 import { PurchaseOrdersCardView } from '@/components/purchase-orders/PurchaseOrdersCardView';
 import { PurchaseOrdersTableView } from '@/components/purchase-orders/PurchaseOrdersTableView';
 import CreatePOButton from '@/components/CreatePOButton';
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 
-// Mock data for demonstration
-export const mockPurchaseOrders = [
-  {
-    id: '1',
-    poNumber: '2023-001',
-    vendor: 'Apple Inc.',
-    vendorId: 'vendor-1',
-    amount: 5000,
-    currency: 'EUR',
-    date: '15/06/2023',
-    status: 'matched' as const,
-    paymentProgress: 60
-  },
-  {
-    id: '2',
-    poNumber: '2023-002',
-    vendor: 'Microsoft Corp',
-    vendorId: 'vendor-2',
-    amount: 3500,
-    currency: 'EUR',
-    date: '18/06/2023',
-    status: 'approved' as const,
-    paymentProgress: 0
-  },
-  {
-    id: '3',
-    poNumber: '2023-003',
-    vendor: 'Dell Technologies',
-    vendorId: 'vendor-3',
-    amount: 2800,
-    currency: 'EUR',
-    date: '20/06/2023',
-    status: 'pending' as const
-  },
-  {
-    id: '4',
-    poNumber: '2023-004',
-    vendor: 'Logitech',
-    vendorId: 'vendor-4',
-    amount: 1200,
-    currency: 'EUR',
-    date: '25/06/2023',
-    status: 'draft' as const
-  },
-  {
-    id: '5',
-    poNumber: '2023-005',
-    vendor: 'Amazon Business',
-    vendorId: 'vendor-5',
-    amount: 8500,
-    currency: 'EUR',
-    date: '28/06/2023',
-    status: 'paid' as const,
-    paymentProgress: 100
-  },
-  {
-    id: '6',
-    poNumber: '2023-006',
-    vendor: 'Samsung Electronics',
-    vendorId: 'vendor-6',
-    amount: 4200,
-    currency: 'EUR',
-    date: '02/07/2023',
-    status: 'rejected' as const
-  }
-];
-
-export type PurchaseOrderStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'matched' | 'paid';
+export type PurchaseOrderStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'sent' | 'matched' | 'paid';
 
 export interface PurchaseOrder {
   id: string;
@@ -87,20 +20,45 @@ export interface PurchaseOrder {
 }
 
 const PurchaseOrders = () => {
+  const { purchaseOrders, isLoading } = usePurchaseOrders();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
-  // Filter purchase orders based on search term and status filter
-  const filteredPOs = mockPurchaseOrders.filter(po => {
+  // Map DB purchase orders to the display format
+  const displayPOs: PurchaseOrder[] = purchaseOrders.map(po => ({
+    id: po.id,
+    poNumber: po.po_number,
+    vendor: po.supplier?.name || 'Fournisseur inconnu',
+    vendorId: po.supplier_id,
+    amount: Number(po.total_amount),
+    currency: po.currency,
+    date: new Date(po.created_at).toLocaleDateString('fr-FR'),
+    status: po.status as PurchaseOrderStatus,
+    paymentProgress: po.status === 'paid' ? 100 : po.status === 'matched' ? 60 : 0,
+  }));
+
+  const filteredPOs = displayPOs.filter(po => {
     const matchesSearch = 
       po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       po.vendor.toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === 'all' || po.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Bons de Commande</h1>
+          <CreatePOButton />
+        </div>
+        <div className="flex items-center justify-center p-12">
+          <p className="text-muted-foreground">Chargement des bons de commande...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -125,8 +83,8 @@ const PurchaseOrders = () => {
           <PurchaseOrdersTableView purchaseOrders={filteredPOs} />
         )
       ) : (
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-500 mb-4">Aucun bon de commande trouvé.</p>
+        <div className="bg-card p-8 rounded-lg border text-center">
+          <p className="text-muted-foreground mb-4">Aucun bon de commande trouvé.</p>
           <CreatePOButton />
         </div>
       )}
@@ -135,3 +93,6 @@ const PurchaseOrders = () => {
 };
 
 export default PurchaseOrders;
+
+// Keep backward compat export for components that import mockPurchaseOrders
+export const mockPurchaseOrders: PurchaseOrder[] = [];
