@@ -75,14 +75,12 @@ serve(async (req) => {
         );
       }
 
-      // Insert connection with encrypted credentials
+      // Insert connection with encrypted credentials only
       const { data: newConn, error: insertError } = await supabaseAdmin
         .from('bank_connections')
         .insert({
           user_id: user.id,
           bank_name: bankName,
-          login: '***REDACTED***',
-          secret_key: '***REDACTED***',
           encrypted_login: encryptedLogin,
           encrypted_secret_key: encryptedSecret,
           organization_name: organizationName || 'Qonto',
