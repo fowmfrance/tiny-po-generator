@@ -363,7 +363,7 @@ const CreateBudget = () => {
                       <FormLabel>Type de budget</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        value={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -441,7 +441,7 @@ const CreateBudget = () => {
                       <FormLabel>Devise</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger className="w-24">
@@ -691,7 +691,7 @@ const CreateBudget = () => {
                       </FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        value={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
