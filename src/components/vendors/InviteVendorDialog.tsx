@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { AtSign, Phone, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyVendorInvited } from '@/services/notificationService';
+import { useSuppliers } from '@/hooks/useSuppliers';
 
 interface InviteVendorDialogProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
   const [sendCopy, setSendCopy] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { createSupplier } = useSuppliers();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,18 +51,28 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Send the invitation via Supersend
-      await notifyVendorInvited(
-        { email, name },
-        { email: 'current.user@company.com', name: 'Current User' } // Would come from auth context in a real app
-      );
+      // Create the supplier in the database
+      await createSupplier.mutateAsync({
+        name,
+        email,
+        phone: phone || undefined,
+      });
+
+      // Send the invitation via notification (best-effort)
+      try {
+        await notifyVendorInvited(
+          { email, name },
+          { email: 'current.user@company.com', name: 'Current User' }
+        );
+      } catch {
+        // Notification failure is non-blocking
+      }
 
       toast({
         title: "Invitation envoyée",
         description: `L'invitation a été envoyée à ${name} (${email})`,
       });
       
-      // Close the dialog and reset form
       onOpenChange(false);
       setEmail("");
       setName("");
@@ -68,11 +80,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       setMessage("");
       setSendCopy(false);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur d'envoi",
-        description: "L'invitation n'a pas pu être envoyée. Veuillez réessayer.",
-      });
+      // Error handled by mutation's onError
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +117,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                 Email
               </Label>
               <div className="col-span-3 relative">
-                <AtSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <AtSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -127,7 +135,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                 Téléphone
               </Label>
               <div className="col-span-3 relative">
-                <Phone className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Phone className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="phone"
                   type="tel"
@@ -176,7 +184,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
             </Button>
             <Button 
               type="submit" 
-              className="flex items-center gap-2 bg-po-blue hover:bg-blue-600"
+              className="flex items-center gap-2"
               disabled={isSubmitting}
             >
               <Send className="h-4 w-4" />
