@@ -363,7 +363,7 @@ const CreateBudget = () => {
                       <FormLabel>Type de budget</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        value={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
