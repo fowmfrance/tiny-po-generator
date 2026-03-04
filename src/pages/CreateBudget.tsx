@@ -441,7 +441,7 @@ const CreateBudget = () => {
                       <FormLabel>Devise</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value || undefined}
                       >
                         <FormControl>
                           <SelectTrigger className="w-24">
