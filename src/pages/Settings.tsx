@@ -139,6 +139,10 @@ const Settings = () => {
           <BankMappingTab />
         </TabsContent>
         
+        <TabsContent value="supplier-catalog" className="mt-6">
+          <SupplierCatalogTab />
+        </TabsContent>
+
         <TabsContent value="currencies" className="mt-6">
           <Card>
             <CardHeader>
