@@ -170,6 +170,22 @@ const CreateBudget = () => {
       toast({
         title: "Budget créé",
         description: `Le budget ${generatedCode} a été créé avec succès.`,
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/purchase-orders/create', {
+              state: {
+                budgetId: budget.id,
+                budgetName: budget.name,
+                budgetCode: budget.code,
+                budgetCurrency: budget.currency,
+              }
+            })}
+          >
+            Créer un BC
+          </Button>
+        ),
       });
       navigate(`/budgets/${budget.id}`);
     },
