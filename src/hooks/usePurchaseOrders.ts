@@ -20,7 +20,6 @@ export interface PurchaseOrder {
   approved_by: string | null;
   created_at: string;
   updated_at: string;
-  // Joined
   supplier?: { id: string; name: string; email: string } | null;
   budget?: { id: string; name: string; code: string } | null;
   items?: PurchaseOrderItem[];
@@ -73,6 +72,60 @@ export function usePurchaseOrders() {
 
       const total_amount = params.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 
+      const { data: supplier, error: supplierError } = await supabase
+        .from('suppliers')
+        .select('id, name, is_active')
+        .eq('id', params.supplier_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (supplierError || !supplier) {
+        throw new Error('Fournisseur introuvable.');
+      }
+
+      const isKycPending = supplier.is_active === false;
+
+      if (params.budget_id) {
+        const { data: budget, error: budgetError } = await supabase
+          .from('budgets')
+          .select('id, name, initial_amount, currency')
+          .eq('id', params.budget_id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (budgetError || !budget) {
+          throw new Error('Budget introuvable.');
+        }
+
+        if (budget.currency !== params.currency) {
+          throw new Error(`La devise du BC doit correspondre à celle du budget (${budget.currency}).`);
+        }
+
+        const { data: committedPOs, error: committedError } = await supabase
+          .from('purchase_orders')
+          .select('total_amount, status')
+          .eq('budget_id', params.budget_id)
+          .eq('user_id', user.id)
+          .neq('status', 'rejected');
+
+        if (committedError) throw committedError;
+
+        const alreadyCommitted = (committedPOs || []).reduce(
+          (sum, po) => sum + Number(po.total_amount || 0),
+          0
+        );
+        const availableBudget = Number(budget.initial_amount) - alreadyCommitted;
+
+        if (total_amount > availableBudget) {
+          throw new Error(
+            `Montant insuffisant sur le budget "${budget.name}". Disponible: ${availableBudget.toLocaleString('fr-FR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} ${budget.currency}.`
+          );
+        }
+      }
+
       const { data: po, error: poError } = await supabase
         .from('purchase_orders')
         .insert({
@@ -91,7 +144,6 @@ export function usePurchaseOrders() {
 
       if (poError) throw poError;
 
-      // Insert items
       if (params.items.length > 0) {
         const { error: itemsError } = await supabase
           .from('purchase_order_items')
@@ -108,10 +160,20 @@ export function usePurchaseOrders() {
         if (itemsError) throw itemsError;
       }
 
-      return po;
+      return { ...po, isKycPending };
     },
-    onSuccess: () => {
+    onSuccess: (po) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+
+      if ((po as any)?.isKycPending) {
+        toast({
+          title: 'Bon de commande créé en brouillon',
+          description: 'Le fournisseur n’a pas finalisé son KYC. Le BC reste en brouillon.',
+        });
+        return;
+      }
+
       toast({ title: 'Bon de commande créé', description: 'Le bon de commande a été créé avec succès.' });
     },
     onError: (error) => {
@@ -121,6 +183,27 @@ export function usePurchaseOrders() {
 
   const updatePOStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: POStatus }) => {
+      if (status !== 'draft') {
+        const { data: poRef, error: poRefError } = await supabase
+          .from('purchase_orders')
+          .select('supplier_id')
+          .eq('id', id)
+          .single();
+
+        if (poRefError || !poRef) throw new Error('Bon de commande introuvable.');
+
+        const { data: supplier, error: supplierError } = await supabase
+          .from('suppliers')
+          .select('is_active')
+          .eq('id', poRef.supplier_id)
+          .single();
+
+        if (supplierError || !supplier) throw new Error('Fournisseur introuvable.');
+        if (!supplier.is_active) {
+          throw new Error('KYC fournisseur incomplet: le bon de commande doit rester en brouillon.');
+        }
+      }
+
       const updates: any = { status };
       if (status === 'approved') {
         const { data: { user } } = await supabase.auth.getUser();
@@ -143,6 +226,7 @@ export function usePurchaseOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
       toast({ title: 'Statut mis à jour' });
     },
     onError: (error) => {
@@ -178,7 +262,6 @@ export function usePurchaseOrder(id: string | undefined) {
 
       if (error) throw error;
 
-      // Get items
       const { data: items, error: itemsError } = await supabase
         .from('purchase_order_items')
         .select('*')

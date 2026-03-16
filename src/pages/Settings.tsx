@@ -19,10 +19,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2 } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase } from 'lucide-react';
 import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
 import NumberingTab from '@/components/settings/NumberingTab';
 import BankMappingTab from '@/components/settings/BankMappingTab';
+import SupplierCatalogTab from '@/components/settings/SupplierCatalogTab';
 
 interface CurrencyRate {
   currency: BudgetCurrency;
@@ -108,6 +109,10 @@ const Settings = () => {
             <Building2 className="h-4 w-4 mr-2" />
             Mapping Banques
           </TabsTrigger>
+          <TabsTrigger value="supplier-catalog">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Fournisseurs & Prestations
+          </TabsTrigger>
           <TabsTrigger value="currencies">
             <Euro className="h-4 w-4 mr-2" />
             Devises
@@ -134,6 +139,10 @@ const Settings = () => {
           <BankMappingTab />
         </TabsContent>
         
+        <TabsContent value="supplier-catalog" className="mt-6">
+          <SupplierCatalogTab />
+        </TabsContent>
+
         <TabsContent value="currencies" className="mt-6">
           <Card>
             <CardHeader>

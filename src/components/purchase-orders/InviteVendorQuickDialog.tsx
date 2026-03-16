@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,14 +10,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AtSign, Phone, Send, Building2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AtSign, Phone, Send, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { notifyVendorInvited } from '@/services/notificationService';
 
 interface CreatedVendor {
   id: string;
   name: string;
   email: string;
   phone?: string;
+  supplier_type_id?: string | null;
+  is_active?: boolean;
+}
+
+interface SupplierTypeOption {
+  id: string;
+  name: string;
 }
 
 interface InviteVendorQuickDialogProps {
@@ -31,19 +41,57 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
   onOpenChange,
   onVendorInvited,
 }) => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [supplierTypeId, setSupplierTypeId] = useState<string>('other');
+  const [supplierTypes, setSupplierTypes] = useState<SupplierTypeOption[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadSupplierTypes = async () => {
+      setIsLoadingTypes(true);
+      try {
+        const { data, error } = await supabase
+          .from('supplier_types')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+        setSupplierTypes((data || []) as SupplierTypeOption[]);
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: error.message || 'Impossible de charger les types de fournisseurs.',
+        });
+      } finally {
+        setIsLoadingTypes(false);
+      }
+    };
+
+    loadSupplierTypes();
+  }, [isOpen, toast]);
+
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setPhone('');
+    setSupplierTypeId('other');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !email) {
+    if (!name.trim() || !email.trim()) {
       toast({
-        variant: "destructive",
-        title: "Informations requises",
+        variant: 'destructive',
+        title: 'Informations requises',
         description: "Veuillez remplir la raison sociale et l'email.",
       });
       return;
@@ -52,29 +100,61 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      // In production, this would send the invitation via API
-      const newVendor: CreatedVendor = {
-        id: `vendor-${Date.now()}`,
-        name,
-        email,
-        phone: phone || undefined,
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) throw new Error('Non authentifié');
+
+      const payload = {
+        user_id: user.id,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim() || null,
+        supplier_type_id: supplierTypeId === 'other' ? null : supplierTypeId,
+        is_active: false,
       };
 
+      const { data: createdSupplier, error } = await supabase
+        .from('suppliers')
+        .insert(payload)
+        .select('id, name, email, phone, supplier_type_id, is_active')
+        .single();
+
+      if (error) throw error;
+
+      try {
+        await notifyVendorInvited(
+          { email: createdSupplier.email, name: createdSupplier.name },
+          {
+            email: user.email || 'noreply@local',
+            name: (user.user_metadata?.full_name as string) || user.email || 'Utilisateur',
+          }
+        );
+      } catch {
+        // Best effort only
+      }
+
       toast({
-        title: "Invitation envoyée",
-        description: `L'invitation a été envoyée à ${name}. Le fournisseur devra compléter son KYC.`,
+        title: 'Invitation envoyée',
+        description:
+          'Le fournisseur est créé et invité. Son KYC reste en attente, les BC resteront en brouillon.',
       });
 
-      // Reset form and close
-      setName("");
-      setEmail("");
-      setPhone("");
-      onVendorInvited(newVendor);
-    } catch (error) {
+      onVendorInvited({
+        id: createdSupplier.id,
+        name: createdSupplier.name,
+        email: createdSupplier.email,
+        phone: createdSupplier.phone || undefined,
+        supplier_type_id: createdSupplier.supplier_type_id,
+        is_active: createdSupplier.is_active,
+      });
+
+      resetForm();
+      onOpenChange(false);
+    } catch (error: any) {
       toast({
-        variant: "destructive",
+        variant: 'destructive',
         title: "Erreur d'envoi",
-        description: "L'invitation n'a pas pu être envoyée. Veuillez réessayer.",
+        description: error.message || "L'invitation n'a pas pu être envoyée. Veuillez réessayer.",
       });
     } finally {
       setIsSubmitting(false);
@@ -82,20 +162,23 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
   };
 
   const handleClose = () => {
-    setName("");
-    setEmail("");
-    setPhone("");
+    resetForm();
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[450px]">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Inviter un fournisseur</DialogTitle>
             <DialogDescription>
-              Envoyez une invitation rapide. Le fournisseur devra compléter son KYC avant validation du bon de commande.
+              Le fournisseur est invité au portail KYC. Tant que son KYC n’est pas validé, ses BC restent en brouillon.
             </DialogDescription>
           </DialogHeader>
 
@@ -113,6 +196,26 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier-type">Type de fournisseur *</Label>
+              <Select value={supplierTypeId} onValueChange={setSupplierTypeId}>
+                <SelectTrigger id="supplier-type">
+                  <SelectValue placeholder="Choisir un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supplierTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="other">Autre (hors catalogue)</SelectItem>
+                </SelectContent>
+              </Select>
+              {isLoadingTypes && (
+                <p className="text-xs text-muted-foreground">Chargement des types...</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -151,13 +254,9 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
             <Button type="button" variant="outline" onClick={handleClose}>
               Annuler
             </Button>
-            <Button
-              type="submit"
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-              disabled={isSubmitting}
-            >
-              <Send className="h-4 w-4" />
-              {isSubmitting ? "Envoi en cours..." : "Inviter"}
+            <Button type="submit" className="flex items-center gap-2" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isSubmitting ? 'Envoi en cours...' : 'Inviter'}
             </Button>
           </DialogFooter>
         </form>
