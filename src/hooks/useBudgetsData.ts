@@ -29,34 +29,88 @@ export function useBudgetsData() {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data, error } = await supabase
-        .from('budgets')
-        .select(
+      const [budgetsRes, purchaseOrdersRes] = await Promise.all([
+        supabase
+          .from('budgets')
+          .select(
+            `
+            *,
+            budget_milestones (
+              id,
+              title,
+              description,
+              target_date,
+              completed_date,
+              completion_percentage,
+              is_completed,
+              order_index
+            )
           `
-          *,
-          budget_milestones (
-            id,
-            title,
-            description,
-            target_date,
-            completed_date,
-            completion_percentage,
-            is_completed,
-            order_index
           )
-        `
-        )
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('purchase_orders')
+          .select('id, budget_id, total_amount, status')
+          .eq('user_id', user.id)
+          .not('budget_id', 'is', null),
+      ]);
 
-      if (error) throw error;
+      if (budgetsRes.error) throw budgetsRes.error;
+      if (purchaseOrdersRes.error) throw purchaseOrdersRes.error;
+
+      const budgetsData = budgetsRes.data || [];
+      const poData = purchaseOrdersRes.data || [];
+
+      const poBudgetMap = new Map<string, string>();
+      const poMetricsByBudget = new Map<string, { sent: number; poCount: number; poIds: string[] }>();
+
+      for (const po of poData) {
+        if (!po.budget_id) continue;
+        const budgetId = po.budget_id;
+        const existing = poMetricsByBudget.get(budgetId) || { sent: 0, poCount: 0, poIds: [] };
+
+        existing.poCount += 1;
+        existing.poIds.push(po.id);
+        poBudgetMap.set(po.id, budgetId);
+
+        if (po.status !== 'rejected') {
+          existing.sent += Number(po.total_amount || 0);
+        }
+
+        poMetricsByBudget.set(budgetId, existing);
+      }
+
+      const allPoIds = Array.from(poBudgetMap.keys());
+      const receivedByBudget = new Map<string, number>();
+
+      if (allPoIds.length > 0) {
+        const { data: invoices, error: invoicesError } = await supabase
+          .from('supplier_invoices')
+          .select('purchase_order_id, amount, status')
+          .in('purchase_order_id', allPoIds)
+          .neq('status', 'rejected');
+
+        if (invoicesError) throw invoicesError;
+
+        for (const invoice of invoices || []) {
+          if (!invoice.purchase_order_id) continue;
+          const budgetId = poBudgetMap.get(invoice.purchase_order_id);
+          if (!budgetId) continue;
+
+          receivedByBudget.set(
+            budgetId,
+            (receivedByBudget.get(budgetId) || 0) + Number(invoice.amount || 0)
+          );
+        }
+      }
 
       const validateCurrency = (currency: string): BudgetCurrency => {
         if (currency === 'EUR' || currency === 'USD' || currency === 'GBP') return currency;
         return 'EUR';
       };
 
-      const transformedBudgets: Budget[] = (data || []).map((budget) => {
+      const transformedBudgets: Budget[] = budgetsData.map((budget) => {
         const milestones: BudgetMilestone[] = (budget.budget_milestones || []).map(
           (m: {
             id: string;
@@ -79,23 +133,30 @@ export function useBudgetsData() {
           })
         );
 
+        const initialAmount = Number(budget.initial_amount || 0);
+        const metrics = poMetricsByBudget.get(budget.id) || { sent: 0, poCount: 0, poIds: [] };
+        const sentAmount = Number(metrics.sent || 0);
+        const receivedAmount = Number(receivedByBudget.get(budget.id) || 0);
+        const remainingAmount = Math.max(0, sentAmount - receivedAmount);
+        const availableAmount = initialAmount - sentAmount;
+
         return {
           id: budget.id,
           code: budget.code,
           name: budget.name,
           currency: validateCurrency(budget.currency),
-          initialAmount: Number(budget.initial_amount),
-          sentAmount: 0,
-          remainingAmount: Number(budget.initial_amount),
-          receivedAmount: 0,
-          availableAmount: Number(budget.initial_amount),
+          initialAmount,
+          sentAmount,
+          remainingAmount,
+          receivedAmount,
+          availableAmount,
           type:
             budget.budget_type_id === 'project'
               ? 'Project'
               : budget.budget_type_id === 'ga'
                 ? 'G&A'
                 : budget.budget_type_id,
-          poCount: 0,
+          poCount: metrics.poCount,
           createdAt: new Date(budget.created_at),
           startDate: budget.start_date ? new Date(budget.start_date) : null,
           endDate: budget.end_date ? new Date(budget.end_date) : null,
@@ -118,4 +179,3 @@ export function useBudgetsData() {
     refetch,
   };
 }
-
