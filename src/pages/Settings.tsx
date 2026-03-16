@@ -109,6 +109,10 @@ const Settings = () => {
             <Building2 className="h-4 w-4 mr-2" />
             Mapping Banques
           </TabsTrigger>
+          <TabsTrigger value="supplier-catalog">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Fournisseurs & Prestations
+          </TabsTrigger>
           <TabsTrigger value="currencies">
             <Euro className="h-4 w-4 mr-2" />
             Devises
