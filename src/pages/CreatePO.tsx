@@ -202,7 +202,7 @@ const CreatePO = () => {
     return currentTotal > selectedBudgetData.initial_amount - committed;
   }, [selectedBudgetData, budgetPOs, currentTotal]);
 
-
+  const addItem = () => {
     setItems((prev) => [
       ...prev,
       { id: crypto.randomUUID(), articleTypeId: null, description: '', quantity: 1, unitPrice: 0 },
