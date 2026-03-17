@@ -82,34 +82,42 @@ const PurchaseOrderDetail = () => {
         <Button variant="outline" onClick={() => navigate('/purchase-orders')} className="p-2">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Bon de commande #{po.po_number}</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Bon de commande #{po.po_number}</h1>
+            <Badge className={`text-sm px-3 py-1 ${
+              po.status === 'draft' 
+                ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700' 
+                : po.status === 'rejected'
+                  ? 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10'
+                  : po.status === 'approved' || po.status === 'sent'
+                    ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300'
+                    : ''
+            }`} variant="outline">
+              {statusLabels[po.status] || po.status}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">Créé le {new Date(po.created_at).toLocaleDateString('fr-FR')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Status */}
+        {/* Budget */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Statut</CardTitle>
-              <Badge className={`text-sm px-3 py-1 ${
-                po.status === 'draft' 
-                  ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700' 
-                  : po.status === 'rejected'
-                    ? 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10'
-                    : po.status === 'approved' || po.status === 'sent'
-                      ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300'
-                      : ''
-              }`} variant="outline">
-                {statusLabels[po.status] || po.status}
-              </Badge>
-            </div>
-          </CardHeader>
+          <CardHeader><CardTitle>Budget</CardTitle></CardHeader>
           <CardContent>
-            {(['approved', 'matched', 'paid'].includes(po.status)) && (
+            {po.budget ? (
               <div>
+                <Link to={`/budgets/${po.budget_id}`} className="text-primary font-medium text-lg hover:underline">
+                  {po.budget.name}
+                </Link>
+                <p className="text-sm text-muted-foreground mt-1">Code : {po.budget.code}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucun budget associé</p>
+            )}
+            {(['approved', 'matched', 'paid'].includes(po.status)) && (
+              <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between text-sm mb-1">
                   <span>Avancement paiement</span>
                   <span>{paymentProgress}%</span>
@@ -135,14 +143,6 @@ const PurchaseOrderDetail = () => {
                 Voir le profil <ExternalLink className="h-4 w-4" />
               </Link>
             </div>
-            {po.budget && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground">Budget</p>
-                <Link to={`/budgets/${po.budget_id}`} className="text-primary font-medium hover:underline">
-                  {po.budget.name} ({po.budget.code})
-                </Link>
-              </div>
-            )}
           </CardContent>
         </Card>
 
