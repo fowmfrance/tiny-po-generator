@@ -24,7 +24,9 @@ export function useChart() {
   const context = React.useContext(ChartContext)
 
   if (!context) {
-    throw new Error("useChart must be used within a <ChartContainer />")
+    // Return empty config as fallback when used outside ChartContainer
+    // (e.g. when recharts renders tooltip in a portal)
+    return { config: {} as ChartConfig }
   }
 
   return context
