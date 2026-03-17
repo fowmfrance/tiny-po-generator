@@ -246,8 +246,8 @@ const CreatePO = () => {
     }
   };
 
-  const handleBudgetCreated = (budget: { id: string; name: string; code: string; currency: string }) => {
-    setBudgetList((prev) => [...prev, budget]);
+  const handleBudgetCreated = (budget: { id: string; name: string; code: string; currency: string; initial_amount?: number }) => {
+    setBudgetList((prev) => [...prev, { ...budget, initial_amount: budget.initial_amount || 0 }]);
     setSelectedBudget(budget.id);
     setCurrency(budget.currency.toUpperCase());
     setIsCreateBudgetOpen(false);
