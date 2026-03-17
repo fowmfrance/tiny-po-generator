@@ -80,10 +80,22 @@ const PurchaseOrderDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Status */}
         <Card>
-          <CardHeader><CardTitle>Statut</CardTitle></CardHeader>
-          <CardContent>
-            <Badge className="text-base px-3 py-1">{statusLabels[po.status] || po.status}</Badge>
-            {(['approved', 'matched', 'paid'].includes(po.status)) && (
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Statut</CardTitle>
+              <Badge className={`text-sm px-3 py-1 ${
+                po.status === 'draft' 
+                  ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700' 
+                  : po.status === 'rejected'
+                    ? 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10'
+                    : po.status === 'approved' || po.status === 'sent'
+                      ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300'
+                      : ''
+              }`} variant="outline">
+                {statusLabels[po.status] || po.status}
+              </Badge>
+            </div>
+          </CardHeader>
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1">
                   <span>Avancement paiement</span>
