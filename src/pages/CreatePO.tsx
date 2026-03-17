@@ -351,7 +351,7 @@ const CreatePO = () => {
                 <CardDescription>Entrez les détails pour ce bon de commande</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!budgetId && (
+                {!hasPrefilledBudget && (
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget</Label>
                     <Select value={selectedBudget} onValueChange={handleBudgetSelectChange}>
@@ -379,7 +379,7 @@ const CreatePO = () => {
                   </div>
                 )}
 
-                {budgetId && (
+                {hasPrefilledBudget && (
                   <div className="p-4 bg-muted/50 border rounded-md">
                     <p className="text-sm font-medium">Ce BC sera associé au budget : {budgetName}</p>
                   </div>
