@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,12 +13,14 @@ import { defaultCurrency } from '@/services/budgetService';
 import CreateBudgetDialog from '@/components/purchase-orders/CreateBudgetDialog';
 import InviteVendorQuickDialog from '@/components/purchase-orders/InviteVendorQuickDialog';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import BudgetConsumptionDonut from '@/components/purchase-orders/BudgetConsumptionDonut';
 
 interface BudgetOption {
   id: string;
   name: string;
   code: string;
   currency: string;
+  initial_amount: number;
 }
 
 interface VendorOption {
@@ -68,6 +70,7 @@ const CreatePO = () => {
   const [articleTypeList, setArticleTypeList] = useState<ArticleTypeOption[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [budgetPOs, setBudgetPOs] = useState<{ id: string; total_amount: number; status: string }[]>([]);
 
   const [items, setItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), articleTypeId: null, description: '', quantity: 1, unitPrice: 0 },
@@ -95,7 +98,7 @@ const CreatePO = () => {
         }
 
         const [budgetsRes, suppliersRes] = await Promise.all([
-          supabase.from('budgets').select('id, name, code, currency').eq('user_id', user.id).order('name'),
+          supabase.from('budgets').select('id, name, code, currency, initial_amount').eq('user_id', user.id).order('name'),
           supabase
             .from('suppliers')
             .select('id, name, is_active, supplier_type_id, supplier_type:supplier_types(name)')
@@ -166,6 +169,38 @@ const CreatePO = () => {
 
     loadArticleTypes();
   }, [selectedVendorData?.supplier_type_id]);
+
+  // Load existing POs for the selected budget
+  useEffect(() => {
+    const loadBudgetPOs = async () => {
+      if (!selectedBudget) {
+        setBudgetPOs([]);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('purchase_orders')
+          .select('id, total_amount, status')
+          .eq('budget_id', selectedBudget)
+          .neq('status', 'rejected');
+        if (error) throw error;
+        setBudgetPOs((data || []) as { id: string; total_amount: number; status: string }[]);
+      } catch (e) {
+        console.error('Error loading budget POs:', e);
+        setBudgetPOs([]);
+      }
+    };
+    loadBudgetPOs();
+  }, [selectedBudget]);
+
+  const selectedBudgetData = budgetList.find((b) => b.id === selectedBudget);
+  const currentTotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+  const isOverBudget = useMemo(() => {
+    if (!selectedBudgetData) return false;
+    const committed = budgetPOs.reduce((s, po) => s + Number(po.total_amount || 0), 0);
+    return currentTotal > selectedBudgetData.initial_amount - committed;
+  }, [selectedBudgetData, budgetPOs, currentTotal]);
 
   const addItem = () => {
     setItems((prev) => [
@@ -244,8 +279,8 @@ const CreatePO = () => {
     }
   };
 
-  const handleBudgetCreated = (budget: { id: string; name: string; code: string; currency: string }) => {
-    setBudgetList((prev) => [...prev, budget]);
+  const handleBudgetCreated = (budget: { id: string; name: string; code: string; currency: string; initial_amount?: number }) => {
+    setBudgetList((prev) => [...prev, { ...budget, initial_amount: budget.initial_amount || 0 }]);
     setSelectedBudget(budget.id);
     setCurrency(budget.currency.toUpperCase());
     setIsCreateBudgetOpen(false);
@@ -470,12 +505,24 @@ const CreatePO = () => {
                   <span>{currency}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-3">
-                  <span>Total</span>
+                  <span>Total BC</span>
                   <span>
                     {currency}{' '}
-                    {calculateTotal().toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currentTotal.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
+
+                {selectedBudgetData && (
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-medium mb-3">Consommation du budget</p>
+                    <BudgetConsumptionDonut
+                      budgetInitialAmount={Number(selectedBudgetData.initial_amount)}
+                      budgetCurrency={currency}
+                      existingPOs={budgetPOs}
+                      currentPOAmount={currentTotal}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -608,9 +655,15 @@ const CreatePO = () => {
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Création en cours...' : 'Créer Bon de Commande'}
-            </Button>
+            {isOverBudget || isSelectedVendorKycPending ? (
+              <Button type="submit" disabled={isSubmitting} variant="outline">
+                {isSubmitting ? 'Création en cours...' : 'Enregistrer en brouillon'}
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Création en cours...' : 'Créer Bon de Commande'}
+              </Button>
+            )}
           </div>
         </form>
       )}
