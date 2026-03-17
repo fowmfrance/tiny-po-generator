@@ -230,8 +230,7 @@ const Auth: React.FC = () => {
   };
 
   useEffect(() => {
-    const shouldAutoStartGoogle = searchParams.get('oauth') === 'google';
-    if (!shouldAutoStartGoogle) return;
+    if (oauthIntent !== 'google') return;
 
     const isInIframe = (() => {
       try {
@@ -254,7 +253,7 @@ const Auth: React.FC = () => {
     };
 
     autoStartGoogle();
-  }, [searchParams]);
+  }, [oauthIntent]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
