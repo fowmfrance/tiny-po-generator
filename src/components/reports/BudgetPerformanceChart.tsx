@@ -73,15 +73,11 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
               height={60} 
             />
             <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
-            <Tooltip 
+            <ChartTooltip 
               content={
-                ({ active, payload }) => active && payload && payload.length ? (
-                  <ChartTooltipContent 
-                    active={active}
-                    payload={payload}
-                    formatter={(value) => formatEuro(Number(value))}
-                  />
-                ) : null
+                <ChartTooltipContent 
+                  formatter={(value) => formatEuro(Number(value))}
+                />
               }
             />
             <ReferenceLine y={0} stroke="#000" />
