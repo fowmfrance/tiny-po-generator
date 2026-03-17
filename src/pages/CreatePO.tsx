@@ -49,6 +49,8 @@ interface LineItem {
 const CreatePO = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const { toast } = useToast();
   const { createPO } = usePurchaseOrders();
 
