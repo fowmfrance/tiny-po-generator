@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { defaultCurrency } from '@/services/budgetService';
 import CreateBudgetDialog from '@/components/purchase-orders/CreateBudgetDialog';
 import InviteVendorQuickDialog from '@/components/purchase-orders/InviteVendorQuickDialog';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import BudgetConsumptionDonut from '@/components/purchase-orders/BudgetConsumptionDonut';
 
 interface BudgetOption {
   id: string;
