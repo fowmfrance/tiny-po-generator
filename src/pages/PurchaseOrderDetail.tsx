@@ -95,8 +95,9 @@ const PurchaseOrderDetail = () => {
                 {statusLabels[po.status] || po.status}
               </Badge>
             </div>
-          </CardHeader>
-              <div className="mt-4">
+          <CardContent>
+            {(['approved', 'matched', 'paid'].includes(po.status)) && (
+              <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Avancement paiement</span>
                   <span>{paymentProgress}%</span>
