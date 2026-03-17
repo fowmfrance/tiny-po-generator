@@ -370,27 +370,67 @@ const CreatePO = () => {
 
     setIsSubmitting(true);
     try {
-      const po_number = generatePONumber();
+      if (isEditMode && editId) {
+        // Update existing PO
+        const total_amount = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+        const { error: updateError } = await supabase
+          .from('purchase_orders')
+          .update({
+            budget_id: selectedBudget || null,
+            supplier_id: selectedVendor,
+            currency,
+            total_amount,
+            notes: notes || null,
+            expected_delivery_date: expectedDate || null,
+          })
+          .eq('id', editId);
 
-      await createPO.mutateAsync({
-        budget_id: selectedBudget || undefined,
-        supplier_id: selectedVendor,
-        po_number,
-        currency,
-        notes: notes || undefined,
-        expected_delivery_date: expectedDate || undefined,
-        items: items.map((i) => ({
-          description: i.description,
-          quantity: i.quantity,
-          unit_price: i.unitPrice,
-          article_type_id: i.articleTypeId || undefined,
-        })),
-      });
+        if (updateError) throw updateError;
 
-      if (selectedBudget) {
-        navigate(`/budgets/${selectedBudget}`);
+        // Delete old items and re-insert
+        await supabase.from('purchase_order_items').delete().eq('purchase_order_id', editId);
+
+        if (items.length > 0) {
+          const { error: itemsError } = await supabase
+            .from('purchase_order_items')
+            .insert(
+              items.map((i) => ({
+                purchase_order_id: editId,
+                description: i.description,
+                quantity: i.quantity,
+                unit_price: i.unitPrice,
+                article_type_id: i.articleTypeId || null,
+              }))
+            );
+          if (itemsError) throw itemsError;
+        }
+
+        toast({ title: 'Bon de commande modifié', description: 'Les modifications ont été enregistrées.' });
+        navigate(`/purchase-orders/${editId}`);
       } else {
-        navigate('/purchase-orders');
+        // Create new PO
+        const po_number = generatePONumber();
+
+        await createPO.mutateAsync({
+          budget_id: selectedBudget || undefined,
+          supplier_id: selectedVendor,
+          po_number,
+          currency,
+          notes: notes || undefined,
+          expected_delivery_date: expectedDate || undefined,
+          items: items.map((i) => ({
+            description: i.description,
+            quantity: i.quantity,
+            unit_price: i.unitPrice,
+            article_type_id: i.articleTypeId || undefined,
+          })),
+        });
+
+        if (selectedBudget) {
+          navigate(`/budgets/${selectedBudget}`);
+        } else {
+          navigate('/purchase-orders');
+        }
       }
     } finally {
       setIsSubmitting(false);
