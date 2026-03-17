@@ -63,11 +63,18 @@ const PurchaseOrderDetail = () => {
           <h1 className="text-2xl font-bold">Bon de commande #{po.po_number}</h1>
           <p className="text-muted-foreground">Créé le {new Date(po.created_at).toLocaleDateString('fr-FR')}</p>
         </div>
-        {po.status !== 'draft' && (
-          <Button variant="outline" className="ml-auto flex items-center gap-2" onClick={() => handleStatusChange('sent')}>
-            <Send className="h-4 w-4" /> Envoyer au fournisseur
-          </Button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          {po.status === 'draft' && (
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
+              <Pencil className="h-4 w-4" /> Modifier
+            </Button>
+          )}
+          {po.status !== 'draft' && (
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => handleStatusChange('sent')}>
+              <Send className="h-4 w-4" /> Envoyer au fournisseur
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
