@@ -16,7 +16,7 @@ import {
 
 const Sidebar = () => {
   return (
-    <div className="group w-16 hover:w-64 h-screen bg-sidebar flex flex-col text-white transition-all duration-300 ease-in-out overflow-hidden">
+    <div className="group relative w-16 h-screen bg-sidebar flex flex-col text-white overflow-hidden z-40 hover:w-64 hover:absolute hover:shadow-2xl transition-all duration-300 ease-in-out">
       <div className="p-2 flex justify-center items-center group-hover:justify-start group-hover:pl-4 mb-2">
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
