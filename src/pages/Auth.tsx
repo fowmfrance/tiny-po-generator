@@ -39,6 +39,7 @@ const Auth: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const oauthIntent = searchParams.get('oauth');
 
   useEffect(() => {
     // Check if this is a password reset flow
