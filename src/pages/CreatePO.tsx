@@ -184,7 +184,7 @@ const CreatePO = () => {
     loadPO();
   }, [isEditMode, editId, isLoadingData]);
 
-
+  useEffect(() => {
     const loadArticleTypes = async () => {
       if (!selectedVendorData?.supplier_type_id) {
         setArticleTypeList([]);
