@@ -1253,6 +1253,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      initialize_default_supplier_types: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       initialize_default_teams: {
         Args: { _user_id: string }
         Returns: undefined
