@@ -17,16 +17,16 @@ import {
 const Sidebar = () => {
   return (
     <div className="w-16 h-screen flex-shrink-0">
-      <div className="group fixed top-0 left-0 w-16 h-screen bg-sidebar flex flex-col text-white overflow-hidden z-40 hover:w-64 hover:shadow-2xl transition-all duration-300 ease-in-out">
-      <div className="p-2 flex justify-center items-center group-hover:justify-start group-hover:pl-4 mb-2">
+      <div className="group fixed top-0 left-0 w-16 h-screen bg-sidebar flex flex-col text-white overflow-hidden z-40 hover:w-56 hover:shadow-2xl transition-all duration-300 ease-in-out">
+      <div className="p-2 flex justify-center items-center group-hover:justify-start group-hover:pl-3 h-14 flex-shrink-0">
         <img 
           src="/lovable-uploads/dd8cc652-cc2e-49de-86f9-89455143f476.png" 
           alt="Logo" 
-          className="h-12 group-hover:h-24 w-auto object-contain filter brightness-0 invert transition-all duration-300"
+          className="h-10 w-auto object-contain filter brightness-0 invert"
         />
       </div>
       
-      <nav className="flex-1 p-2 group-hover:p-4 pt-0">
+      <nav className="flex-1 px-2 py-1">
         <ul className="space-y-2">
           <li>
             <NavLink 
