@@ -75,50 +75,71 @@ const CreatePO = () => {
 
   const selectedVendorData = vendorList.find((vendor) => vendor.id === selectedVendor) || null;
   const isSelectedVendorKycPending = selectedVendorData ? !selectedVendorData.is_active : false;
+  const hasPrefilledBudget = !!budgetId && budgetList.some((budget) => budget.id === budgetId);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoadingData(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
-          setIsLoadingData(false);
+          toast({
+            title: 'Session expirée',
+            description: 'Reconnectez-vous pour charger les budgets et fournisseurs.',
+            variant: 'destructive',
+          });
           return;
         }
 
         const [budgetsRes, suppliersRes] = await Promise.all([
-          supabase
-            .from('budgets')
-            .select('id, name, code, currency')
-            .eq('status', 'active')
-            .order('name'),
+          supabase.from('budgets').select('id, name, code, currency').eq('user_id', user.id).order('name'),
           supabase
             .from('suppliers')
             .select('id, name, is_active, supplier_type_id, supplier_type:supplier_types(name)')
+            .eq('user_id', user.id)
             .order('name'),
         ]);
 
-        if (budgetsRes.data) setBudgetList(budgetsRes.data as BudgetOption[]);
+        if (budgetsRes.error) throw budgetsRes.error;
+        if (suppliersRes.error) throw suppliersRes.error;
 
-        if (suppliersRes.data) {
-          const mappedSuppliers: VendorOption[] = (suppliersRes.data as any[]).map((supplier) => ({
-            id: supplier.id,
-            name: supplier.name,
-            is_active: supplier.is_active !== false,
-            supplier_type_id: supplier.supplier_type_id,
-            supplier_type_name: supplier.supplier_type?.name || null,
-          }));
-          setVendorList(mappedSuppliers);
+        const loadedBudgets = (budgetsRes.data || []) as BudgetOption[];
+        setBudgetList(loadedBudgets);
+
+        if (budgetId && !loadedBudgets.some((budget) => budget.id === budgetId)) {
+          setSelectedBudget('');
+          toast({
+            title: 'Budget non disponible',
+            description: 'Le budget préselectionné est introuvable, choisissez un autre budget.',
+            variant: 'destructive',
+          });
         }
+
+        const mappedSuppliers: VendorOption[] = (suppliersRes.data as any[]).map((supplier) => ({
+          id: supplier.id,
+          name: supplier.name,
+          is_active: supplier.is_active !== false,
+          supplier_type_id: supplier.supplier_type_id,
+          supplier_type_name: supplier.supplier_type?.name || null,
+        }));
+        setVendorList(mappedSuppliers);
       } catch (error) {
         console.error('Error loading data:', error);
+        toast({
+          title: 'Erreur de chargement',
+          description: 'Impossible de charger les budgets/fournisseurs.',
+          variant: 'destructive',
+        });
       } finally {
         setIsLoadingData(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [budgetId, toast]);
 
   useEffect(() => {
     const loadArticleTypes = async () => {
@@ -330,7 +351,7 @@ const CreatePO = () => {
                 <CardDescription>Entrez les détails pour ce bon de commande</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!budgetId && (
+                {!hasPrefilledBudget && (
                   <div className="space-y-2">
                     <Label htmlFor="budget">Budget</Label>
                     <Select value={selectedBudget} onValueChange={handleBudgetSelectChange}>
@@ -358,7 +379,7 @@ const CreatePO = () => {
                   </div>
                 )}
 
-                {budgetId && (
+                {hasPrefilledBudget && (
                   <div className="p-4 bg-muted/50 border rounded-md">
                     <p className="text-sm font-medium">Ce BC sera associé au budget : {budgetName}</p>
                   </div>
