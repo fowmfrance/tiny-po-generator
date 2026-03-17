@@ -3,16 +3,22 @@ import { FileText, Users, DollarSign, Receipt } from 'lucide-react';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
+import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { formatCurrency } from '@/utils/paymentUtils';
 
 const StatsOverview = () => {
   const { purchaseOrders } = usePurchaseOrders();
   const { suppliers } = useSuppliers();
   const { invoices } = useSupplierInvoices();
+  const { budgets } = useBudgetsData();
 
   const activeSuppliers = suppliers.filter(s => s.is_active).length;
   const pendingInvoices = invoices.filter(inv => inv.payment_status !== 'paid');
-  const totalPOAmount = purchaseOrders.reduce((sum, po) => sum + Number(po.total_amount), 0);
+
+  // Budget utilization: total committed (sentAmount) vs total budget (initialAmount)
+  const totalBudget = budgets.reduce((sum, b) => sum + b.initialAmount, 0);
+  const totalCommitted = budgets.reduce((sum, b) => sum + b.sentAmount, 0);
+  const budgetUtilization = totalBudget > 0 ? Math.round((totalCommitted / totalBudget) * 100) : 0;
 
   const stats = [
     {
@@ -28,9 +34,9 @@ const StatsOverview = () => {
       icon: Users,
     },
     {
-      title: 'Volume Engagé',
-      value: formatCurrency(totalPOAmount),
-      change: `Sur ${purchaseOrders.length} BC`,
+      title: 'Utilisation du Budget',
+      value: `${budgetUtilization}%`,
+      change: `${formatCurrency(totalCommitted)} sur ${formatCurrency(totalBudget)}`,
       icon: DollarSign,
     },
     {
