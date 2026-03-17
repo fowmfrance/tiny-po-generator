@@ -505,12 +505,24 @@ const CreatePO = () => {
                   <span>{currency}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-3">
-                  <span>Total</span>
+                  <span>Total BC</span>
                   <span>
                     {currency}{' '}
-                    {calculateTotal().toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currentTotal.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
+
+                {selectedBudgetData && (
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-medium mb-3">Consommation du budget</p>
+                    <BudgetConsumptionDonut
+                      budgetInitialAmount={Number(selectedBudgetData.initial_amount)}
+                      budgetCurrency={currency}
+                      existingPOs={budgetPOs}
+                      currentPOAmount={currentTotal}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
