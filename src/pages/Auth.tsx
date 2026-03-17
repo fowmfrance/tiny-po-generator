@@ -11,6 +11,7 @@ import { Session } from '@supabase/supabase-js';
 import { ArrowLeft } from 'lucide-react';
 import { loginSchema, signupSchema, forgotPasswordSchema } from '@/schemas/authSchema';
 import { z } from 'zod';
+import { lovable } from '@/integrations/lovable/index';
 
 const resetPasswordSchema = z.object({
   password: z.string()
@@ -186,14 +187,11 @@ const Auth: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
       });
 
-      if (error) throw error;
+      if (result?.error) throw result.error;
     } catch (error: any) {
       toast.error(error.message || 'Une erreur est survenue avec Google');
       setLoading(false);
