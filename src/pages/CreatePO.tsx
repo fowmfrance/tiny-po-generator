@@ -70,6 +70,7 @@ const CreatePO = () => {
   const [articleTypeList, setArticleTypeList] = useState<ArticleTypeOption[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [budgetPOs, setBudgetPOs] = useState<{ id: string; total_amount: number; status: string }[]>([]);
 
   const [items, setItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), articleTypeId: null, description: '', quantity: 1, unitPrice: 0 },
