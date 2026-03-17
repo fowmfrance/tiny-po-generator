@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink, FileText, Clock, CheckCircle, AlertCircle, Send } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, Clock, CheckCircle, AlertCircle, Send, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -63,21 +63,42 @@ const PurchaseOrderDetail = () => {
           <h1 className="text-2xl font-bold">Bon de commande #{po.po_number}</h1>
           <p className="text-muted-foreground">Créé le {new Date(po.created_at).toLocaleDateString('fr-FR')}</p>
         </div>
-        {po.status !== 'draft' && (
-          <Button variant="outline" className="ml-auto flex items-center gap-2" onClick={() => handleStatusChange('sent')}>
-            <Send className="h-4 w-4" /> Envoyer au fournisseur
-          </Button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          {po.status === 'draft' && (
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
+              <Pencil className="h-4 w-4" /> Modifier
+            </Button>
+          )}
+          {po.status !== 'draft' && (
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => handleStatusChange('sent')}>
+              <Send className="h-4 w-4" /> Envoyer au fournisseur
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Status */}
         <Card>
-          <CardHeader><CardTitle>Statut</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Statut</CardTitle>
+              <Badge className={`text-sm px-3 py-1 ${
+                po.status === 'draft' 
+                  ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700' 
+                  : po.status === 'rejected'
+                    ? 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10'
+                    : po.status === 'approved' || po.status === 'sent'
+                      ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300'
+                      : ''
+              }`} variant="outline">
+                {statusLabels[po.status] || po.status}
+              </Badge>
+            </div>
+          </CardHeader>
           <CardContent>
-            <Badge className="text-base px-3 py-1">{statusLabels[po.status] || po.status}</Badge>
             {(['approved', 'matched', 'paid'].includes(po.status)) && (
-              <div className="mt-4">
+              <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Avancement paiement</span>
                   <span>{paymentProgress}%</span>
