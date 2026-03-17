@@ -27,7 +27,7 @@ const Sidebar = () => {
       </div>
       
       <nav className="flex-1 px-2 py-1">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           <li>
             <NavLink 
               to="/dashboard" 
