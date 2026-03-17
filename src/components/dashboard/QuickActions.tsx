@@ -9,11 +9,11 @@ const QuickActions = () => {
     <div>
       <h2 className="text-xl font-semibold mb-4">Actions Rapides</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/purchase-orders/create">
+        <Link to="/budgets/create">
           <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
             <CardContent className="flex flex-col items-center justify-center p-6">
               <FileText className="h-10 w-10 text-po-blue mb-2" />
-              <span className="text-sm font-medium">Créer un BC</span>
+              <span className="text-sm font-medium">Créer un Budget</span>
             </CardContent>
           </Card>
         </Link>
