@@ -184,22 +184,76 @@ const Auth: React.FC = () => {
     }
   };
 
+  const startGoogleOAuth = async () => {
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: window.location.origin,
+      extraParams: {
+        prompt: 'select_account',
+      },
+    });
+
+    if (result?.error) throw result.error;
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
-        extraParams: {
-          prompt: 'select_account',
-        },
-      });
+      const isInIframe = (() => {
+        try {
+          return window.self !== window.top;
+        } catch {
+          return true;
+        }
+      })();
 
-      if (result?.error) throw result.error;
+      if (isInIframe) {
+        const authUrl = new URL('/auth', window.location.origin);
+        authUrl.searchParams.set('oauth', 'google');
+        const newTab = window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
+
+        if (!newTab) {
+          throw new Error('Popup bloquée. Autorisez les popups puis réessayez.');
+        }
+
+        toast.info('Connexion Google ouverte dans un nouvel onglet sécurisé.');
+        setLoading(false);
+        return;
+      }
+
+      await startGoogleOAuth();
     } catch (error: any) {
-      toast.error(error.message || 'Une erreur est survenue avec Google');
+      const message = error?.message || 'Une erreur est survenue avec Google';
+      toast.error(message);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const shouldAutoStartGoogle = searchParams.get('oauth') === 'google';
+    if (!shouldAutoStartGoogle) return;
+
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (isInIframe) return;
+
+    const autoStartGoogle = async () => {
+      setLoading(true);
+      try {
+        await startGoogleOAuth();
+      } catch (error: any) {
+        toast.error(error?.message || 'Une erreur est survenue avec Google');
+        setLoading(false);
+      }
+    };
+
+    autoStartGoogle();
+  }, [searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
