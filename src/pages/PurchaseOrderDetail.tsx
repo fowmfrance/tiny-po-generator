@@ -95,6 +95,7 @@ const PurchaseOrderDetail = () => {
                 {statusLabels[po.status] || po.status}
               </Badge>
             </div>
+          </CardHeader>
           <CardContent>
             {(['approved', 'matched', 'paid'].includes(po.status)) && (
               <div>
