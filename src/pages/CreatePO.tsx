@@ -731,17 +731,17 @@ const CreatePO = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
+              onClick={() => isEditMode ? navigate(`/purchase-orders/${editId}`) : (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
             >
               Annuler
             </Button>
             {isOverBudget || isSelectedVendorKycPending ? (
               <Button type="submit" disabled={isSubmitting} variant="outline">
-                {isSubmitting ? 'Création en cours...' : 'Enregistrer en brouillon'}
+                {isSubmitting ? 'Enregistrement...' : 'Enregistrer en brouillon'}
               </Button>
             ) : (
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Création en cours...' : 'Créer Bon de Commande'}
+                {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Créer Bon de Commande'}
               </Button>
             )}
           </div>
