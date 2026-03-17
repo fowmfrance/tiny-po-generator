@@ -442,7 +442,7 @@ const CreatePO = () => {
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
-          onClick={() => (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
+          onClick={() => isEditMode ? navigate(`/purchase-orders/${editId}`) : (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
           className="p-2"
         >
           <ArrowLeft className="h-4 w-4" />
