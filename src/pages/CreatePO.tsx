@@ -448,7 +448,7 @@ const CreatePO = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Créer un Bon de Commande</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? 'Modifier le Bon de Commande' : 'Créer un Bon de Commande'}</h1>
           {budgetName && <p className="text-muted-foreground">Pour le budget: {budgetName}</p>}
         </div>
       </div>
