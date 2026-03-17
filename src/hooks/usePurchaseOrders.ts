@@ -234,12 +234,53 @@ export function usePurchaseOrders() {
     },
   });
 
+  const deletePO = useMutation({
+    mutationFn: async (id: string) => {
+      // Verify PO is deletable (not sent/matched/paid)
+      const { data: po, error: poError } = await supabase
+        .from('purchase_orders')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+      if (poError || !po) throw new Error('Bon de commande introuvable.');
+      if (['sent', 'matched', 'paid'].includes(po.status)) {
+        throw new Error('Impossible d\'annuler un bon de commande déjà envoyé.');
+      }
+
+      // Delete items first
+      const { error: itemsError } = await supabase
+        .from('purchase_order_items')
+        .delete()
+        .eq('purchase_order_id', id);
+
+      if (itemsError) throw itemsError;
+
+      // Delete PO
+      const { error } = await supabase
+        .from('purchase_orders')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Bon de commande annulé', description: 'Le budget a été libéré.' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     purchaseOrders: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     createPO,
     updatePOStatus,
+    deletePO,
   };
 }
 
