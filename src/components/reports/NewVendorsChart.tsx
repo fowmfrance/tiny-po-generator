@@ -61,15 +61,11 @@ const NewVendorsChart: React.FC<NewVendorsChartProps> = ({ timeRange }) => {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip
+            <ChartTooltip
               content={
-                ({ active, payload }) => active && payload && payload.length ? (
-                  <ChartTooltipContent 
-                    active={active}
-                    payload={payload}
-                    formatter={(value, name) => [`${value} fournisseurs`, name]}
-                  />
-                ) : null
+                <ChartTooltipContent 
+                  formatter={(value, name) => [`${value} fournisseurs`, name]}
+                />
               }
             />
           </PieChart>

@@ -77,15 +77,11 @@ const VendorSpendingChart: React.FC<VendorSpendingChartProps> = ({ timeRange }) 
             dataKey="name" 
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
+          <ChartTooltip 
             content={
-              ({ active, payload }) => active && payload && payload.length ? (
-                <ChartTooltipContent 
-                  active={active}
-                  payload={payload}
-                  formatter={(value) => formatEuro(Number(value))}
-                />
-              ) : null
+              <ChartTooltipContent 
+                formatter={(value) => formatEuro(Number(value))}
+              />
             } 
           />
           <Bar dataKey="value" fill="var(--color-spending)">

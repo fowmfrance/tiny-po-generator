@@ -130,16 +130,11 @@ const MonthlyMetricsChart: React.FC<MonthlyMetricsChartProps> = ({ timeRange }) 
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
-            <Tooltip 
+            <ChartTooltip 
               content={
-                ({ active, payload, label }) => active && payload && payload.length ? (
-                  <ChartTooltipContent 
-                    active={active}
-                    payload={payload}
-                    label={label}
-                    formatter={(value) => formatEuro(Number(value))}
-                  />
-                ) : null
+                <ChartTooltipContent 
+                  formatter={(value) => formatEuro(Number(value))}
+                />
               }
             />
             {metrics.bc && (

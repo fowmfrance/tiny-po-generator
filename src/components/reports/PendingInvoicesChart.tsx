@@ -73,15 +73,11 @@ const PendingInvoicesChart: React.FC<PendingInvoicesChartProps> = ({ timeRange }
             dataKey="name" 
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
+          <ChartTooltip 
             content={
-              ({ active, payload }) => active && payload && payload.length ? (
-                <ChartTooltipContent 
-                  active={active}
-                  payload={payload}
-                  formatter={(value) => `${value} factures en attente`}
-                />
-              ) : null
+              <ChartTooltipContent 
+                formatter={(value) => `${value} factures en attente`}
+              />
             } 
           />
           <Bar dataKey="value" fill="var(--color-pending)">

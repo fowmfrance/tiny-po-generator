@@ -73,15 +73,11 @@ const VendorPOCountChart: React.FC<VendorPOCountChartProps> = ({ timeRange }) =>
             dataKey="name" 
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
+          <ChartTooltip 
             content={
-              ({ active, payload }) => active && payload && payload.length ? (
-                <ChartTooltipContent 
-                  active={active}
-                  payload={payload}
-                  formatter={(value) => `${value} BC`}
-                />
-              ) : null
+              <ChartTooltipContent 
+                formatter={(value) => `${value} BC`}
+              />
             } 
           />
           <Bar dataKey="value" fill="var(--color-count)">
