@@ -146,7 +146,45 @@ const CreatePO = () => {
     loadData();
   }, [budgetId, toast]);
 
+  // Load existing PO data in edit mode
   useEffect(() => {
+    if (!isEditMode || !editId || isLoadingData) return;
+    const loadPO = async () => {
+      try {
+        const { data: po, error } = await supabase
+          .from('purchase_orders')
+          .select('*, items:purchase_order_items(*)')
+          .eq('id', editId)
+          .single();
+        if (error || !po) {
+          toast({ title: 'Erreur', description: 'Bon de commande introuvable.', variant: 'destructive' });
+          navigate('/purchase-orders');
+          return;
+        }
+        setSelectedBudget(po.budget_id || '');
+        setSelectedVendor(po.supplier_id);
+        setCurrency((po.currency || 'EUR').toUpperCase());
+        setExpectedDate(po.expected_delivery_date || '');
+        setNotes(po.notes || '');
+        if (po.items && po.items.length > 0) {
+          setItems(
+            (po.items as any[]).map((item: any) => ({
+              id: item.id,
+              articleTypeId: item.article_type_id || null,
+              description: item.description,
+              quantity: Number(item.quantity),
+              unitPrice: Number(item.unit_price),
+            }))
+          );
+        }
+      } catch (e) {
+        console.error('Error loading PO for edit:', e);
+      }
+    };
+    loadPO();
+  }, [isEditMode, editId, isLoadingData]);
+
+
     const loadArticleTypes = async () => {
       if (!selectedVendorData?.supplier_type_id) {
         setArticleTypeList([]);
