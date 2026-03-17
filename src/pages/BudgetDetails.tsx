@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -16,7 +17,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil } from 'lucide-react';
+import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +34,8 @@ const formatMoney = (currency: string, amount: number) => {
 const BudgetDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['budget-details', id],
@@ -133,10 +137,16 @@ const BudgetDetails = () => {
           </Button>
           <h1 className="text-2xl font-bold">Détails du budget</h1>
         </div>
-        <Button onClick={handleCreatePO} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Créer un bon de commande
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsEditOpen(true)} className="flex items-center gap-2">
+            <Pencil className="w-4 h-4" />
+            Modifier
+          </Button>
+          <Button onClick={handleCreatePO} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Créer un bon de commande
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -215,6 +225,24 @@ const BudgetDetails = () => {
           )}
         </CardContent>
       </Card>
+
+      <EditBudgetDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        budget={{
+          id: budget.id,
+          name: budget.name,
+          code: budget.code,
+          currency: budget.currency,
+          initial_amount: metrics.initialAmount,
+          start_date: budget.start_date,
+          end_date: budget.end_date,
+        }}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['budget-details', id] });
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
+        }}
+      />
     </div>
   );
 };
