@@ -11,6 +11,7 @@ import { Session } from '@supabase/supabase-js';
 import { ArrowLeft } from 'lucide-react';
 import { loginSchema, signupSchema, forgotPasswordSchema } from '@/schemas/authSchema';
 import { z } from 'zod';
+import { lovable } from '@/integrations/lovable/index';
 
 const resetPasswordSchema = z.object({
   password: z.string()
