@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,6 +49,8 @@ interface LineItem {
 const CreatePO = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const { toast } = useToast();
   const { createPO } = usePurchaseOrders();
 
@@ -143,6 +145,44 @@ const CreatePO = () => {
 
     loadData();
   }, [budgetId, toast]);
+
+  // Load existing PO data in edit mode
+  useEffect(() => {
+    if (!isEditMode || !editId || isLoadingData) return;
+    const loadPO = async () => {
+      try {
+        const { data: po, error } = await supabase
+          .from('purchase_orders')
+          .select('*, items:purchase_order_items(*)')
+          .eq('id', editId)
+          .single();
+        if (error || !po) {
+          toast({ title: 'Erreur', description: 'Bon de commande introuvable.', variant: 'destructive' });
+          navigate('/purchase-orders');
+          return;
+        }
+        setSelectedBudget(po.budget_id || '');
+        setSelectedVendor(po.supplier_id);
+        setCurrency((po.currency || 'EUR').toUpperCase());
+        setExpectedDate(po.expected_delivery_date || '');
+        setNotes(po.notes || '');
+        if (po.items && po.items.length > 0) {
+          setItems(
+            (po.items as any[]).map((item: any) => ({
+              id: item.id,
+              articleTypeId: item.article_type_id || null,
+              description: item.description,
+              quantity: Number(item.quantity),
+              unitPrice: Number(item.unit_price),
+            }))
+          );
+        }
+      } catch (e) {
+        console.error('Error loading PO for edit:', e);
+      }
+    };
+    loadPO();
+  }, [isEditMode, editId, isLoadingData]);
 
   useEffect(() => {
     const loadArticleTypes = async () => {
@@ -330,27 +370,67 @@ const CreatePO = () => {
 
     setIsSubmitting(true);
     try {
-      const po_number = generatePONumber();
+      if (isEditMode && editId) {
+        // Update existing PO
+        const total_amount = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+        const { error: updateError } = await supabase
+          .from('purchase_orders')
+          .update({
+            budget_id: selectedBudget || null,
+            supplier_id: selectedVendor,
+            currency,
+            total_amount,
+            notes: notes || null,
+            expected_delivery_date: expectedDate || null,
+          })
+          .eq('id', editId);
 
-      await createPO.mutateAsync({
-        budget_id: selectedBudget || undefined,
-        supplier_id: selectedVendor,
-        po_number,
-        currency,
-        notes: notes || undefined,
-        expected_delivery_date: expectedDate || undefined,
-        items: items.map((i) => ({
-          description: i.description,
-          quantity: i.quantity,
-          unit_price: i.unitPrice,
-          article_type_id: i.articleTypeId || undefined,
-        })),
-      });
+        if (updateError) throw updateError;
 
-      if (selectedBudget) {
-        navigate(`/budgets/${selectedBudget}`);
+        // Delete old items and re-insert
+        await supabase.from('purchase_order_items').delete().eq('purchase_order_id', editId);
+
+        if (items.length > 0) {
+          const { error: itemsError } = await supabase
+            .from('purchase_order_items')
+            .insert(
+              items.map((i) => ({
+                purchase_order_id: editId,
+                description: i.description,
+                quantity: i.quantity,
+                unit_price: i.unitPrice,
+                article_type_id: i.articleTypeId || null,
+              }))
+            );
+          if (itemsError) throw itemsError;
+        }
+
+        toast({ title: 'Bon de commande modifié', description: 'Les modifications ont été enregistrées.' });
+        navigate(`/purchase-orders/${editId}`);
       } else {
-        navigate('/purchase-orders');
+        // Create new PO
+        const po_number = generatePONumber();
+
+        await createPO.mutateAsync({
+          budget_id: selectedBudget || undefined,
+          supplier_id: selectedVendor,
+          po_number,
+          currency,
+          notes: notes || undefined,
+          expected_delivery_date: expectedDate || undefined,
+          items: items.map((i) => ({
+            description: i.description,
+            quantity: i.quantity,
+            unit_price: i.unitPrice,
+            article_type_id: i.articleTypeId || undefined,
+          })),
+        });
+
+        if (selectedBudget) {
+          navigate(`/budgets/${selectedBudget}`);
+        } else {
+          navigate('/purchase-orders');
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -368,7 +448,7 @@ const CreatePO = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Créer un Bon de Commande</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? 'Modifier le Bon de Commande' : 'Créer un Bon de Commande'}</h1>
           {budgetName && <p className="text-muted-foreground">Pour le budget: {budgetName}</p>}
         </div>
       </div>
@@ -651,17 +731,17 @@ const CreatePO = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
+              onClick={() => isEditMode ? navigate(`/purchase-orders/${editId}`) : (selectedBudget ? navigate(`/budgets/${selectedBudget}`) : navigate('/purchase-orders'))}
             >
               Annuler
             </Button>
             {isOverBudget || isSelectedVendorKycPending ? (
               <Button type="submit" disabled={isSubmitting} variant="outline">
-                {isSubmitting ? 'Création en cours...' : 'Enregistrer en brouillon'}
+                {isSubmitting ? 'Enregistrement...' : 'Enregistrer en brouillon'}
               </Button>
             ) : (
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Création en cours...' : 'Créer Bon de Commande'}
+                {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Créer Bon de Commande'}
               </Button>
             )}
           </div>

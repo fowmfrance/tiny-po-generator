@@ -46,6 +46,7 @@ function App() {
         <Route path="/purchase-orders" element={<ProtectedRoute><Layout><PurchaseOrders /></Layout></ProtectedRoute>} />
         <Route path="/purchase-orders/create" element={<ProtectedRoute><Layout><CreatePO /></Layout></ProtectedRoute>} />
         <Route path="/purchase-orders/:id" element={<ProtectedRoute><Layout><PurchaseOrderDetail /></Layout></ProtectedRoute>} />
+        <Route path="/purchase-orders/:id/edit" element={<ProtectedRoute><Layout><CreatePO /></Layout></ProtectedRoute>} />
         <Route path="/vendors" element={<ProtectedRoute><Layout><Vendors /></Layout></ProtectedRoute>} />
         <Route path="/vendors/:id" element={<ProtectedRoute><Layout><VendorDetail /></Layout></ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
