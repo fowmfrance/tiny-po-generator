@@ -137,10 +137,16 @@ const BudgetDetails = () => {
           </Button>
           <h1 className="text-2xl font-bold">Détails du budget</h1>
         </div>
-        <Button onClick={handleCreatePO} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Créer un bon de commande
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsEditOpen(true)} className="flex items-center gap-2">
+            <Pencil className="w-4 h-4" />
+            Modifier
+          </Button>
+          <Button onClick={handleCreatePO} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Créer un bon de commande
+          </Button>
+        </div>
       </div>
 
       <Card>
