@@ -225,6 +225,24 @@ const BudgetDetails = () => {
           )}
         </CardContent>
       </Card>
+
+      <EditBudgetDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        budget={{
+          id: budget.id,
+          name: budget.name,
+          code: budget.code,
+          currency: budget.currency,
+          initial_amount: metrics.initialAmount,
+          start_date: budget.start_date,
+          end_date: budget.end_date,
+        }}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['budget-details', id] });
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
+        }}
+      />
     </div>
   );
 };
