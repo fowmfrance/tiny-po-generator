@@ -20,6 +20,7 @@ interface BudgetOption {
   name: string;
   code: string;
   currency: string;
+  initial_amount: number;
 }
 
 interface VendorOption {
