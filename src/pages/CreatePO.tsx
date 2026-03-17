@@ -170,7 +170,39 @@ const CreatePO = () => {
     loadArticleTypes();
   }, [selectedVendorData?.supplier_type_id]);
 
-  const addItem = () => {
+  // Load existing POs for the selected budget
+  useEffect(() => {
+    const loadBudgetPOs = async () => {
+      if (!selectedBudget) {
+        setBudgetPOs([]);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('purchase_orders')
+          .select('id, total_amount, status')
+          .eq('budget_id', selectedBudget)
+          .neq('status', 'rejected');
+        if (error) throw error;
+        setBudgetPOs((data || []) as { id: string; total_amount: number; status: string }[]);
+      } catch (e) {
+        console.error('Error loading budget POs:', e);
+        setBudgetPOs([]);
+      }
+    };
+    loadBudgetPOs();
+  }, [selectedBudget]);
+
+  const selectedBudgetData = budgetList.find((b) => b.id === selectedBudget);
+  const currentTotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+  const isOverBudget = useMemo(() => {
+    if (!selectedBudgetData) return false;
+    const committed = budgetPOs.reduce((s, po) => s + Number(po.total_amount || 0), 0);
+    return currentTotal > selectedBudgetData.initial_amount - committed;
+  }, [selectedBudgetData, budgetPOs, currentTotal]);
+
+
     setItems((prev) => [
       ...prev,
       { id: crypto.randomUUID(), articleTypeId: null, description: '', quantity: 1, unitPrice: 0 },
