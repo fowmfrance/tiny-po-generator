@@ -97,7 +97,7 @@ const CreatePO = () => {
         }
 
         const [budgetsRes, suppliersRes] = await Promise.all([
-          supabase.from('budgets').select('id, name, code, currency').eq('user_id', user.id).order('name'),
+          supabase.from('budgets').select('id, name, code, currency, initial_amount').eq('user_id', user.id).order('name'),
           supabase
             .from('suppliers')
             .select('id, name, is_active, supplier_type_id, supplier_type:supplier_types(name)')
