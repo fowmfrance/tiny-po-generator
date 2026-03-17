@@ -34,6 +34,8 @@ const formatMoney = (currency: string, amount: number) => {
 const BudgetDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['budget-details', id],
