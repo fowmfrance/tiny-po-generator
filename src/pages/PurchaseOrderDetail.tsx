@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink, FileText, Clock, CheckCircle, AlertCircle, Send, Pencil } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { usePurchaseOrder, usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { formatCurrency } from '@/utils/paymentUtils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
@@ -22,8 +32,9 @@ const PurchaseOrderDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: po, isLoading, error } = usePurchaseOrder(id);
-  const { updatePOStatus } = usePurchaseOrders();
+  const { data: po, isLoading } = usePurchaseOrder(id);
+  const { updatePOStatus, deletePO } = usePurchaseOrders();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     if (!po) return;
@@ -36,6 +47,17 @@ const PurchaseOrderDetail = () => {
       }
     );
   };
+
+  const handleDelete = () => {
+    if (!po) return;
+    deletePO.mutate(po.id, {
+      onSuccess: () => {
+        navigate('/purchase-orders');
+      },
+    });
+  };
+
+  const canDelete = po && !['sent', 'matched', 'paid'].includes(po.status);
 
   if (isLoading) {
     return <div className="flex justify-center items-center p-8">Chargement...</div>;
@@ -55,6 +77,7 @@ const PurchaseOrderDetail = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header - navigation only */}
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/purchase-orders')} className="p-2">
           <ArrowLeft className="h-4 w-4" />
@@ -62,18 +85,6 @@ const PurchaseOrderDetail = () => {
         <div>
           <h1 className="text-2xl font-bold">Bon de commande #{po.po_number}</h1>
           <p className="text-muted-foreground">Créé le {new Date(po.created_at).toLocaleDateString('fr-FR')}</p>
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          {po.status === 'draft' && (
-            <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
-              <Pencil className="h-4 w-4" /> Modifier
-            </Button>
-          )}
-          {po.status !== 'draft' && (
-            <Button variant="outline" className="flex items-center gap-2" onClick={() => handleStatusChange('sent')}>
-              <Send className="h-4 w-4" /> Envoyer au fournisseur
-            </Button>
-          )}
         </div>
       </div>
 
@@ -109,26 +120,6 @@ const PurchaseOrderDetail = () => {
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
-            {po.status === 'draft' && (
-              <Button size="sm" onClick={() => handleStatusChange('pending')}>Soumettre pour approbation</Button>
-            )}
-            {po.status === 'pending' && (
-              <>
-                <Button size="sm" variant="destructive" onClick={() => handleStatusChange('rejected')}>Rejeter</Button>
-                <Button size="sm" onClick={() => handleStatusChange('approved')}>Approuver</Button>
-              </>
-            )}
-            {po.status === 'approved' && (
-              <Button size="sm" onClick={() => handleStatusChange('sent')}>Marquer comme envoyé</Button>
-            )}
-            {po.status === 'sent' && (
-              <Button size="sm" onClick={() => handleStatusChange('matched')}>Rapprocher facture</Button>
-            )}
-            {po.status === 'matched' && (
-              <Button size="sm" onClick={() => handleStatusChange('paid')}>Marquer comme payé</Button>
-            )}
-          </CardFooter>
         </Card>
 
         {/* Supplier */}
@@ -213,6 +204,66 @@ const PurchaseOrderDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Action Buttons - Bottom of page */}
+      <div className="flex items-center justify-between border-t pt-6">
+        <div>
+          {canDelete && (
+            <Button
+              variant="destructive"
+              className="flex items-center gap-2"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4" /> Annuler le bon de commande
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {po.status === 'draft' && (
+            <>
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
+                <Pencil className="h-4 w-4" /> Modifier
+              </Button>
+              <Button onClick={() => handleStatusChange('pending')}>
+                Soumettre pour approbation
+              </Button>
+            </>
+          )}
+          {po.status === 'pending' && (
+            <>
+              <Button variant="destructive" onClick={() => handleStatusChange('rejected')}>Rejeter</Button>
+              <Button onClick={() => handleStatusChange('approved')}>Approuver</Button>
+            </>
+          )}
+          {po.status === 'approved' && (
+            <Button onClick={() => handleStatusChange('sent')}>Marquer comme envoyé</Button>
+          )}
+          {po.status === 'sent' && (
+            <Button onClick={() => handleStatusChange('matched')}>Rapprocher facture</Button>
+          )}
+          {po.status === 'matched' && (
+            <Button onClick={() => handleStatusChange('paid')}>Marquer comme payé</Button>
+          )}
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler ce bon de commande ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le bon de commande #{po.po_number} sera supprimé et le budget associé sera libéré.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Non, conserver</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Oui, annuler le BdC
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
