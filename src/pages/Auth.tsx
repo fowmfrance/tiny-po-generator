@@ -41,6 +41,22 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const oauthIntent = searchParams.get('oauth');
 
+  const getGoogleRedirectUri = () => {
+    const currentOrigin = window.location.origin;
+
+    if (!import.meta.env.PROD) {
+      return currentOrigin;
+    }
+
+    const url = new URL(currentOrigin);
+    if (url.hostname.startsWith('www.')) {
+      url.hostname = url.hostname.replace(/^www\./, '');
+      return url.origin;
+    }
+
+    return currentOrigin;
+  };
+
   useEffect(() => {
     // Check if this is a password reset flow
     const isReset = searchParams.get('reset') === 'true';
@@ -187,7 +203,7 @@ const Auth: React.FC = () => {
 
   const startGoogleOAuth = async () => {
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin,
+      redirect_uri: getGoogleRedirectUri(),
       extraParams: {
         prompt: 'select_account',
       },
@@ -208,7 +224,7 @@ const Auth: React.FC = () => {
       })();
 
       if (isInIframe) {
-        const authUrl = new URL('/auth', window.location.origin);
+        const authUrl = new URL('/auth', getGoogleRedirectUri());
         authUrl.searchParams.set('oauth', 'google');
         const newTab = window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
 
