@@ -23,6 +23,7 @@ import SupplierDashboard from './pages/SupplierDashboard';
 import SupplierGuestInvoice from './pages/SupplierGuestInvoice';
 import SupplierInvoiceCreate from './pages/SupplierInvoiceCreate';
 import SupplierPOView from './pages/SupplierPOView';
+import SupplierPortalAccess from './pages/SupplierPortalAccess';
 import NotFound from './pages/NotFound';
 import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
