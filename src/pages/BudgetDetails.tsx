@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { BudgetWaterfallChart } from '@/components/budget/BudgetWaterfallChart';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Card,
