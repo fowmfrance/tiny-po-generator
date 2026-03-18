@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { POInvoiceSection } from '@/components/purchase-orders/POInvoiceSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
