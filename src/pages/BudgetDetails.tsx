@@ -54,7 +54,7 @@ const BudgetDetails = () => {
 
       const { data: purchaseOrders, error: poError } = await supabase
         .from('purchase_orders')
-        .select('id, po_number, supplier_id, total_amount, currency, status, created_at, supplier:suppliers(name)')
+        .select('id, po_number, supplier_id, total_amount, currency, status, created_at, supplier:suppliers(name, is_active)')
         .eq('budget_id', budget.id)
         .order('created_at', { ascending: false });
 
