@@ -225,7 +225,15 @@ const Auth: React.FC = () => {
 
       await startGoogleOAuth();
     } catch (error: any) {
-      const message = error?.message || 'Une erreur est survenue avec Google';
+      const rawMsg = error?.message || '';
+      let message = 'Une erreur est survenue avec Google';
+      if (rawMsg.includes('redirect_uri') || rawMsg.includes('not allowed')) {
+        message = 'Domaine non autorisé pour la connexion Google. Essayez depuis sapajoo.fr directement.';
+      } else if (rawMsg.includes('popup') || rawMsg.includes('Popup')) {
+        message = 'Popup bloquée. Autorisez les popups puis réessayez.';
+      } else if (rawMsg) {
+        message = rawMsg;
+      }
       toast.error(message);
       setLoading(false);
     }
