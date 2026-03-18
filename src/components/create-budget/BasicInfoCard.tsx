@@ -21,50 +21,52 @@ export function BasicInfoCard({ form, generatedCode }: BasicInfoCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <FormField
-          control={form.control}
-          name="budgetTypeId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type de budget</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || undefined}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un type de budget" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {BUDGET_TYPES.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Détermine le format de numérotation du code
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormItem>
-          <FormLabel className="flex items-center gap-2">
-            Code du budget
-            <Lock className="h-3 w-3 text-muted-foreground" />
-          </FormLabel>
-          <Input
-            value={generatedCode}
-            readOnly
-            disabled
-            placeholder="Sélectionnez un type de budget"
-            className="bg-muted cursor-not-allowed"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="budgetTypeId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type de budget *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {BUDGET_TYPES.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Le type détermine le format de numérotation automatique
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <FormDescription>
-            Auto-généré selon le type de budget sélectionné
-          </FormDescription>
-        </FormItem>
+
+          <FormItem>
+            <FormLabel className="flex items-center gap-2">
+              Code du budget
+              <Lock className="h-3 w-3 text-muted-foreground" />
+            </FormLabel>
+            <Input
+              value={generatedCode}
+              readOnly
+              disabled
+              placeholder="Sélectionnez un type"
+              className="bg-muted cursor-not-allowed"
+            />
+            <FormDescription>
+              Généré automatiquement selon le type de budget
+            </FormDescription>
+          </FormItem>
+        </div>
 
         <FormField
           control={form.control}
