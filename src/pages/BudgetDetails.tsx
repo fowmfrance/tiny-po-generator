@@ -80,9 +80,7 @@ const BudgetDetails = () => {
         .filter((po) => po.status !== 'rejected')
         .reduce((sum, po) => sum + Number(po.total_amount || 0), 0);
 
-      const initialAmount = Number(budget.initial_amount || 0);
       const availableAmount = initialAmount - sentAmount;
-      const remainingAmount = Math.max(0, sentAmount - receivedAmount);
 
       return {
         budget,
