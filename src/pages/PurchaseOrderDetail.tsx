@@ -206,6 +206,18 @@ const PurchaseOrderDetail = () => {
         </Card>
       )}
 
+      {/* Invoices Section - visible when PO is not draft */}
+      <POInvoiceSection
+        poId={po.id}
+        poNumber={po.po_number}
+        supplierId={po.supplier_id}
+        supplierName={po.supplier?.name || 'Inconnu'}
+        currency={po.currency}
+        totalAmount={Number(po.total_amount)}
+        expectedDeliveryDate={po.expected_delivery_date}
+        poStatus={po.status}
+      />
+
       {/* Action Buttons - Bottom of page */}
       <div className="flex items-center justify-between border-t pt-6">
         <div>
