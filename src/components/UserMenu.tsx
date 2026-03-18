@@ -13,29 +13,28 @@ import {
 import { User, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
-type AuthSession = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
-
 const UserMenu: React.FC = () => {
-  const [session, setSession] = useState<AuthSession>(null);
+  const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
+  const authClient = (supabase as any).auth;
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    authClient.getSession().then(({ data: { session } }: any) => {
       setSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const { data: { subscription } } = authClient.onAuthStateChange(
+      (_event: any, session: any) => {
         setSession(session);
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [authClient]);
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await authClient.signOut();
       toast.success('Déconnexion réussie');
       navigate('/auth');
     } catch (error) {
