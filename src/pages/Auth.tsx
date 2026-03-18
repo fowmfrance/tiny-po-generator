@@ -210,7 +210,7 @@ const Auth: React.FC = () => {
       })();
 
       if (isInIframe) {
-        const authUrl = new URL('/auth', getGoogleRedirectUri());
+        const authUrl = new URL('/auth', getRedirectOrigin());
         authUrl.searchParams.set('oauth', 'google');
         const newTab = window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
 
