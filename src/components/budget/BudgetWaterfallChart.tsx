@@ -34,6 +34,14 @@ interface WaterfallItem {
   amount: string;
 }
 
+const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
+const RechartsBarChart = BarChart as unknown as React.ComponentType<any>;
+const RechartsXAxis = XAxis as unknown as React.ComponentType<any>;
+const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
+const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
+const RechartsBar = Bar as unknown as React.ComponentType<any>;
+const RechartsCell = Cell as unknown as React.ComponentType<any>;
+
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const item = payload[0]?.payload as WaterfallItem;
@@ -47,10 +55,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 const COLORS = {
-  initial: 'hsl(221, 83%, 53%)',    // blue
-  invoiced: 'hsl(142, 71%, 45%)',   // green
-  committed: 'hsl(38, 92%, 50%)',   // amber
-  available: 'hsl(221, 83%, 80%)',  // light blue
+  initial: 'hsl(221, 83%, 53%)',
+  invoiced: 'hsl(142, 71%, 45%)',
+  committed: 'hsl(38, 92%, 50%)',
+  available: 'hsl(221, 83%, 80%)',
 };
 
 export function BudgetWaterfallChart({
@@ -99,22 +107,22 @@ export function BudgetWaterfallChart({
 
   return (
     <div className="w-full">
-      <ResponsiveContainer width="100%" height={180}>
-        <BarChart
+      <RechartsResponsiveContainer width="100%" height={180}>
+        <RechartsBarChart
           data={data}
           margin={{ top: 20, right: 5, left: 5, bottom: 5 }}
           barCategoryGap="25%"
         >
-          <XAxis
+          <RechartsXAxis
             dataKey="name"
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             axisLine={false}
             tickLine={false}
           />
-          <YAxis hide />
-          <Tooltip content={<CustomTooltip />} cursor={false} />
-          <Bar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
-          <Bar
+          <RechartsYAxis hide />
+          <RechartsTooltip content={<CustomTooltip />} cursor={false} />
+          <RechartsBar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
+          <RechartsBar
             dataKey="visible"
             stackId="waterfall"
             radius={[4, 4, 0, 0]}
@@ -135,11 +143,11 @@ export function BudgetWaterfallChart({
             }}
           >
             {data.map((entry, index) => (
-              <Cell key={index} fill={entry.fill} />
+              <RechartsCell key={index} fill={entry.fill} />
             ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+          </RechartsBar>
+        </RechartsBarChart>
+      </RechartsResponsiveContainer>
       <div className="flex justify-center gap-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />

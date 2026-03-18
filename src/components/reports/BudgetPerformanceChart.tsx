@@ -1,19 +1,17 @@
-
 import React from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  ReferenceLine 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
-import { 
+import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent
+  ChartTooltipContent,
 } from '@/components/ui/chart';
 
 // Mock data for budget performance
@@ -37,14 +35,24 @@ interface BudgetPerformanceChartProps {
   timeRange: '1m' | '3m' | '6m' | '1y';
 }
 
+const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
+const RechartsBarChart = BarChart as unknown as React.ComponentType<any>;
+const RechartsCartesianGrid = CartesianGrid as unknown as React.ComponentType<any>;
+const RechartsXAxis = XAxis as unknown as React.ComponentType<any>;
+const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
+const RechartsReferenceLine = ReferenceLine as unknown as React.ComponentType<any>;
+const RechartsBar = Bar as unknown as React.ComponentType<any>;
+const RechartsChartTooltip = ChartTooltip as unknown as React.ComponentType<any>;
+const RechartsChartTooltipContent = ChartTooltipContent as unknown as React.ComponentType<any>;
+
 const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRange }) => {
   const data = getMockData(timeRange);
-  
+
   const formatEuro = (value: number) => {
     const prefix = value >= 0 ? '+' : '';
     return `${prefix}${value.toLocaleString()} €`;
   };
-  
+
   return (
     <ChartContainer
       config={{
@@ -53,10 +61,9 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
       }}
       className="h-80"
     >
-      {/* Using a Fragment to wrap multiple children */}
       <>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+        <RechartsResponsiveContainer width="100%" height="100%">
+          <RechartsBarChart
             data={data}
             margin={{
               top: 20,
@@ -65,29 +72,29 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
               bottom: 60,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              angle={-45} 
-              textAnchor="end" 
-              height={60} 
+            <RechartsCartesianGrid strokeDasharray="3 3" />
+            <RechartsXAxis
+              dataKey="name"
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
-            <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
-            <ChartTooltip 
+            <RechartsYAxis tickFormatter={(value: number) => `${(value / 1000).toFixed(0)}k €`} />
+            <RechartsChartTooltip
               content={
-                <ChartTooltipContent 
-                  formatter={(value) => formatEuro(Number(value))}
+                <RechartsChartTooltipContent
+                  formatter={(value: unknown) => formatEuro(Number(value))}
                 />
               }
             />
-            <ReferenceLine y={0} stroke="#000" />
-            <Bar 
-              dataKey="value" 
+            <RechartsReferenceLine y={0} stroke="#000" />
+            <RechartsBar
+              dataKey="value"
               fill="var(--color-positive)"
               className="fill-[var(--color-positive)] [&[value^='-']]:fill-[var(--color-negative)]"
             />
-          </BarChart>
-        </ResponsiveContainer>
+          </RechartsBarChart>
+        </RechartsResponsiveContainer>
         <div className="flex justify-center gap-8 mt-4">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-[#22c55e] mr-2"></div>

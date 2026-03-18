@@ -12,19 +12,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import { Session } from '@supabase/supabase-js';
 
 const UserMenu: React.FC = () => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (_event: any, session: any) => {
         setSession(session);
       }
     );
