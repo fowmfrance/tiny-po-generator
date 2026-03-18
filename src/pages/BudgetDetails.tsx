@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { BudgetWaterfallChart } from '@/components/budget/BudgetWaterfallChart';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -79,18 +80,16 @@ const BudgetDetails = () => {
         .filter((po) => po.status !== 'rejected')
         .reduce((sum, po) => sum + Number(po.total_amount || 0), 0);
 
-      const initialAmount = Number(budget.initial_amount || 0);
-      const availableAmount = initialAmount - sentAmount;
-      const remainingAmount = Math.max(0, sentAmount - receivedAmount);
+      const initial = Number(budget.initial_amount || 0);
+      const availableAmount = initial - sentAmount;
 
       return {
         budget,
         purchaseOrders: poList,
         metrics: {
-          initialAmount,
+          initialAmount: initial,
           sentAmount,
           receivedAmount,
-          remainingAmount,
           availableAmount,
           poCount: poList.length,
         },
@@ -158,13 +157,13 @@ const BudgetDetails = () => {
                 Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
               </CardDescription>
             </div>
-            <div className="text-right space-y-1">
-              <div className="font-medium">Montant initial : {formatMoney(budget.currency, metrics.initialAmount)}</div>
-              <div className="text-sm text-muted-foreground">Provisionné : {formatMoney(budget.currency, metrics.sentAmount)}</div>
-              <div className="text-sm text-muted-foreground">Facturé : {formatMoney(budget.currency, metrics.receivedAmount)}</div>
-              <div className="text-sm text-muted-foreground">Restant : {formatMoney(budget.currency, metrics.remainingAmount)}</div>
-              <div className="text-sm text-muted-foreground">Disponible : {formatMoney(budget.currency, metrics.availableAmount)}</div>
-            </div>
+            <BudgetWaterfallChart
+              currency={budget.currency}
+              initialAmount={metrics.initialAmount}
+              sentAmount={metrics.sentAmount}
+              receivedAmount={metrics.receivedAmount}
+              availableAmount={metrics.availableAmount}
+            />
           </div>
         </CardHeader>
 
