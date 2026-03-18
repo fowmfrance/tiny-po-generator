@@ -20,7 +20,7 @@ const ApprovalStatus = () => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const completedThisMonth = purchaseOrders.filter(po => 
-    (po.status === 'paid' || po.status === 'completed') && 
+    po.status === 'paid' && 
     new Date(po.updated_at) >= startOfMonth
   ).length;
 
