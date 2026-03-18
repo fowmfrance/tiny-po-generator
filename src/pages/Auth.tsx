@@ -41,6 +41,22 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const oauthIntent = searchParams.get('oauth');
 
+  const getGoogleRedirectUri = () => {
+    const currentOrigin = window.location.origin;
+
+    if (!import.meta.env.PROD) {
+      return currentOrigin;
+    }
+
+    const url = new URL(currentOrigin);
+    if (url.hostname.startsWith('www.')) {
+      url.hostname = url.hostname.replace(/^www\./, '');
+      return url.origin;
+    }
+
+    return currentOrigin;
+  };
+
   useEffect(() => {
     // Check if this is a password reset flow
     const isReset = searchParams.get('reset') === 'true';
