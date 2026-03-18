@@ -746,6 +746,56 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_access_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          email_verified: boolean
+          id: string
+          is_active: boolean
+          supplier_id: string
+          token: string
+          updated_at: string
+          verification_code: string | null
+          verification_code_expires_at: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email_verified?: boolean
+          id?: string
+          is_active?: boolean
+          supplier_id: string
+          token?: string
+          updated_at?: string
+          verification_code?: string | null
+          verification_code_expires_at?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email_verified?: boolean
+          id?: string
+          is_active?: boolean
+          supplier_id?: string
+          token?: string
+          updated_at?: string
+          verification_code?: string | null
+          verification_code_expires_at?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_access_tokens_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_bank_accounts: {
         Row: {
           archived_at: string | null

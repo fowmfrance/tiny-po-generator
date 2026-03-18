@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
+import { useSupplierAccessToken } from '@/hooks/useSupplierAccessToken';
+import { Copy, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/paymentUtils';
 
@@ -21,6 +23,7 @@ const VendorDetail = () => {
   const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
+  const { copyPortalLink } = useSupplierAccessToken(id);
 
   const supplier = useMemo(() => suppliers.find(s => s.id === id), [suppliers, id]);
   const supplierPOs = useMemo(() => purchaseOrders.filter(po => po.supplier_id === id), [purchaseOrders, id]);
@@ -61,8 +64,12 @@ const VendorDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="flex items-center gap-2" onClick={() => toast({ title: 'Lien portail partagé', description: `Email envoyé à ${supplier.email}` })}>
-            <Share2 className="w-4 h-4" /> Partager accès portail
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2" 
+            onClick={() => copyPortalLink()}
+          >
+            <Copy className="w-4 h-4" /> Copier lien portail
           </Button>
         </div>
       </div>

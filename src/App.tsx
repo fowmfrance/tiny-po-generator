@@ -23,6 +23,7 @@ import SupplierDashboard from './pages/SupplierDashboard';
 import SupplierGuestInvoice from './pages/SupplierGuestInvoice';
 import SupplierInvoiceCreate from './pages/SupplierInvoiceCreate';
 import SupplierPOView from './pages/SupplierPOView';
+import SupplierPortalAccess from './pages/SupplierPortalAccess';
 import NotFound from './pages/NotFound';
 import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -59,6 +60,7 @@ function App() {
         <Route path="/supplier/invoice/guest" element={<SupplierGuestInvoice />} />
         <Route path="/supplier/invoice/create/:vendorId" element={<SupplierInvoiceCreate />} />
         <Route path="/supplier/purchaseorders/:vendorId" element={<SupplierPOView />} />
+        <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
