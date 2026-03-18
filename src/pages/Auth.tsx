@@ -189,7 +189,7 @@ const Auth: React.FC = () => {
 
   const startGoogleOAuth = async () => {
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: getGoogleRedirectUri(),
+      redirect_uri: getRedirectOrigin(),
       extraParams: {
         prompt: 'select_account',
       },
