@@ -203,7 +203,7 @@ const Auth: React.FC = () => {
 
   const startGoogleOAuth = async () => {
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin,
+      redirect_uri: getGoogleRedirectUri(),
       extraParams: {
         prompt: 'select_account',
       },
@@ -224,7 +224,7 @@ const Auth: React.FC = () => {
       })();
 
       if (isInIframe) {
-        const authUrl = new URL('/auth', window.location.origin);
+        const authUrl = new URL('/auth', getGoogleRedirectUri());
         authUrl.searchParams.set('oauth', 'google');
         const newTab = window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
 
