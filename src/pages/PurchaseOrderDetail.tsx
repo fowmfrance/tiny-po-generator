@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { POInvoiceSection } from '@/components/purchase-orders/POInvoiceSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -204,6 +205,18 @@ const PurchaseOrderDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Invoices Section - visible when PO is not draft */}
+      <POInvoiceSection
+        poId={po.id}
+        poNumber={po.po_number}
+        supplierId={po.supplier_id}
+        supplierName={po.supplier?.name || 'Inconnu'}
+        currency={po.currency}
+        totalAmount={Number(po.total_amount)}
+        expectedDeliveryDate={po.expected_delivery_date}
+        poStatus={po.status}
+      />
 
       {/* Action Buttons - Bottom of page */}
       <div className="flex items-center justify-between border-t pt-6">
