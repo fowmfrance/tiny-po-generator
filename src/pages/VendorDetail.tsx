@@ -23,6 +23,7 @@ const VendorDetail = () => {
   const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
+  const { copyPortalLink } = useSupplierAccessToken(id);
 
   const supplier = useMemo(() => suppliers.find(s => s.id === id), [suppliers, id]);
   const supplierPOs = useMemo(() => purchaseOrders.filter(po => po.supplier_id === id), [purchaseOrders, id]);
