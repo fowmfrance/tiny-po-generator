@@ -159,13 +159,13 @@ const BudgetDetails = () => {
                 Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
               </CardDescription>
             </div>
-            <div className="text-right space-y-1">
-              <div className="font-medium">Montant initial : {formatMoney(budget.currency, metrics.initialAmount)}</div>
-              <div className="text-sm text-muted-foreground">Provisionné : {formatMoney(budget.currency, metrics.sentAmount)}</div>
-              <div className="text-sm text-muted-foreground">Facturé : {formatMoney(budget.currency, metrics.receivedAmount)}</div>
-              <div className="text-sm text-muted-foreground">Restant : {formatMoney(budget.currency, metrics.remainingAmount)}</div>
-              <div className="text-sm text-muted-foreground">Disponible : {formatMoney(budget.currency, metrics.availableAmount)}</div>
-            </div>
+            <BudgetWaterfallChart
+              currency={budget.currency}
+              initialAmount={metrics.initialAmount}
+              sentAmount={metrics.sentAmount}
+              receivedAmount={metrics.receivedAmount}
+              availableAmount={metrics.availableAmount}
+            />
           </div>
         </CardHeader>
 
