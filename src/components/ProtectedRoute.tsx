@@ -9,24 +9,23 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const authClient = (supabase as any).auth;
 
   useEffect(() => {
     // Check current session
-    authClient.getSession().then(({ data: { session } }: any) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setSession(session);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = authClient.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: any, session: any) => {
         setSession(session);
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [authClient]);
+  }, []);
 
   if (loading) {
     return (

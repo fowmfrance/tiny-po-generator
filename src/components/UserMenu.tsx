@@ -16,25 +16,24 @@ import { toast } from 'sonner';
 const UserMenu: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
-  const authClient = (supabase as any).auth;
 
   useEffect(() => {
-    authClient.getSession().then(({ data: { session } }: any) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setSession(session);
     });
 
-    const { data: { subscription } } = authClient.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: any, session: any) => {
         setSession(session);
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [authClient]);
+  }, []);
 
   const handleSignOut = async () => {
     try {
-      await authClient.signOut();
+      await supabase.auth.signOut();
       toast.success('Déconnexion réussie');
       navigate('/auth');
     } catch (error) {
