@@ -63,8 +63,12 @@ const VendorDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="flex items-center gap-2" onClick={() => toast({ title: 'Lien portail partagé', description: `Email envoyé à ${supplier.email}` })}>
-            <Share2 className="w-4 h-4" /> Partager accès portail
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2" 
+            onClick={() => copyPortalLink()}
+          >
+            <Copy className="w-4 h-4" /> Copier lien portail
           </Button>
         </div>
       </div>
