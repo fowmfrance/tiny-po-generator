@@ -221,7 +221,7 @@ const CreateBudget = () => {
   const isSubmitting = createBudgetMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/budgets')} className="p-2">
           <ArrowLeft className="h-4 w-4" />
@@ -258,7 +258,7 @@ const CreateBudget = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-4">
+          <div className="sticky bottom-0 bg-background border-t border-border -mx-8 px-8 py-4 flex justify-end gap-4 z-10">
             <Button type="button" variant="outline" onClick={() => navigate('/budgets')} disabled={isSubmitting}>
               Annuler
             </Button>
