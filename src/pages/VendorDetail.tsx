@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
+import { useSupplierAccessToken } from '@/hooks/useSupplierAccessToken';
+import { Copy, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/paymentUtils';
 
