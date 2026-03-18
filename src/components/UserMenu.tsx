@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import { Session } from '@supabase/supabase-js';
+
+type AuthSession = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
 
 const UserMenu: React.FC = () => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession>(null);
   const navigate = useNavigate();
 
   useEffect(() => {

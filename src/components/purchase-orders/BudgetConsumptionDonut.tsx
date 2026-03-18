@@ -28,6 +28,12 @@ const COLORS = {
 const fmt = (amount: number, currency: string) =>
   `${currency} ${amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
+const RechartsPieChart = PieChart as unknown as React.ComponentType<any>;
+const RechartsPie = Pie as unknown as React.ComponentType<any>;
+const RechartsCell = Cell as unknown as React.ComponentType<any>;
+const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
+
 export default function BudgetConsumptionDonut({
   budgetInitialAmount,
   budgetCurrency,
@@ -93,9 +99,9 @@ export default function BudgetConsumptionDonut({
     <div className="space-y-4">
       {/* Donut */}
       <div className="h-[180px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
+        <RechartsResponsiveContainer width="100%" height="100%">
+          <RechartsPieChart>
+            <RechartsPie
               data={chartData}
               cx="50%"
               cy="50%"
@@ -106,12 +112,12 @@ export default function BudgetConsumptionDonut({
               stroke="none"
             >
               {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
+                <RechartsCell key={i} fill={entry.color} />
               ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+            </RechartsPie>
+            <RechartsTooltip content={<CustomTooltip />} />
+          </RechartsPieChart>
+        </RechartsResponsiveContainer>
       </div>
 
       {/* Legend */}

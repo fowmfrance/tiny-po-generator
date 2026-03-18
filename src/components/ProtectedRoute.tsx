@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+type AuthSession = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

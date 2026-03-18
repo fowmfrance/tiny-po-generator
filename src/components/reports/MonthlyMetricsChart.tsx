@@ -1,21 +1,16 @@
-
 import React, { useState } from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   ResponsiveContainer,
-  Legend
 } from 'recharts';
-import { 
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
 } from '@/components/ui/chart';
 import { format, subMonths } from 'date-fns';
 
@@ -29,19 +24,19 @@ const getMockData = (timeRange: string) => {
     case '6m': monthsCount = 6; break;
     case '1y': monthsCount = 12; break;
   }
-  
+
   const now = new Date();
   const data = [];
-  
+
   for (let i = monthsCount - 1; i >= 0; i--) {
     const date = subMonths(now, i);
     const monthName = format(date, 'MMM yyyy'); // e.g. "Jan 2023"
-    
+
     const baseValue = 100000 - (i * 5000) + Math.random() * 20000;
     const invoicesReceived = baseValue * 0.85 + Math.random() * 10000;
     const dueInvoices = baseValue * 0.6 + Math.random() * 10000;
     const recognizedCharges = baseValue * 0.75 + Math.random() * 10000;
-    
+
     data.push({
       name: monthName,
       'BC envoyés': Math.round(baseValue / 1000) * 1000,
@@ -50,7 +45,7 @@ const getMockData = (timeRange: string) => {
       'Charges reconnues': Math.round(recognizedCharges / 1000) * 1000,
     });
   }
-  
+
   return data;
 };
 
@@ -58,56 +53,65 @@ interface MonthlyMetricsChartProps {
   timeRange: '1m' | '3m' | '6m' | '1y';
 }
 
+const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
+const RechartsLineChart = LineChart as unknown as React.ComponentType<any>;
+const RechartsLine = Line as unknown as React.ComponentType<any>;
+const RechartsXAxis = XAxis as unknown as React.ComponentType<any>;
+const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
+const RechartsCartesianGrid = CartesianGrid as unknown as React.ComponentType<any>;
+const RechartsChartTooltip = ChartTooltip as unknown as React.ComponentType<any>;
+const RechartsChartTooltipContent = ChartTooltipContent as unknown as React.ComponentType<any>;
+
 const MonthlyMetricsChart: React.FC<MonthlyMetricsChartProps> = ({ timeRange }) => {
   const data = getMockData(timeRange);
   const [metrics, setMetrics] = useState({
     bc: true,
     invoices: true,
     dueInvoices: true,
-    charges: true
+    charges: true,
   });
-  
+
   const formatEuro = (value: number) => {
     return `${value.toLocaleString()} €`;
   };
-  
+
   return (
     <div className="h-full">
       <div className="flex flex-wrap gap-2 mb-4">
         <label className="flex items-center gap-1">
-          <input 
-            type="checkbox" 
-            checked={metrics.bc} 
-            onChange={() => setMetrics({...metrics, bc: !metrics.bc})} 
+          <input
+            type="checkbox"
+            checked={metrics.bc}
+            onChange={() => setMetrics({ ...metrics, bc: !metrics.bc })}
           />
           <span className="text-sm">BC envoyés</span>
         </label>
         <label className="flex items-center gap-1">
-          <input 
-            type="checkbox" 
-            checked={metrics.invoices} 
-            onChange={() => setMetrics({...metrics, invoices: !metrics.invoices})} 
+          <input
+            type="checkbox"
+            checked={metrics.invoices}
+            onChange={() => setMetrics({ ...metrics, invoices: !metrics.invoices })}
           />
           <span className="text-sm">Factures reçues</span>
         </label>
         <label className="flex items-center gap-1">
-          <input 
-            type="checkbox" 
-            checked={metrics.dueInvoices} 
-            onChange={() => setMetrics({...metrics, dueInvoices: !metrics.dueInvoices})} 
+          <input
+            type="checkbox"
+            checked={metrics.dueInvoices}
+            onChange={() => setMetrics({ ...metrics, dueInvoices: !metrics.dueInvoices })}
           />
           <span className="text-sm">Factures échues</span>
         </label>
         <label className="flex items-center gap-1">
-          <input 
-            type="checkbox" 
-            checked={metrics.charges} 
-            onChange={() => setMetrics({...metrics, charges: !metrics.charges})} 
+          <input
+            type="checkbox"
+            checked={metrics.charges}
+            onChange={() => setMetrics({ ...metrics, charges: !metrics.charges })}
           />
           <span className="text-sm">Charges reconnues</span>
         </label>
       </div>
-      
+
       <ChartContainer
         config={{
           'BC envoyés': { theme: { light: '#3b82f6', dark: '#3b82f6' } },
@@ -117,8 +121,8 @@ const MonthlyMetricsChart: React.FC<MonthlyMetricsChartProps> = ({ timeRange }) 
         }}
         className="h-[calc(100%-40px)]"
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+        <RechartsResponsiveContainer width="100%" height="100%">
+          <RechartsLineChart
             data={data}
             margin={{
               top: 20,
@@ -127,51 +131,51 @@ const MonthlyMetricsChart: React.FC<MonthlyMetricsChartProps> = ({ timeRange }) 
               bottom: 10,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k €`} />
-            <ChartTooltip 
+            <RechartsCartesianGrid strokeDasharray="3 3" />
+            <RechartsXAxis dataKey="name" />
+            <RechartsYAxis tickFormatter={(value: number) => `${(value / 1000).toFixed(0)}k €`} />
+            <RechartsChartTooltip
               content={
-                <ChartTooltipContent 
-                  formatter={(value) => formatEuro(Number(value))}
+                <RechartsChartTooltipContent
+                  formatter={(value: unknown) => formatEuro(Number(value))}
                 />
               }
             />
             {metrics.bc && (
-              <Line 
-                type="monotone" 
-                dataKey="BC envoyés" 
-                stroke="var(--color-BC envoyés)" 
-                activeDot={{ r: 8 }} 
+              <RechartsLine
+                type="monotone"
+                dataKey="BC envoyés"
+                stroke="var(--color-BC envoyés)"
+                activeDot={{ r: 8 }}
                 strokeWidth={2}
               />
             )}
             {metrics.invoices && (
-              <Line 
-                type="monotone" 
-                dataKey="Factures reçues" 
-                stroke="var(--color-Factures reçues)" 
+              <RechartsLine
+                type="monotone"
+                dataKey="Factures reçues"
+                stroke="var(--color-Factures reçues)"
                 strokeWidth={2}
               />
             )}
             {metrics.dueInvoices && (
-              <Line 
-                type="monotone" 
-                dataKey="Factures échues" 
-                stroke="var(--color-Factures échues)" 
+              <RechartsLine
+                type="monotone"
+                dataKey="Factures échues"
+                stroke="var(--color-Factures échues)"
                 strokeWidth={2}
               />
             )}
             {metrics.charges && (
-              <Line 
-                type="monotone" 
-                dataKey="Charges reconnues" 
-                stroke="var(--color-Charges reconnues)" 
+              <RechartsLine
+                type="monotone"
+                dataKey="Charges reconnues"
+                stroke="var(--color-Charges reconnues)"
                 strokeWidth={2}
               />
             )}
-          </LineChart>
-        </ResponsiveContainer>
+          </RechartsLineChart>
+        </RechartsResponsiveContainer>
       </ChartContainer>
     </div>
   );
