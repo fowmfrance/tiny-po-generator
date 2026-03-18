@@ -202,7 +202,14 @@ const BudgetDetails = () => {
                       onClick={() => navigate(`/purchase-orders/${po.id}`)}
                     >
                       <TableCell className="font-medium">{po.po_number}</TableCell>
-                      <TableCell>{po.supplier?.name || 'Fournisseur inconnu'}</TableCell>
+                      <TableCell>
+                        <span>{po.supplier?.name || 'Fournisseur inconnu'}</span>
+                        {po.supplier?.is_active === false && (
+                          <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0">
+                            KYC en attente
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline">{po.status}</Badge>
                       </TableCell>
