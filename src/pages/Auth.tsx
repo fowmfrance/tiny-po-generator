@@ -41,21 +41,7 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const oauthIntent = searchParams.get('oauth');
 
-  const getGoogleRedirectUri = () => {
-    const currentOrigin = window.location.origin;
-
-    if (!import.meta.env.PROD) {
-      return currentOrigin;
-    }
-
-    const url = new URL(currentOrigin);
-    if (url.hostname.startsWith('www.')) {
-      url.hostname = url.hostname.replace(/^www\./, '');
-      return url.origin;
-    }
-
-    return currentOrigin;
-  };
+  const getRedirectOrigin = () => window.location.origin;
 
   useEffect(() => {
     // Check if this is a password reset flow
@@ -203,7 +189,7 @@ const Auth: React.FC = () => {
 
   const startGoogleOAuth = async () => {
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: getGoogleRedirectUri(),
+      redirect_uri: getRedirectOrigin(),
       extraParams: {
         prompt: 'select_account',
       },
@@ -224,7 +210,7 @@ const Auth: React.FC = () => {
       })();
 
       if (isInIframe) {
-        const authUrl = new URL('/auth', getGoogleRedirectUri());
+        const authUrl = new URL('/auth', getRedirectOrigin());
         authUrl.searchParams.set('oauth', 'google');
         const newTab = window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
 
@@ -239,7 +225,15 @@ const Auth: React.FC = () => {
 
       await startGoogleOAuth();
     } catch (error: any) {
-      const message = error?.message || 'Une erreur est survenue avec Google';
+      const rawMsg = error?.message || '';
+      let message = 'Une erreur est survenue avec Google';
+      if (rawMsg.includes('redirect_uri') || rawMsg.includes('not allowed')) {
+        message = 'Domaine non autorisé pour la connexion Google. Essayez depuis sapajoo.fr directement.';
+      } else if (rawMsg.includes('popup') || rawMsg.includes('Popup')) {
+        message = 'Popup bloquée. Autorisez les popups puis réessayez.';
+      } else if (rawMsg) {
+        message = rawMsg;
+      }
       toast.error(message);
       setLoading(false);
     }
