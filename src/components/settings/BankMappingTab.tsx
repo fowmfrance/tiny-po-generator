@@ -205,8 +205,8 @@ const BankMappingTab = () => {
 
     if (!bankLabels || bankLabels.length === 0) return {};
 
-    const labelCodeToId = new Map(bankLabels.map(bl => [bl.label_code, bl.id]));
-    const labelIdToCode = new Map(bankLabels.map(bl => [bl.id, bl.label_code]));
+    const labelCodeToId = new Map<string, string>(bankLabels.map(bl => [bl.label_code, bl.id]));
+    const labelIdToCode = new Map<string, string>(bankLabels.map(bl => [bl.id, bl.label_code]));
 
     // Get user's mappings
     const { data: userMappings, error } = await supabase
