@@ -19,9 +19,9 @@ export const EXPENSE_TYPES = [
 ];
 
 export const BUDGET_TYPES = [
-  { id: 'project', name: 'Projet', poFormat: 'PRJ-{YYYY}-{NNN}', currentSequence: 0 },
-  { id: 'ga', name: 'Frais généraux', poFormat: 'GA-{YYYY}-{NNN}', currentSequence: 0 },
-  { id: 'capex', name: 'CAPEX', poFormat: 'CPX-{YYYY}-{NNN}', currentSequence: 0 },
+  { id: 'project', name: 'Projet', poFormat: 'PR{YY}-{NNN}', currentSequence: 0 },
+  { id: 'ga', name: 'Frais généraux', poFormat: 'GA{YY}-{NNN}', currentSequence: 0 },
+  { id: 'capex', name: 'CAPEX', poFormat: 'CX{YY}-{NNN}', currentSequence: 0 },
 ];
 
 export const MILESTONE_METHOD_CODE = 'poc_milestone';
@@ -40,8 +40,10 @@ export interface FormValues {
 
 export const formatBudgetCode = (format: string, sequence: number): string => {
   const year = new Date().getFullYear().toString();
-  const paddedSequence = (sequence + 1).toString().padStart(3, '0');
+  const shortYear = year.slice(-2);
+  const paddedSequence = (sequence + 1).toString().padStart(2, '0');
   return format
     .replace('{YYYY}', year)
+    .replace('{YY}', shortYear)
     .replace('{NNN}', paddedSequence);
 };

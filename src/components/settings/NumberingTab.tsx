@@ -61,8 +61,8 @@ const NumberingTab = () => {
   
   // Mock data - will be replaced with Supabase queries
   const [budgetTypes, setBudgetTypes] = useState<BudgetType[]>([
-    { id: '1', name: 'G&A', description: 'Frais généraux et administratifs', poFormat: 'GA-{YYYY}-{SEQ}', currentSequence: 42, isDefault: true, isActive: true },
-    { id: '2', name: 'Projets', description: 'Budgets de projets spécifiques', poFormat: 'PRJ-{YYYY}-{SEQ}', currentSequence: 156, isDefault: false, isActive: true },
+    { id: '1', name: 'G&A', description: 'Frais généraux et administratifs', poFormat: 'GA{YY}-{SEQ}', currentSequence: 42, isDefault: true, isActive: true },
+    { id: '2', name: 'Projets', description: 'Budgets de projets spécifiques', poFormat: 'PR{YY}-{SEQ}', currentSequence: 156, isDefault: false, isActive: true },
   ]);
 
   const [teams, setTeams] = useState<Team[]>([
