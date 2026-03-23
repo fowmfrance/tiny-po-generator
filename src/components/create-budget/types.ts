@@ -19,9 +19,9 @@ export const EXPENSE_TYPES = [
 ];
 
 export const BUDGET_TYPES = [
-  { id: 'project', name: 'Projet', poFormat: 'PRJ-{YYYY}-{NNN}', currentSequence: 0 },
-  { id: 'ga', name: 'Frais généraux', poFormat: 'GA-{YYYY}-{NNN}', currentSequence: 0 },
-  { id: 'capex', name: 'CAPEX', poFormat: 'CPX-{YYYY}-{NNN}', currentSequence: 0 },
+  { id: 'project', name: 'Projet', poFormat: 'PR{YY}-{NNN}', currentSequence: 0 },
+  { id: 'ga', name: 'Frais généraux', poFormat: 'GA{YY}-{NNN}', currentSequence: 0 },
+  { id: 'capex', name: 'CAPEX', poFormat: 'CX{YY}-{NNN}', currentSequence: 0 },
 ];
 
 export const MILESTONE_METHOD_CODE = 'poc_milestone';
