@@ -428,7 +428,7 @@ const CreatePO = () => {
         navigate(`/purchase-orders/${editId}`);
       } else {
         // Create new PO
-        const po_number = generatePONumber();
+        const po_number = await generatePONumber();
 
         await createPO.mutateAsync({
           budget_id: selectedBudget || undefined,
