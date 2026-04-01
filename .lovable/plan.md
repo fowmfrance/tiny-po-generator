@@ -1,37 +1,44 @@
-## Plan: Corriger le bridge budgétaire et afficher reconnaissance/jalons
 
-### Problème 1 — Le bridge (waterfall) ne montre pas le passage du budget initial au disponible
+## Plan : Corriger le bridge budgétaire + afficher reconnaissance/jalons
 
-Le graphique actuel affiche 4 barres mais la logique visuelle ne montre pas clairement la **décomposition soustractive** :
-`Budget initial − Facturé − Engagé = Disponible`
+### 1. Refonte du Waterfall Chart (bridge soustractif)
 
-**Correction dans `BudgetWaterfallChart.tsx`** :
-- Transformer le graphique en vrai bridge avec 4 barres :
-  1. **Budget initial** : barre pleine partant de 0 (bleue)
-  2. **− Facturé** : barre rouge/verte descendante montrant la soustraction du montant facturé (label avec signe négatif)
-  3. **− Engagé non facturé** : barre orange descendante montrant la soustraction des BC émis non encore facturés (label avec signe négatif)
-  4. **= Disponible** : barre résultante partant de 0 jusqu'au montant restant
+Le graphique actuel ne montre pas clairement le passage **Budget initial → Disponible**. Il sera transformé en vrai bridge soustractif :
 
-Les barres intermédiaires (Facturé et Engagé) seront positionnées en cascade : le haut de "Facturé" touche le haut de "Initial", et le bas de "Facturé" devient le haut de "Engagé", et le bas de "Engagé" touche le haut de "Disponible". Des connecteurs visuels (lignes pointillées) relieront les barres entre elles pour rendre le pont lisible.
+```text
+ ████ Budget initial (100k)
+ │
+ ▼▼▼▼ − Facturé (−30k)         ← barre descendante
+ │
+ ▼▼▼▼ − Engagé non facturé (−20k) ← barre descendante
+ │
+ ████ = Disponible (50k)        ← barre résultante
+```
 
-La légende sera mise à jour en conséquence.
+- Barres 2 et 3 positionnées en cascade (le bas de chaque barre touche le haut de la suivante)
+- Labels avec signe négatif (−30k€, −20k€)
+- Connecteurs pointillés entre les barres
+- Couleurs : bleu (initial), vert (facturé), orange (engagé), bleu clair (disponible)
 
-### Problème 2 — La méthode de reconnaissance et les jalons ne sont pas visibles sur la page de détail du budget
+**Fichier** : `src/components/budget/BudgetWaterfallChart.tsx`
 
-La création de budget permet déjà de définir la méthode de reconnaissance et les jalons (milestones). Cependant, la page `BudgetDetails.tsx` ne les affiche pas.
+### 2. Afficher la méthode de reconnaissance et les jalons sur la page de détail du budget
 
-**Modifications dans `BudgetDetails.tsx`** :
-- Enrichir la requête Supabase pour récupérer `recognition_method_id`, `milestone_mode`, `resale_price`, `status` depuis la table `budgets`
-- Joindre la table `recognition_methods` pour afficher le nom de la méthode
+Actuellement `BudgetDetails.tsx` ne montre ni la méthode de reconnaissance ni les jalons, alors qu'ils sont définis lors de la création.
+
+- Enrichir la requête Supabase pour récupérer `recognition_method_id`, `milestone_mode`, `resale_price`
+- Joindre `recognition_methods` (nom de la méthode)
 - Récupérer les `budget_milestones` associés
-- Ajouter une section sous le waterfall chart affichant :
-  - **Méthode de reconnaissance** : nom + description
-  - **Jalons** (si méthode milestone) : timeline ou liste des jalons avec statut de complétion, date cible, pourcentage d'avancement
-  - Bouton pour modifier les jalons (réutiliser `MilestoneTimelineDialog`)
+- Ajouter une section UI avec :
+  - Nom de la méthode de reconnaissance
+  - Si méthode milestone : liste des jalons avec date cible, avancement, statut
+  - Bouton pour modifier les jalons (réutilise `MilestoneTimelineDialog`)
 
-### Fichiers modifiés
+**Fichier** : `src/pages/BudgetDetails.tsx`
 
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/budget/BudgetWaterfallChart.tsx` | Refonte logique bridge soustractif avec connecteurs |
-| `src/pages/BudgetDetails.tsx` | Ajout requête recognition_methods + milestones, sections UI correspondantes |
+### Fichiers impactés
+
+| Fichier | Modification |
+|---------|-------------|
+| `BudgetWaterfallChart.tsx` | Refonte logique bridge soustractif |
+| `BudgetDetails.tsx` | Requête enrichie + sections reconnaissance/jalons |
