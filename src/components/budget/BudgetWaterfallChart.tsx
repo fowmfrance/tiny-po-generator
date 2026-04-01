@@ -6,6 +6,7 @@ import {
   YAxis,
   Tooltip,
   Cell,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -31,7 +32,7 @@ interface WaterfallItem {
   visible: number;
   fill: string;
   tooltip: string;
-  amount: string;
+  label: string;
 }
 
 const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
@@ -41,6 +42,7 @@ const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
 const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
 const RechartsBar = Bar as unknown as React.ComponentType<any>;
 const RechartsCell = Cell as unknown as React.ComponentType<any>;
+const RechartsReferenceLine = ReferenceLine as unknown as React.ComponentType<any>;
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -56,8 +58,8 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 const COLORS = {
   initial: 'hsl(221, 83%, 53%)',
-  invoiced: 'hsl(142, 71%, 45%)',
-  committed: 'hsl(38, 92%, 50%)',
+  invoiced: 'hsl(0, 72%, 51%)',
+  committed: 'hsl(25, 95%, 53%)',
   available: 'hsl(221, 83%, 80%)',
 };
 
@@ -68,7 +70,14 @@ export function BudgetWaterfallChart({
   receivedAmount,
   availableAmount,
 }: BudgetWaterfallChartProps) {
-  const notYetInvoiced = Math.max(0, sentAmount - receivedAmount);
+  const invoicedAmount = receivedAmount;
+  const committedAmount = Math.max(0, sentAmount - receivedAmount);
+
+  // Waterfall logic: cascade from top
+  // Bar 1: Initial — full bar from 0 to initialAmount
+  // Bar 2: Invoiced — hangs from top of initial, going down
+  // Bar 3: Committed — hangs below invoiced
+  // Bar 4: Available — from 0 to availableAmount
 
   const data: WaterfallItem[] = [
     {
@@ -77,41 +86,48 @@ export function BudgetWaterfallChart({
       visible: initialAmount,
       fill: COLORS.initial,
       tooltip: `Enveloppe totale : ${fmt(currency, initialAmount)}`,
-      amount: fmt(currency, initialAmount),
+      label: fmt(currency, initialAmount),
     },
     {
-      name: 'Facturé',
-      invisible: initialAmount - receivedAmount,
-      visible: receivedAmount,
+      name: '− Facturé',
+      invisible: initialAmount - invoicedAmount,
+      visible: invoicedAmount,
       fill: COLORS.invoiced,
-      tooltip: `Déjà facturé par les fournisseurs : ${fmt(currency, receivedAmount)}`,
-      amount: fmt(currency, receivedAmount),
+      tooltip: `Montant facturé : −${fmt(currency, invoicedAmount)}`,
+      label: `−${fmt(currency, invoicedAmount)}`,
     },
     {
-      name: 'Engagé',
+      name: '− Engagé',
       invisible: availableAmount,
-      visible: notYetInvoiced,
+      visible: committedAmount,
       fill: COLORS.committed,
-      tooltip: `BC émis, en attente de facturation : ${fmt(currency, notYetInvoiced)}`,
-      amount: fmt(currency, notYetInvoiced),
+      tooltip: `BC émis, non facturé : −${fmt(currency, committedAmount)}`,
+      label: `−${fmt(currency, committedAmount)}`,
     },
     {
-      name: 'Disponible',
+      name: '= Disponible',
       invisible: 0,
       visible: availableAmount,
       fill: COLORS.available,
       tooltip: `Reste à engager : ${fmt(currency, availableAmount)}`,
-      amount: fmt(currency, availableAmount),
+      label: fmt(currency, availableAmount),
     },
+  ];
+
+  // Connector lines between bars (dashed)
+  const connectors = [
+    { x1: 0, x2: 1, y: initialAmount - invoicedAmount }, // bottom of invoiced = top of committed area
+    { x1: 1, x2: 2, y: availableAmount + committedAmount }, // top of committed
+    { x1: 2, x2: 3, y: availableAmount }, // bottom of committed = top of available
   ];
 
   return (
     <div className="w-full">
-      <RechartsResponsiveContainer width="100%" height={180}>
+      <RechartsResponsiveContainer width="100%" height={200}>
         <RechartsBarChart
           data={data}
-          margin={{ top: 20, right: 5, left: 5, bottom: 5 }}
-          barCategoryGap="25%"
+          margin={{ top: 24, right: 5, left: 5, bottom: 5 }}
+          barCategoryGap="20%"
         >
           <RechartsXAxis
             dataKey="name"
@@ -119,9 +135,13 @@ export function BudgetWaterfallChart({
             axisLine={false}
             tickLine={false}
           />
-          <RechartsYAxis hide />
+          <RechartsYAxis hide domain={[0, initialAmount * 1.05]} />
           <RechartsTooltip content={<CustomTooltip />} cursor={false} />
+
+          {/* Invisible spacer bar */}
           <RechartsBar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
+
+          {/* Visible bar */}
           <RechartsBar
             dataKey="visible"
             stackId="waterfall"
@@ -137,7 +157,7 @@ export function BudgetWaterfallChart({
                   fontWeight={600}
                   fill="hsl(var(--foreground))"
                 >
-                  {item.amount}
+                  {item.label}
                 </text>
               );
             }}
@@ -148,7 +168,11 @@ export function BudgetWaterfallChart({
           </RechartsBar>
         </RechartsBarChart>
       </RechartsResponsiveContainer>
-      <div className="flex justify-center gap-5 text-xs text-muted-foreground">
+      <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.initial }} />
+          Budget initial
+        </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
           Facturé
