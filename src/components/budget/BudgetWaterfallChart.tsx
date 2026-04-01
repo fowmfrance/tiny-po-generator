@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -7,6 +7,7 @@ import {
   Tooltip,
   Cell,
   ResponsiveContainer,
+  Customized,
 } from 'recharts';
 
 interface BudgetWaterfallChartProps {
@@ -42,6 +43,7 @@ const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
 const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
 const RechartsBar = Bar as unknown as React.ComponentType<any>;
 const RechartsCell = Cell as unknown as React.ComponentType<any>;
+const RechartsCustomized = Customized as unknown as React.ComponentType<any>;
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -68,7 +70,7 @@ const DashedBarShape = (props: any) => {
   if (!payload?.isDashed) {
     return <rect x={x} y={y} width={width} height={height} fill={payload?.fill || 'transparent'} rx={4} />;
   }
-  // For zero-value bars, draw a dashed outline at the full initial height
+  // For zero-value bars, draw a dashed outline at the full height
   return (
     <rect
       x={x}
@@ -84,6 +86,59 @@ const DashedBarShape = (props: any) => {
   );
 };
 
+// Custom connector lines between bars
+const WaterfallConnectors = (props: any) => {
+  const { formattedGraphicalItems } = props;
+  if (!formattedGraphicalItems?.length) return null;
+
+  // The visible bar is the second item (index 1) in the stacked bars
+  const visibleBars = formattedGraphicalItems[1]?.props?.data;
+  if (!visibleBars || visibleBars.length < 2) return null;
+
+  const lines: React.ReactElement[] = [];
+
+  for (let i = 0; i < visibleBars.length - 1; i++) {
+    const current = visibleBars[i];
+    const next = visibleBars[i + 1];
+    if (!current || !next) continue;
+
+    // The connector y is at the bottom of the current visible bar = top of invisible of next
+    // For "Budget" → "Facturé": connect at the level where the next bar starts
+    // The transition level is: invisible[i+1] + visible[i+1] top, which equals invisible[i] for totals
+    // Simpler: connect at the y coordinate of the bottom of current visible bar
+    const currentX = current.x + current.width;
+    const nextX = next.x;
+
+    // The transition level (in data coords) is the top of the next bar
+    // For descent bars: bottom of current = top of next
+    // y coordinate = top of invisible bar of next entry = next.y + next.height (bottom of visible)
+    // Actually we want the level where they connect:
+    // Budget→Facturé: level = initialAmount (top of both)
+    // Facturé→Engagé: level = levelAfterInvoiced (bottom of facturé = top of engagé visible)
+    // Engagé→Restant: level = availableAmount (bottom of engagé = top of restant)
+
+    // The y of visible bar bottom = y + height
+    // But for the invisible+visible stack, the transition is at the TOP of the next visible bar
+    const connectorY = next.y; // top of next visible bar
+
+    lines.push(
+      <line
+        key={`connector-${i}`}
+        x1={currentX}
+        x2={nextX}
+        y1={connectorY}
+        y2={connectorY}
+        stroke="hsl(var(--muted-foreground))"
+        strokeWidth={1}
+        strokeDasharray="4 3"
+        opacity={0.5}
+      />
+    );
+  }
+
+  return <g>{lines}</g>;
+};
+
 export function BudgetWaterfallChart({
   currency,
   initialAmount,
@@ -94,18 +149,7 @@ export function BudgetWaterfallChart({
   const invoicedAmount = receivedAmount;
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
 
-  // When invoiced is 0, show a dashed bar at the same height as initial
   const isInvoicedZero = invoicedAmount === 0;
-
-  // Waterfall cascade logic:
-  // Bar 1: Initial — full bar from 0 to initialAmount
-  // Bar 2: Facturé — if 0, dashed outline at initialAmount height; else subtract from top
-  // Bar 3: Engagé — hangs below facturé, from (initialAmount - invoicedAmount - committedAmount) to (initialAmount - invoicedAmount)
-  // Bar 4: Disponible — from 0 to availableAmount, top aligns with bottom of engagé
-
-  // After initial, each step subtracts from the running total:
-  // Level after invoiced = initialAmount - invoicedAmount
-  // Level after committed = initialAmount - invoicedAmount - committedAmount = availableAmount
   const levelAfterInvoiced = initialAmount - invoicedAmount;
 
   const data: WaterfallItem[] = [
@@ -122,17 +166,17 @@ export function BudgetWaterfallChart({
       invisible: isInvoicedZero ? 0 : levelAfterInvoiced,
       visible: isInvoicedZero ? initialAmount : invoicedAmount,
       fill: isInvoicedZero ? 'transparent' : COLORS.invoiced,
-      tooltip: `Montant facturé : −${fmt(currency, invoicedAmount)}`,
-      label: fmt(currency, isInvoicedZero ? initialAmount : invoicedAmount),
+      tooltip: `Montant facturé : ${invoicedAmount > 0 ? '−' : ''}${fmt(currency, invoicedAmount)}`,
+      label: invoicedAmount > 0 ? `−${fmt(currency, invoicedAmount)}` : fmt(currency, 0),
       isDashed: isInvoicedZero,
     },
     {
       name: 'Engagé',
       invisible: availableAmount,
       visible: committedAmount,
-      fill: COLORS.invoiced,
+      fill: COLORS.committed,
       tooltip: `BC émis, non facturé : −${fmt(currency, committedAmount)}`,
-      label: fmt(currency, availableAmount),
+      label: committedAmount > 0 ? `−${fmt(currency, committedAmount)}` : fmt(currency, 0),
     },
     {
       name: 'Restant',
@@ -189,6 +233,9 @@ export function BudgetWaterfallChart({
               <RechartsCell key={index} fill={entry.fill} />
             ))}
           </RechartsBar>
+
+          {/* Dashed connectors between bars */}
+          <RechartsCustomized component={WaterfallConnectors} />
         </RechartsBarChart>
       </RechartsResponsiveContainer>
       <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
@@ -198,7 +245,11 @@ export function BudgetWaterfallChart({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
-          Diminution
+          Facturé
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.committed }} />
+          Engagé
         </span>
       </div>
     </div>
