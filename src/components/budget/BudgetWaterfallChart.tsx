@@ -235,7 +235,7 @@ export function BudgetWaterfallChart({
           </RechartsBar>
 
           {/* Dashed connectors between bars */}
-          {(BarChart as any).prototype ? null : null}
+          <RechartsCustomized component={WaterfallConnectors} />
         </RechartsBarChart>
       </RechartsResponsiveContainer>
       <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
