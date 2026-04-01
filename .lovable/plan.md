@@ -1,44 +1,38 @@
 
-## Plan : Corriger le bridge budgétaire + afficher reconnaissance/jalons
 
-### 1. Refonte du Waterfall Chart (bridge soustractif)
+## Plan : Corriger le bridge budgétaire (labels + connecteurs)
 
-Le graphique actuel ne montre pas clairement le passage **Budget initial → Disponible**. Il sera transformé en vrai bridge soustractif :
+### Problèmes identifiés
+
+En regardant le rendu actuel :
 
 ```text
- ████ Budget initial (100k)
- │
- ▼▼▼▼ − Facturé (−30k)         ← barre descendante
- │
- ▼▼▼▼ − Engagé non facturé (−20k) ← barre descendante
- │
- ████ = Disponible (50k)        ← barre résultante
+Actuel (FAUX)                     Attendu (CORRECT)
+ 12 000€   12 000€   7 000€       12 000€    0€      −5 000€    7 000€
+ ████      ┊    ┊     ████         ████ ─ ─ ─┊    ┊─ ─ ████ ─ ─ ████
+ ████      ┊    ┊     ████  7000€  ████       ┊    ┊   ████      ████
+ ████      ┊    ┊     ████         ████       ┊    ┊   ████      ████
+ Budget  Facturé Engagé Restant    Budget  Facturé Engagé  Restant
 ```
 
-- Barres 2 et 3 positionnées en cascade (le bas de chaque barre touche le haut de la suivante)
-- Labels avec signe négatif (−30k€, −20k€)
-- Connecteurs pointillés entre les barres
-- Couleurs : bleu (initial), vert (facturé), orange (engagé), bleu clair (disponible)
+1. **Labels faux** : Facturé affiche 12 000€ (hauteur totale) au lieu de 0€. Engagé affiche 7 000€ (le restant) au lieu de −5 000€ (le montant soustrait).
+2. **Pas de connecteurs** : Aucune ligne pointillée horizontale ne relie les niveaux entre les barres pour montrer la cascade.
+
+### Corrections
 
 **Fichier** : `src/components/budget/BudgetWaterfallChart.tsx`
 
-### 2. Afficher la méthode de reconnaissance et les jalons sur la page de détail du budget
+1. **Labels corrigés** :
+   - Budget → affiche le montant initial (ex: "12 000€")
+   - Facturé → affiche le montant facturé avec signe négatif si > 0, sinon "0€"
+   - Engagé → affiche "−5 000€" (le montant engagé soustrait)
+   - Restant → affiche le montant disponible (ex: "7 000€")
 
-Actuellement `BudgetDetails.tsx` ne montre ni la méthode de reconnaissance ni les jalons, alors qu'ils sont définis lors de la création.
+2. **Connecteurs horizontaux** : Ajouter des lignes pointillées grises entre chaque paire de barres au niveau de transition (le bas de la barre qui descend = le haut de la barre qui suit). Implémentation via un composant SVG custom en `customized` layer du BarChart, qui trace des `line` en pointillés entre les coordonnées x/y des barres adjacentes.
 
-- Enrichir la requête Supabase pour récupérer `recognition_method_id`, `milestone_mode`, `resale_price`
-- Joindre `recognition_methods` (nom de la méthode)
-- Récupérer les `budget_milestones` associés
-- Ajouter une section UI avec :
-  - Nom de la méthode de reconnaissance
-  - Si méthode milestone : liste des jalons avec date cible, avancement, statut
-  - Bouton pour modifier les jalons (réutilise `MilestoneTimelineDialog`)
+3. **Couleur Engagé** : Passer de rouge (`COLORS.invoiced`) à orange (`COLORS.committed`) pour distinguer visuellement Facturé (rouge) et Engagé (orange).
 
-**Fichier** : `src/pages/BudgetDetails.tsx`
+### Aucun autre fichier impacté
 
-### Fichiers impactés
+Seul `BudgetWaterfallChart.tsx` est modifié.
 
-| Fichier | Modification |
-|---------|-------------|
-| `BudgetWaterfallChart.tsx` | Refonte logique bridge soustractif |
-| `BudgetDetails.tsx` | Requête enrichie + sections reconnaissance/jalons |
