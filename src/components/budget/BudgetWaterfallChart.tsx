@@ -7,6 +7,7 @@ import {
   Tooltip,
   Cell,
   ResponsiveContainer,
+  Customized,
 } from 'recharts';
 
 interface BudgetWaterfallChartProps {
