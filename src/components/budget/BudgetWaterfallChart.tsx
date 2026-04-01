@@ -6,7 +6,6 @@ import {
   YAxis,
   Tooltip,
   Cell,
-  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -33,6 +32,7 @@ interface WaterfallItem {
   fill: string;
   tooltip: string;
   label: string;
+  isDashed?: boolean;
 }
 
 const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
@@ -42,7 +42,6 @@ const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
 const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
 const RechartsBar = Bar as unknown as React.ComponentType<any>;
 const RechartsCell = Cell as unknown as React.ComponentType<any>;
-const RechartsReferenceLine = ReferenceLine as unknown as React.ComponentType<any>;
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -63,6 +62,28 @@ const COLORS = {
   available: 'hsl(221, 83%, 80%)',
 };
 
+// Custom bar shape that renders dashed outline when amount is 0
+const DashedBarShape = (props: any) => {
+  const { x, y, width, height, payload } = props;
+  if (!payload?.isDashed) {
+    return <rect x={x} y={y} width={width} height={height} fill={payload?.fill || 'transparent'} rx={4} />;
+  }
+  // For zero-value bars, draw a dashed outline at the full initial height
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      fill="transparent"
+      stroke={COLORS.invoiced}
+      strokeWidth={1.5}
+      strokeDasharray="4 3"
+      rx={4}
+    />
+  );
+};
+
 export function BudgetWaterfallChart({
   currency,
   initialAmount,
@@ -73,11 +94,14 @@ export function BudgetWaterfallChart({
   const invoicedAmount = receivedAmount;
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
 
-  // Waterfall logic: cascade from top
+  // When invoiced is 0, show a dashed bar at the same height as initial
+  const isInvoicedZero = invoicedAmount === 0;
+
+  // Waterfall cascade logic:
   // Bar 1: Initial — full bar from 0 to initialAmount
-  // Bar 2: Invoiced — hangs from top of initial, going down
-  // Bar 3: Committed — hangs below invoiced
-  // Bar 4: Available — from 0 to availableAmount
+  // Bar 2: Facturé — if 0, dashed outline at initialAmount height; else subtract from top
+  // Bar 3: Engagé — hangs below facturé, from (initialAmount - invoicedAmount - committedAmount) to (initialAmount - invoicedAmount)
+  // Bar 4: Disponible — from 0 to availableAmount, top aligns with bottom of engagé
 
   const data: WaterfallItem[] = [
     {
@@ -90,11 +114,12 @@ export function BudgetWaterfallChart({
     },
     {
       name: '− Facturé',
-      invisible: initialAmount - invoicedAmount,
-      visible: invoicedAmount,
-      fill: COLORS.invoiced,
+      invisible: isInvoicedZero ? 0 : initialAmount - invoicedAmount,
+      visible: isInvoicedZero ? initialAmount : invoicedAmount,
+      fill: isInvoicedZero ? 'transparent' : COLORS.invoiced,
       tooltip: `Montant facturé : −${fmt(currency, invoicedAmount)}`,
       label: `−${fmt(currency, invoicedAmount)}`,
+      isDashed: isInvoicedZero,
     },
     {
       name: '− Engagé',
@@ -112,13 +137,6 @@ export function BudgetWaterfallChart({
       tooltip: `Reste à engager : ${fmt(currency, availableAmount)}`,
       label: fmt(currency, availableAmount),
     },
-  ];
-
-  // Connector lines between bars (dashed)
-  const connectors = [
-    { x1: 0, x2: 1, y: initialAmount - invoicedAmount }, // bottom of invoiced = top of committed area
-    { x1: 1, x2: 2, y: availableAmount + committedAmount }, // top of committed
-    { x1: 2, x2: 3, y: availableAmount }, // bottom of committed = top of available
   ];
 
   return (
@@ -141,11 +159,11 @@ export function BudgetWaterfallChart({
           {/* Invisible spacer bar */}
           <RechartsBar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
 
-          {/* Visible bar */}
+          {/* Visible bar with custom shape for dashed zero-value bars */}
           <RechartsBar
             dataKey="visible"
             stackId="waterfall"
-            radius={[4, 4, 0, 0]}
+            shape={<DashedBarShape />}
             label={({ x, y, width, index }: any) => {
               const item = data[index];
               return (
