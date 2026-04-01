@@ -43,6 +43,7 @@ const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
 const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
 const RechartsBar = Bar as unknown as React.ComponentType<any>;
 const RechartsCell = Cell as unknown as React.ComponentType<any>;
+const RechartsCustomized = Customized as unknown as React.ComponentType<any>;
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
