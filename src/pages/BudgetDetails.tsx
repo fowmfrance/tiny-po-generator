@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BudgetWaterfallChart } from '@/components/budget/BudgetWaterfallChart';
+import { BudgetRecognitionSection } from '@/components/budget/BudgetRecognitionSection';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -46,22 +47,36 @@ const BudgetDetails = () => {
 
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
-        .select('id, code, name, currency, initial_amount, budget_type_id, start_date, end_date')
+        .select(`
+          id, code, name, currency, initial_amount, budget_type_id, 
+          start_date, end_date, recognition_method_id, milestone_mode, resale_price, status,
+          recognition_methods (
+            id, code, name_expense, name_revenue, description, trigger_type
+          )
+        `)
         .eq('id', id)
         .single();
 
       if (budgetError || !budget) return null;
 
-      const { data: purchaseOrders, error: poError } = await supabase
-        .from('purchase_orders')
-        .select('id, po_number, supplier_id, total_amount, currency, status, created_at, supplier:suppliers(name, is_active)')
-        .eq('budget_id', budget.id)
-        .order('created_at', { ascending: false });
+      const [poRes, milestonesRes] = await Promise.all([
+        supabase
+          .from('purchase_orders')
+          .select('id, po_number, supplier_id, total_amount, currency, status, created_at, supplier:suppliers(name, is_active)')
+          .eq('budget_id', budget.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('budget_milestones')
+          .select('*')
+          .eq('budget_id', budget.id)
+          .order('order_index', { ascending: true }),
+      ]);
 
-      if (poError) throw poError;
+      if (poRes.error) throw poRes.error;
 
-      const poList = (purchaseOrders || []) as any[];
+      const poList = (poRes.data || []) as any[];
       const poIds = poList.map((po) => po.id);
+      const milestones = milestonesRes.data || [];
 
       let receivedAmount = 0;
       if (poIds.length > 0) {
@@ -72,7 +87,6 @@ const BudgetDetails = () => {
           .neq('status', 'rejected');
 
         if (invoicesError) throw invoicesError;
-
         receivedAmount = (invoices || []).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
       }
 
@@ -86,6 +100,8 @@ const BudgetDetails = () => {
       return {
         budget,
         purchaseOrders: poList,
+        milestones,
+        recognitionMethod: (budget as any).recognition_methods || null,
         metrics: {
           initialAmount: initial,
           sentAmount,
@@ -114,7 +130,7 @@ const BudgetDetails = () => {
     );
   }
 
-  const { budget, purchaseOrders, metrics } = data;
+  const { budget, purchaseOrders, metrics, recognitionMethod, milestones } = data;
 
   const handleCreatePO = () => {
     navigate('/purchase-orders/create', {
@@ -231,6 +247,18 @@ const BudgetDetails = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Recognition method & milestones section */}
+      <BudgetRecognitionSection
+        recognitionMethod={recognitionMethod}
+        milestones={milestones}
+        milestoneMode={budget.milestone_mode}
+        budgetStartDate={budget.start_date}
+        budgetEndDate={budget.end_date}
+        onMilestonesUpdated={() => {
+          queryClient.invalidateQueries({ queryKey: ['budget-details', id] });
+        }}
+      />
 
       <EditBudgetDialog
         open={isEditOpen}
