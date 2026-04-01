@@ -194,19 +194,11 @@ export function BudgetWaterfallChart({
       <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.initial }} />
-          Budget initial
+          Début / Fin
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
-          Facturé
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.committed }} />
-          Engagé (non facturé)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.available }} />
-          Disponible
+          Diminution
         </span>
       </div>
     </div>
