@@ -103,9 +103,14 @@ export function BudgetWaterfallChart({
   // Bar 3: Engagé — hangs below facturé, from (initialAmount - invoicedAmount - committedAmount) to (initialAmount - invoicedAmount)
   // Bar 4: Disponible — from 0 to availableAmount, top aligns with bottom of engagé
 
+  // After initial, each step subtracts from the running total:
+  // Level after invoiced = initialAmount - invoicedAmount
+  // Level after committed = initialAmount - invoicedAmount - committedAmount = availableAmount
+  const levelAfterInvoiced = initialAmount - invoicedAmount;
+
   const data: WaterfallItem[] = [
     {
-      name: 'Budget initial',
+      name: 'Budget',
       invisible: 0,
       visible: initialAmount,
       fill: COLORS.initial,
@@ -113,27 +118,27 @@ export function BudgetWaterfallChart({
       label: fmt(currency, initialAmount),
     },
     {
-      name: '− Facturé',
-      invisible: isInvoicedZero ? 0 : initialAmount - invoicedAmount,
+      name: 'Facturé',
+      invisible: isInvoicedZero ? 0 : levelAfterInvoiced,
       visible: isInvoicedZero ? initialAmount : invoicedAmount,
       fill: isInvoicedZero ? 'transparent' : COLORS.invoiced,
       tooltip: `Montant facturé : −${fmt(currency, invoicedAmount)}`,
-      label: `−${fmt(currency, invoicedAmount)}`,
+      label: fmt(currency, isInvoicedZero ? initialAmount : invoicedAmount),
       isDashed: isInvoicedZero,
     },
     {
-      name: '− Engagé',
+      name: 'Engagé',
       invisible: availableAmount,
       visible: committedAmount,
-      fill: COLORS.committed,
+      fill: COLORS.invoiced,
       tooltip: `BC émis, non facturé : −${fmt(currency, committedAmount)}`,
-      label: `−${fmt(currency, committedAmount)}`,
+      label: fmt(currency, availableAmount),
     },
     {
-      name: '= Disponible',
+      name: 'Restant',
       invisible: 0,
       visible: availableAmount,
-      fill: COLORS.available,
+      fill: COLORS.initial,
       tooltip: `Reste à engager : ${fmt(currency, availableAmount)}`,
       label: fmt(currency, availableAmount),
     },
@@ -189,19 +194,11 @@ export function BudgetWaterfallChart({
       <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.initial }} />
-          Budget initial
+          Début / Fin
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
-          Facturé
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.committed }} />
-          Engagé (non facturé)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.available }} />
-          Disponible
+          Diminution
         </span>
       </div>
     </div>
