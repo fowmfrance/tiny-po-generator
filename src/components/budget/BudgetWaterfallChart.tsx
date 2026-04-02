@@ -1,14 +1,4 @@
-import React from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  ResponsiveContainer,
-  Customized,
-} from 'recharts';
+import React, { useMemo } from 'react';
 
 interface BudgetWaterfallChartProps {
   currency: string;
@@ -26,113 +16,21 @@ const fmt = (currency: string, amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount);
 
-type WaterfallItemKind = 'total' | 'change';
-
-interface WaterfallItem {
-  name: string;
-  kind: WaterfallItemKind;
-  start: number;
-  end: number;
-  invisible: number;
-  visible: number;
-  delta: number;
-  fill: string;
-  tooltip: string;
-  label: string;
-  isDashed?: boolean;
-}
-
-const RechartsResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
-const RechartsBarChart = BarChart as unknown as React.ComponentType<any>;
-const RechartsXAxis = XAxis as unknown as React.ComponentType<any>;
-const RechartsYAxis = YAxis as unknown as React.ComponentType<any>;
-const RechartsTooltip = Tooltip as unknown as React.ComponentType<any>;
-const RechartsBar = Bar as unknown as React.ComponentType<any>;
-const RechartsCell = Cell as unknown as React.ComponentType<any>;
-const RechartsCustomized = Customized as unknown as React.ComponentType<any>;
-
 const COLORS = {
-  initial: 'hsl(221, 83%, 53%)',
+  total: 'hsl(221, 83%, 53%)',
   invoiced: 'hsl(0, 72%, 51%)',
   committed: 'hsl(25, 95%, 53%)',
 };
 
-const formatChangeLabel = (currency: string, amount: number) => {
-  if (amount === 0) return fmt(currency, 0);
-  return `${amount > 0 ? '−' : '+'}${fmt(currency, Math.abs(amount))}`;
-};
-
-const CustomTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload as WaterfallItem | undefined;
-  if (!item) return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-lg">
-      <p className="font-medium text-foreground">{item.name}</p>
-      <p className="text-muted-foreground">{item.tooltip}</p>
-    </div>
-  );
-};
-
-const DashedBarShape = ({ x, y, width, height, payload }: any) => {
-  if (!payload?.isDashed) {
-    return <rect x={x} y={y} width={width} height={height} fill={payload?.fill || 'transparent'} rx={4} />;
-  }
-
-  const dashedHeight = 10;
-  const dashedY = y - dashedHeight / 2;
-
-  return (
-    <rect
-      x={x}
-      y={dashedY}
-      width={width}
-      height={dashedHeight}
-      fill="transparent"
-      stroke={payload?.fill || COLORS.invoiced}
-      strokeWidth={1.5}
-      strokeDasharray="4 3"
-      rx={4}
-    />
-  );
-};
-
-const getConnectorY = (bar: any, item: WaterfallItem) => {
-  if (item.kind === 'total' || item.delta > 0) return bar.y;
-  return bar.y + bar.height;
-};
-
-const WaterfallConnectors = ({ formattedGraphicalItems }: any) => {
-  const visibleBars = formattedGraphicalItems?.[1]?.props?.data;
-  if (!Array.isArray(visibleBars) || visibleBars.length < 2) return null;
-
-  return (
-    <g>
-      {visibleBars.slice(0, -1).map((currentBar: any, index: number) => {
-        const nextBar = visibleBars[index + 1];
-        const currentItem = currentBar?.payload as WaterfallItem | undefined;
-        if (!currentBar || !nextBar || !currentItem) return null;
-
-        const connectorY = getConnectorY(currentBar, currentItem);
-
-        return (
-          <line
-            key={`connector-${index}`}
-            x1={currentBar.x + currentBar.width}
-            x2={nextBar.x}
-            y1={connectorY}
-            y2={connectorY}
-            stroke="hsl(var(--muted-foreground))"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-            opacity={0.7}
-          />
-        );
-      })}
-    </g>
-  );
-};
+interface WaterfallStep {
+  name: string;
+  type: 'total' | 'change' | 'zero-change';
+  from: number;
+  to: number;
+  delta: number;
+  color: string;
+  label: string;
+}
 
 export function BudgetWaterfallChart({
   currency,
@@ -143,120 +41,198 @@ export function BudgetWaterfallChart({
 }: BudgetWaterfallChartProps) {
   const invoicedAmount = Math.max(0, receivedAmount);
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
-  const levelAfterInvoiced = initialAmount - invoicedAmount;
 
-  const data: WaterfallItem[] = [
+  const levelAfterInvoiced = initialAmount - invoicedAmount;
+  const levelAfterCommitted = levelAfterInvoiced - committedAmount;
+
+  const steps: WaterfallStep[] = useMemo(() => [
     {
       name: 'Budget',
-      kind: 'total',
-      start: 0,
-      end: initialAmount,
-      invisible: 0,
-      visible: initialAmount,
+      type: 'total',
+      from: 0,
+      to: initialAmount,
       delta: initialAmount,
-      fill: COLORS.initial,
-      tooltip: `Enveloppe totale : ${fmt(currency, initialAmount)}`,
+      color: COLORS.total,
       label: fmt(currency, initialAmount),
     },
     {
       name: 'Facturé',
-      kind: 'change',
-      start: initialAmount,
-      end: levelAfterInvoiced,
-      invisible: levelAfterInvoiced,
-      visible: invoicedAmount,
+      type: invoicedAmount === 0 ? 'zero-change' : 'change',
+      from: initialAmount,
+      to: levelAfterInvoiced,
       delta: -invoicedAmount,
-      fill: COLORS.invoiced,
-      tooltip: `Montant facturé : ${formatChangeLabel(currency, invoicedAmount)}`,
-      label: formatChangeLabel(currency, invoicedAmount),
-      isDashed: invoicedAmount === 0,
+      color: COLORS.invoiced,
+      label: invoicedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, invoicedAmount)}`,
     },
     {
       name: 'Engagé',
-      kind: 'change',
-      start: levelAfterInvoiced,
-      end: availableAmount,
-      invisible: availableAmount,
-      visible: committedAmount,
+      type: committedAmount === 0 ? 'zero-change' : 'change',
+      from: levelAfterInvoiced,
+      to: levelAfterCommitted,
       delta: -committedAmount,
-      fill: COLORS.committed,
-      tooltip: `BC émis, non facturé : ${formatChangeLabel(currency, committedAmount)}`,
-      label: formatChangeLabel(currency, committedAmount),
-      isDashed: committedAmount === 0,
+      color: COLORS.committed,
+      label: committedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, committedAmount)}`,
     },
     {
       name: 'Restant',
-      kind: 'total',
-      start: 0,
-      end: availableAmount,
-      invisible: 0,
-      visible: availableAmount,
-      delta: availableAmount,
-      fill: COLORS.initial,
-      tooltip: `Reste à engager : ${fmt(currency, availableAmount)}`,
-      label: fmt(currency, availableAmount),
+      type: 'total',
+      from: 0,
+      to: levelAfterCommitted,
+      delta: levelAfterCommitted,
+      color: COLORS.total,
+      label: fmt(currency, levelAfterCommitted),
     },
-  ];
+  ], [currency, initialAmount, invoicedAmount, committedAmount, levelAfterInvoiced, levelAfterCommitted]);
 
-  const allLevels = data.flatMap((item) => [item.start, item.end, 0]);
-  const minLevel = Math.min(...allLevels);
-  const maxLevel = Math.max(...allLevels);
-  const padding = Math.max((maxLevel - minLevel) * 0.08, 1);
+  // SVG layout
+  const svgWidth = 400;
+  const svgHeight = 200;
+  const marginTop = 28;
+  const marginBottom = 28;
+  const marginLeft = 16;
+  const marginRight = 16;
+  const chartWidth = svgWidth - marginLeft - marginRight;
+  const chartHeight = svgHeight - marginTop - marginBottom;
+
+  const maxValue = initialAmount || 1;
+  const barCount = steps.length;
+  const barGroupWidth = chartWidth / barCount;
+  const barWidth = barGroupWidth * 0.55;
+  const barGap = (barGroupWidth - barWidth) / 2;
+
+  const yScale = (val: number) => marginTop + chartHeight * (1 - val / maxValue);
 
   return (
     <div className="w-full">
-      <RechartsResponsiveContainer width="100%" height={200}>
-        <RechartsBarChart
-          data={data}
-          margin={{ top: 28, right: 6, left: 6, bottom: 8 }}
-          barCategoryGap="20%"
-        >
-          <RechartsXAxis
-            dataKey="name"
-            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <RechartsYAxis hide domain={[minLevel - padding, maxLevel + padding]} />
-          <RechartsTooltip content={<CustomTooltip />} cursor={false} />
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full" style={{ maxHeight: 200 }}>
+        {steps.map((step, i) => {
+          const x = marginLeft + i * barGroupWidth + barGap;
+          const centerX = x + barWidth / 2;
 
-          <RechartsBar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
-
-          <RechartsBar
-            dataKey="visible"
-            stackId="waterfall"
-            shape={<DashedBarShape />}
-            isAnimationActive={false}
-            label={({ x, y, width, index }: any) => {
-              const item = data[index];
-              if (!item || x == null || y == null || width == null) return null;
-
-              return (
+          // Connector from previous step
+          if (i > 0) {
+            const prev = steps[i - 1];
+            const connectorLevel = step.type === 'total'
+              ? step.to // for final total, connect at its top
+              : step.from; // for changes, connect at the level they start from
+            const connectorY = yScale(connectorLevel);
+            const prevX = marginLeft + (i - 1) * barGroupWidth + barGap + barWidth;
+            return (
+              <React.Fragment key={`step-${i}`}>
+                {/* Connector line */}
+                <line
+                  x1={prevX}
+                  x2={x}
+                  y1={connectorY}
+                  y2={connectorY}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  opacity={0.6}
+                />
+                {/* Bar or zero-change marker */}
+                {step.type === 'zero-change' ? (
+                  <>
+                    {/* Flat cap at current level */}
+                    <rect
+                      x={x}
+                      y={connectorY - 2}
+                      width={barWidth}
+                      height={4}
+                      fill="transparent"
+                      stroke={step.color}
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                      rx={2}
+                    />
+                    {/* Label */}
+                    <text
+                      x={centerX}
+                      y={connectorY - 8}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fontWeight={600}
+                      fill="hsl(var(--foreground))"
+                    >
+                      {step.label}
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    {/* Bar */}
+                    <rect
+                      x={x}
+                      y={yScale(Math.max(step.from, step.to))}
+                      width={barWidth}
+                      height={Math.abs(yScale(step.from) - yScale(step.to))}
+                      fill={step.color}
+                      rx={4}
+                    />
+                    {/* Label */}
+                    <text
+                      x={centerX}
+                      y={yScale(Math.max(step.from, step.to)) - 6}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fontWeight={600}
+                      fill="hsl(var(--foreground))"
+                    >
+                      {step.label}
+                    </text>
+                  </>
+                )}
+                {/* X-axis label */}
                 <text
-                  x={x + width / 2}
-                  y={item.isDashed ? y - 10 : y - 6}
+                  x={centerX}
+                  y={svgHeight - 6}
                   textAnchor="middle"
                   fontSize={11}
-                  fontWeight={600}
-                  fill="hsl(var(--foreground))"
+                  fill="hsl(var(--muted-foreground))"
                 >
-                  {item.label}
+                  {step.name}
                 </text>
-              );
-            }}
-          >
-            {data.map((entry, index) => (
-              <RechartsCell key={index} fill={entry.fill} />
-            ))}
-          </RechartsBar>
+              </React.Fragment>
+            );
+          }
 
-          <RechartsCustomized component={WaterfallConnectors} />
-        </RechartsBarChart>
-      </RechartsResponsiveContainer>
+          // First bar (Budget)
+          return (
+            <React.Fragment key={`step-${i}`}>
+              <rect
+                x={x}
+                y={yScale(step.to)}
+                width={barWidth}
+                height={yScale(0) - yScale(step.to)}
+                fill={step.color}
+                rx={4}
+              />
+              <text
+                x={centerX}
+                y={yScale(step.to) - 6}
+                textAnchor="middle"
+                fontSize={11}
+                fontWeight={600}
+                fill="hsl(var(--foreground))"
+              >
+                {step.label}
+              </text>
+              <text
+                x={centerX}
+                y={svgHeight - 6}
+                textAnchor="middle"
+                fontSize={11}
+                fill="hsl(var(--muted-foreground))"
+              >
+                {step.name}
+              </text>
+            </React.Fragment>
+          );
+        })}
+      </svg>
 
       <div className="mt-1 flex justify-center gap-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.initial }} />
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.total }} />
           Début / Fin
         </span>
         <span className="flex items-center gap-1.5">
