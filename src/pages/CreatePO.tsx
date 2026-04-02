@@ -347,31 +347,10 @@ const CreatePO = () => {
     setIsInviteVendorOpen(false);
   };
 
-  const generatePONumber = async () => {
-    const budget = budgetList.find((b) => b.id === selectedBudget);
-    const budgetCode = budget ? budget.code : 'PO';
-    
-    // Count existing POs for this budget to get next sequence
-    let nextSeq = 1;
-    if (selectedBudget) {
-      const { count } = await supabase
-        .from('purchase_orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('budget_id', selectedBudget);
-      nextSeq = (count || 0) + 1;
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { count } = await supabase
-          .from('purchase_orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        nextSeq = (count || 0) + 1;
-      }
-    }
-    
-    const paddedSeq = nextSeq.toString().padStart(4, '0');
-    return `${budgetCode}-${paddedSeq}`;
+  const generateDraftNumber = () => {
+    // Draft POs get a temporary number; the final number is assigned on finalization
+    const shortId = crypto.randomUUID().slice(0, 8).toUpperCase();
+    return `DR-${shortId}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -428,7 +407,7 @@ const CreatePO = () => {
         navigate(`/purchase-orders/${editId}`);
       } else {
         // Create new PO
-        const po_number = await generatePONumber();
+        const po_number = generateDraftNumber();
 
         await createPO.mutateAsync({
           budget_id: selectedBudget || undefined,

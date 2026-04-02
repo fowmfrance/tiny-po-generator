@@ -183,15 +183,15 @@ export function usePurchaseOrders() {
 
   const updatePOStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: POStatus }) => {
+      const { data: poRef, error: poRefError } = await supabase
+        .from('purchase_orders')
+        .select('supplier_id, po_number, budget_id, user_id')
+        .eq('id', id)
+        .single();
+
+      if (poRefError || !poRef) throw new Error('Bon de commande introuvable.');
+
       if (status !== 'draft') {
-        const { data: poRef, error: poRefError } = await supabase
-          .from('purchase_orders')
-          .select('supplier_id')
-          .eq('id', id)
-          .single();
-
-        if (poRefError || !poRef) throw new Error('Bon de commande introuvable.');
-
         const { data: supplier, error: supplierError } = await supabase
           .from('suppliers')
           .select('is_active')
@@ -205,6 +205,40 @@ export function usePurchaseOrders() {
       }
 
       const updates: any = { status };
+
+      // Generate the final PO number when leaving draft status
+      if (status !== 'draft' && poRef.po_number.startsWith('DR-')) {
+        let budgetCode = 'PO';
+        if (poRef.budget_id) {
+          const { data: budget } = await supabase
+            .from('budgets')
+            .select('code')
+            .eq('id', poRef.budget_id)
+            .single();
+          if (budget) budgetCode = budget.code;
+        }
+
+        // Count existing finalized POs (non-draft numbers) for this budget
+        let nextSeq = 1;
+        if (poRef.budget_id) {
+          const { count } = await supabase
+            .from('purchase_orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('budget_id', poRef.budget_id)
+            .not('po_number', 'like', 'DR-%');
+          nextSeq = (count || 0) + 1;
+        } else {
+          const { count } = await supabase
+            .from('purchase_orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', poRef.user_id)
+            .not('po_number', 'like', 'DR-%');
+          nextSeq = (count || 0) + 1;
+        }
+
+        updates.po_number = `${budgetCode}-${nextSeq.toString().padStart(4, '0')}`;
+      }
+
       if (status === 'approved') {
         const { data: { user } } = await supabase.auth.getUser();
         updates.approved_at = new Date().toISOString();
