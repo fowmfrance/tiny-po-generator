@@ -85,8 +85,8 @@ export function BudgetWaterfallChart({
   ], [currency, initialAmount, invoicedAmount, committedAmount, levelAfterInvoiced, levelAfterCommitted]);
 
   // SVG layout
-  const svgWidth = 400;
-  const svgHeight = 200;
+  const svgWidth = 600;
+  const svgHeight = 220;
   const marginTop = 28;
   const marginBottom = 28;
   const marginLeft = 16;
@@ -104,7 +104,7 @@ export function BudgetWaterfallChart({
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full" style={{ maxHeight: 200 }}>
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full" style={{ maxHeight: 280 }}>
         {steps.map((step, i) => {
           const x = marginLeft + i * barGroupWidth + barGap;
           const centerX = x + barWidth / 2;
