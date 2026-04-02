@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -26,10 +26,16 @@ const fmt = (currency: string, amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount);
 
+type WaterfallItemKind = 'total' | 'change';
+
 interface WaterfallItem {
   name: string;
+  kind: WaterfallItemKind;
+  start: number;
+  end: number;
   invisible: number;
   visible: number;
+  delta: number;
   fill: string;
   tooltip: string;
   label: string;
@@ -45,40 +51,46 @@ const RechartsBar = Bar as unknown as React.ComponentType<any>;
 const RechartsCell = Cell as unknown as React.ComponentType<any>;
 const RechartsCustomized = Customized as unknown as React.ComponentType<any>;
 
+const COLORS = {
+  initial: 'hsl(221, 83%, 53%)',
+  invoiced: 'hsl(0, 72%, 51%)',
+  committed: 'hsl(25, 95%, 53%)',
+};
+
+const formatChangeLabel = (currency: string, amount: number) => {
+  if (amount === 0) return fmt(currency, 0);
+  return `${amount > 0 ? '−' : '+'}${fmt(currency, Math.abs(amount))}`;
+};
+
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload as WaterfallItem;
+  const item = payload[0]?.payload as WaterfallItem | undefined;
   if (!item) return null;
+
   return (
-    <div className="bg-popover border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-lg">
       <p className="font-medium text-foreground">{item.name}</p>
       <p className="text-muted-foreground">{item.tooltip}</p>
     </div>
   );
 };
 
-const COLORS = {
-  initial: 'hsl(221, 83%, 53%)',
-  invoiced: 'hsl(0, 72%, 51%)',
-  committed: 'hsl(25, 95%, 53%)',
-  available: 'hsl(221, 83%, 80%)',
-};
-
-// Custom bar shape that renders dashed outline when amount is 0
-const DashedBarShape = (props: any) => {
-  const { x, y, width, height, payload } = props;
+const DashedBarShape = ({ x, y, width, height, payload }: any) => {
   if (!payload?.isDashed) {
     return <rect x={x} y={y} width={width} height={height} fill={payload?.fill || 'transparent'} rx={4} />;
   }
-  // For zero-value bars, draw a dashed outline at the full height
+
+  const dashedHeight = 10;
+  const dashedY = y - dashedHeight / 2;
+
   return (
     <rect
       x={x}
-      y={y}
+      y={dashedY}
       width={width}
-      height={height}
+      height={dashedHeight}
       fill="transparent"
-      stroke={COLORS.invoiced}
+      stroke={payload?.fill || COLORS.invoiced}
       strokeWidth={1.5}
       strokeDasharray="4 3"
       rx={4}
@@ -86,57 +98,40 @@ const DashedBarShape = (props: any) => {
   );
 };
 
-// Custom connector lines between bars
-const WaterfallConnectors = (props: any) => {
-  const { formattedGraphicalItems } = props;
-  if (!formattedGraphicalItems?.length) return null;
+const getConnectorY = (bar: any, item: WaterfallItem) => {
+  if (item.kind === 'total' || item.delta > 0) return bar.y;
+  return bar.y + bar.height;
+};
 
-  // The visible bar is the second item (index 1) in the stacked bars
-  const visibleBars = formattedGraphicalItems[1]?.props?.data;
-  if (!visibleBars || visibleBars.length < 2) return null;
+const WaterfallConnectors = ({ formattedGraphicalItems }: any) => {
+  const visibleBars = formattedGraphicalItems?.[1]?.props?.data;
+  if (!Array.isArray(visibleBars) || visibleBars.length < 2) return null;
 
-  const lines: React.ReactElement[] = [];
+  return (
+    <g>
+      {visibleBars.slice(0, -1).map((currentBar: any, index: number) => {
+        const nextBar = visibleBars[index + 1];
+        const currentItem = currentBar?.payload as WaterfallItem | undefined;
+        if (!currentBar || !nextBar || !currentItem) return null;
 
-  for (let i = 0; i < visibleBars.length - 1; i++) {
-    const current = visibleBars[i];
-    const next = visibleBars[i + 1];
-    if (!current || !next) continue;
+        const connectorY = getConnectorY(currentBar, currentItem);
 
-    // The connector y is at the bottom of the current visible bar = top of invisible of next
-    // For "Budget" → "Facturé": connect at the level where the next bar starts
-    // The transition level is: invisible[i+1] + visible[i+1] top, which equals invisible[i] for totals
-    // Simpler: connect at the y coordinate of the bottom of current visible bar
-    const currentX = current.x + current.width;
-    const nextX = next.x;
-
-    // The transition level (in data coords) is the top of the next bar
-    // For descent bars: bottom of current = top of next
-    // y coordinate = top of invisible bar of next entry = next.y + next.height (bottom of visible)
-    // Actually we want the level where they connect:
-    // Budget→Facturé: level = initialAmount (top of both)
-    // Facturé→Engagé: level = levelAfterInvoiced (bottom of facturé = top of engagé visible)
-    // Engagé→Restant: level = availableAmount (bottom of engagé = top of restant)
-
-    // The y of visible bar bottom = y + height
-    // But for the invisible+visible stack, the transition is at the TOP of the next visible bar
-    const connectorY = next.y; // top of next visible bar
-
-    lines.push(
-      <line
-        key={`connector-${i}`}
-        x1={currentX}
-        x2={nextX}
-        y1={connectorY}
-        y2={connectorY}
-        stroke="hsl(var(--muted-foreground))"
-        strokeWidth={1}
-        strokeDasharray="4 3"
-        opacity={0.5}
-      />
-    );
-  }
-
-  return <g>{lines}</g>;
+        return (
+          <line
+            key={`connector-${index}`}
+            x1={currentBar.x + currentBar.width}
+            x2={nextBar.x}
+            y1={connectorY}
+            y2={connectorY}
+            stroke="hsl(var(--muted-foreground))"
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
+            opacity={0.7}
+          />
+        );
+      })}
+    </g>
+  );
 };
 
 export function BudgetWaterfallChart({
@@ -146,54 +141,74 @@ export function BudgetWaterfallChart({
   receivedAmount,
   availableAmount,
 }: BudgetWaterfallChartProps) {
-  const invoicedAmount = receivedAmount;
+  const invoicedAmount = Math.max(0, receivedAmount);
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
-
-  const isInvoicedZero = invoicedAmount === 0;
   const levelAfterInvoiced = initialAmount - invoicedAmount;
 
   const data: WaterfallItem[] = [
     {
       name: 'Budget',
+      kind: 'total',
+      start: 0,
+      end: initialAmount,
       invisible: 0,
       visible: initialAmount,
+      delta: initialAmount,
       fill: COLORS.initial,
       tooltip: `Enveloppe totale : ${fmt(currency, initialAmount)}`,
       label: fmt(currency, initialAmount),
     },
     {
       name: 'Facturé',
-      invisible: isInvoicedZero ? 0 : levelAfterInvoiced,
-      visible: isInvoicedZero ? initialAmount : invoicedAmount,
-      fill: isInvoicedZero ? 'transparent' : COLORS.invoiced,
-      tooltip: `Montant facturé : ${invoicedAmount > 0 ? '−' : ''}${fmt(currency, invoicedAmount)}`,
-      label: invoicedAmount > 0 ? `−${fmt(currency, invoicedAmount)}` : fmt(currency, 0),
-      isDashed: isInvoicedZero,
+      kind: 'change',
+      start: initialAmount,
+      end: levelAfterInvoiced,
+      invisible: levelAfterInvoiced,
+      visible: invoicedAmount,
+      delta: -invoicedAmount,
+      fill: COLORS.invoiced,
+      tooltip: `Montant facturé : ${formatChangeLabel(currency, invoicedAmount)}`,
+      label: formatChangeLabel(currency, invoicedAmount),
+      isDashed: invoicedAmount === 0,
     },
     {
       name: 'Engagé',
+      kind: 'change',
+      start: levelAfterInvoiced,
+      end: availableAmount,
       invisible: availableAmount,
       visible: committedAmount,
+      delta: -committedAmount,
       fill: COLORS.committed,
-      tooltip: `BC émis, non facturé : −${fmt(currency, committedAmount)}`,
-      label: committedAmount > 0 ? `−${fmt(currency, committedAmount)}` : fmt(currency, 0),
+      tooltip: `BC émis, non facturé : ${formatChangeLabel(currency, committedAmount)}`,
+      label: formatChangeLabel(currency, committedAmount),
+      isDashed: committedAmount === 0,
     },
     {
       name: 'Restant',
+      kind: 'total',
+      start: 0,
+      end: availableAmount,
       invisible: 0,
       visible: availableAmount,
+      delta: availableAmount,
       fill: COLORS.initial,
       tooltip: `Reste à engager : ${fmt(currency, availableAmount)}`,
       label: fmt(currency, availableAmount),
     },
   ];
 
+  const allLevels = data.flatMap((item) => [item.start, item.end, 0]);
+  const minLevel = Math.min(...allLevels);
+  const maxLevel = Math.max(...allLevels);
+  const padding = Math.max((maxLevel - minLevel) * 0.08, 1);
+
   return (
     <div className="w-full">
       <RechartsResponsiveContainer width="100%" height={200}>
         <RechartsBarChart
           data={data}
-          margin={{ top: 24, right: 5, left: 5, bottom: 5 }}
+          margin={{ top: 28, right: 6, left: 6, bottom: 8 }}
           barCategoryGap="20%"
         >
           <RechartsXAxis
@@ -202,23 +217,24 @@ export function BudgetWaterfallChart({
             axisLine={false}
             tickLine={false}
           />
-          <RechartsYAxis hide domain={[0, initialAmount * 1.05]} />
+          <RechartsYAxis hide domain={[minLevel - padding, maxLevel + padding]} />
           <RechartsTooltip content={<CustomTooltip />} cursor={false} />
 
-          {/* Invisible spacer bar */}
           <RechartsBar dataKey="invisible" stackId="waterfall" fill="transparent" isAnimationActive={false} />
 
-          {/* Visible bar with custom shape for dashed zero-value bars */}
           <RechartsBar
             dataKey="visible"
             stackId="waterfall"
             shape={<DashedBarShape />}
+            isAnimationActive={false}
             label={({ x, y, width, index }: any) => {
               const item = data[index];
+              if (!item || x == null || y == null || width == null) return null;
+
               return (
                 <text
                   x={x + width / 2}
-                  y={y - 6}
+                  y={item.isDashed ? y - 10 : y - 6}
                   textAnchor="middle"
                   fontSize={11}
                   fontWeight={600}
@@ -234,21 +250,21 @@ export function BudgetWaterfallChart({
             ))}
           </RechartsBar>
 
-          {/* Dashed connectors between bars */}
           <RechartsCustomized component={WaterfallConnectors} />
         </RechartsBarChart>
       </RechartsResponsiveContainer>
-      <div className="flex justify-center gap-5 text-xs text-muted-foreground mt-1">
+
+      <div className="mt-1 flex justify-center gap-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.initial }} />
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.initial }} />
           Début / Fin
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
           Facturé
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.committed }} />
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.committed }} />
           Engagé
         </span>
       </div>
