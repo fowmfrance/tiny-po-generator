@@ -743,7 +743,7 @@ const CreatePO = () => {
             >
               Annuler
             </Button>
-            {isOverBudget || isSelectedVendorKycPending ? (
+            {isOverBudget || isSelectedVendorKycPending || isPriceCapBreached ? (
               <Button type="submit" disabled={isSubmitting} variant="outline">
                 {isSubmitting ? 'Enregistrement...' : 'Enregistrer en brouillon'}
               </Button>
@@ -751,6 +751,9 @@ const CreatePO = () => {
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Créer Bon de Commande'}
               </Button>
+            )}
+            {isPriceCapBreached && (
+              <p className="text-xs text-orange-600 mt-1">⚠ Un ou plusieurs articles dépassent le prix plafond défini dans le catalogue.</p>
             )}
           </div>
         </form>
