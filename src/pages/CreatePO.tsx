@@ -195,7 +195,7 @@ const CreatePO = () => {
       try {
         const { data, error } = await supabase
           .from('article_types')
-          .select('id, name, default_unit_price, unit')
+          .select('id, name, default_unit_price, unit, is_price_cap')
           .eq('supplier_type_id', selectedVendorData.supplier_type_id)
           .eq('is_active', true)
           .order('name');
