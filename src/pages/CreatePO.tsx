@@ -658,8 +658,13 @@ const CreatePO = () => {
                                 {articleTypeList.map((articleType) => (
                                   <SelectItem key={articleType.id} value={articleType.id}>
                                     {articleType.name}
+                                    {articleType.is_price_cap && articleType.default_unit_price
+                                      ? ` (max ${Number(articleType.default_unit_price).toLocaleString('fr-FR')} €)`
+                                      : articleType.default_unit_price
+                                        ? ` (~${Number(articleType.default_unit_price).toLocaleString('fr-FR')} €)`
+                                        : ''}
                                   </SelectItem>
-                                ))}
+                                ))
                                 <SelectItem value="other">Autre (saisie libre)</SelectItem>
                               </SelectContent>
                             </Select>
