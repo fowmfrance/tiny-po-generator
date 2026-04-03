@@ -243,6 +243,15 @@ const CreatePO = () => {
     return currentTotal > selectedBudgetData.initial_amount - committed;
   }, [selectedBudgetData, budgetPOs, currentTotal]);
 
+  const isPriceCapBreached = useMemo(() => {
+    return items.some((item) => {
+      if (!item.articleTypeId) return false;
+      const articleType = articleTypeList.find((a) => a.id === item.articleTypeId);
+      if (!articleType?.is_price_cap || !articleType.default_unit_price) return false;
+      return item.unitPrice > Number(articleType.default_unit_price);
+    });
+  }, [items, articleTypeList]);
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
