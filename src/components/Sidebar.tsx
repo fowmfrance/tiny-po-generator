@@ -11,7 +11,8 @@ import {
   CreditCard,
   Calculator,
   Building2,
-  Flag
+  Flag,
+  BarChart3
 } from 'lucide-react';
 
 const Sidebar = () => {
