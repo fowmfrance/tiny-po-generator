@@ -664,7 +664,7 @@ const CreatePO = () => {
                                         ? ` (~${Number(articleType.default_unit_price).toLocaleString('fr-FR')} €)`
                                         : ''}
                                   </SelectItem>
-                                ))
+                                ))}
                                 <SelectItem value="other">Autre (saisie libre)</SelectItem>
                               </SelectContent>
                             </Select>
