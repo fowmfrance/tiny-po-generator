@@ -18,6 +18,7 @@ import { formatCurrency } from '@/utils/paymentUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import VendorKPITab from '@/components/vendors/VendorKPITab';
+import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
