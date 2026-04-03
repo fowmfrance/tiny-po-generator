@@ -318,6 +318,13 @@ const VendorDetail = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="invoices" className="mt-4">
+          <VendorInvoicesTab
+            supplierInvoices={supplierInvoices}
+            supplierPOs={supplierPOs}
+          />
+        </TabsContent>
+
         <TabsContent value="kpis" className="mt-4">
           <VendorKPITab
             supplierPOs={enrichedPOs}
