@@ -28,6 +28,7 @@ import NotFound from './pages/NotFound';
 import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import MilestoneReport from './pages/MilestoneReport';
+import PriceBenchmark from './pages/PriceBenchmark';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
         <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
         <Route path="/invoices" element={<Navigate to="/payments" replace />} />
         <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+        <Route path="/benchmark" element={<ProtectedRoute><Layout><PriceBenchmark /></Layout></ProtectedRoute>} />
         <Route path="/milestones" element={<ProtectedRoute><Layout><MilestoneReport /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="/supplier" element={<SupplierPortal />} />

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -18,6 +18,7 @@ import { formatCurrency } from '@/utils/paymentUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import VendorKPITab from '@/components/vendors/VendorKPITab';
+import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -174,6 +175,9 @@ const VendorDetail = () => {
           <TabsTrigger value="overview" className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" /> Aperçu
           </TabsTrigger>
+          <TabsTrigger value="invoices" className="flex items-center gap-1.5">
+            <Receipt className="h-4 w-4" /> Factures
+          </TabsTrigger>
           <TabsTrigger value="kpis" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /> KPIs
           </TabsTrigger>
@@ -312,6 +316,13 @@ const VendorDetail = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="invoices" className="mt-4">
+          <VendorInvoicesTab
+            supplierInvoices={supplierInvoices}
+            supplierPOs={supplierPOs}
+          />
         </TabsContent>
 
         <TabsContent value="kpis" className="mt-4">
