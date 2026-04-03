@@ -175,6 +175,9 @@ const VendorDetail = () => {
           <TabsTrigger value="overview" className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" /> Aperçu
           </TabsTrigger>
+          <TabsTrigger value="invoices" className="flex items-center gap-1.5">
+            <Receipt className="h-4 w-4" /> Factures
+          </TabsTrigger>
           <TabsTrigger value="kpis" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /> KPIs
           </TabsTrigger>
