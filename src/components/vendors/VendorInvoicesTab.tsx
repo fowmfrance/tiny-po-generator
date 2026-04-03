@@ -48,11 +48,11 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
         ...l,
         po: poMap.get(l.purchase_order_id),
       }));
-      // Also include legacy single purchase_order_id if no junction links
-      if (linkedPOs.length === 0 && inv.purchase_order_id) {
-        const po = poMap.get(inv.purchase_order_id);
-        if (po) {
-          linkedPOs.push({ purchase_order_id: po.id, amount_allocated: Number(inv.amount), po });
+      // Also include legacy po_number match if no junction links
+      if (linkedPOs.length === 0 && inv.po_number) {
+        const matchedPO = supplierPOs.find(po => po.po_number === inv.po_number);
+        if (matchedPO) {
+          linkedPOs.push({ purchase_order_id: matchedPO.id, amount_allocated: Number(inv.amount), po: matchedPO } as any);
         }
       }
       return { ...inv, linkedPOs };
