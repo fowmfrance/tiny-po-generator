@@ -36,6 +36,7 @@ interface ArticleTypeOption {
   name: string;
   default_unit_price: number | null;
   unit: string | null;
+  is_price_cap: boolean;
 }
 
 interface LineItem {
