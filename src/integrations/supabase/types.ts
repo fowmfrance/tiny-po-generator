@@ -21,6 +21,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          is_price_cap: boolean
           name: string
           supplier_type_id: string
           unit: string | null
@@ -33,6 +34,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_price_cap?: boolean
           name: string
           supplier_type_id: string
           unit?: string | null
@@ -45,6 +47,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_price_cap?: boolean
           name?: string
           supplier_type_id?: string
           unit?: string | null

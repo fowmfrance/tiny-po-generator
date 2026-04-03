@@ -36,6 +36,7 @@ interface ArticleTypeOption {
   name: string;
   default_unit_price: number | null;
   unit: string | null;
+  is_price_cap: boolean;
 }
 
 interface LineItem {
@@ -194,7 +195,7 @@ const CreatePO = () => {
       try {
         const { data, error } = await supabase
           .from('article_types')
-          .select('id, name, default_unit_price, unit')
+          .select('id, name, default_unit_price, unit, is_price_cap')
           .eq('supplier_type_id', selectedVendorData.supplier_type_id)
           .eq('is_active', true)
           .order('name');
@@ -241,6 +242,15 @@ const CreatePO = () => {
     const committed = budgetPOs.reduce((s, po) => s + Number(po.total_amount || 0), 0);
     return currentTotal > selectedBudgetData.initial_amount - committed;
   }, [selectedBudgetData, budgetPOs, currentTotal]);
+
+  const isPriceCapBreached = useMemo(() => {
+    return items.some((item) => {
+      if (!item.articleTypeId) return false;
+      const articleType = articleTypeList.find((a) => a.id === item.articleTypeId);
+      if (!articleType?.is_price_cap || !articleType.default_unit_price) return false;
+      return item.unitPrice > Number(articleType.default_unit_price);
+    });
+  }, [items, articleTypeList]);
 
   const addItem = () => {
     setItems((prev) => [
@@ -648,6 +658,11 @@ const CreatePO = () => {
                                 {articleTypeList.map((articleType) => (
                                   <SelectItem key={articleType.id} value={articleType.id}>
                                     {articleType.name}
+                                    {articleType.is_price_cap && articleType.default_unit_price
+                                      ? ` (max ${Number(articleType.default_unit_price).toLocaleString('fr-FR')} €)`
+                                      : articleType.default_unit_price
+                                        ? ` (~${Number(articleType.default_unit_price).toLocaleString('fr-FR')} €)`
+                                        : ''}
                                   </SelectItem>
                                 ))}
                                 <SelectItem value="other">Autre (saisie libre)</SelectItem>
@@ -733,7 +748,7 @@ const CreatePO = () => {
             >
               Annuler
             </Button>
-            {isOverBudget || isSelectedVendorKycPending ? (
+            {isOverBudget || isSelectedVendorKycPending || isPriceCapBreached ? (
               <Button type="submit" disabled={isSubmitting} variant="outline">
                 {isSubmitting ? 'Enregistrement...' : 'Enregistrer en brouillon'}
               </Button>
@@ -741,6 +756,9 @@ const CreatePO = () => {
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Créer Bon de Commande'}
               </Button>
+            )}
+            {isPriceCapBreached && (
+              <p className="text-xs text-orange-600 mt-1">⚠ Un ou plusieurs articles dépassent le prix plafond défini dans le catalogue.</p>
             )}
           </div>
         </form>

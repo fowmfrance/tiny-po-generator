@@ -1,0 +1,1 @@
+ALTER TABLE public.article_types ADD COLUMN is_price_cap boolean NOT NULL DEFAULT false;
