@@ -5,6 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, ShieldAlert, Info } from 'lucide-react';
 
 interface SupplierType {
   id: string;
@@ -42,6 +49,7 @@ interface ArticleType {
   unit: string | null;
   default_unit_price: number | null;
   is_active: boolean;
+  is_price_cap: boolean;
 }
 
 const SupplierCatalogTab = () => {
@@ -50,65 +58,46 @@ const SupplierCatalogTab = () => {
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [supplierTypes, setSupplierTypes] = useState<SupplierType[]>([]);
-  const [selectedSupplierTypeId, setSelectedSupplierTypeId] = useState<string | null>(null);
-  const [articleTypes, setArticleTypes] = useState<ArticleType[]>([]);
+  const [articlesByType, setArticlesByType] = useState<Record<string, ArticleType[]>>({});
 
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<SupplierType | null>(null);
   const [typeForm, setTypeForm] = useState({ name: '', description: '' });
 
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
+  const [articleDialogTypeId, setArticleDialogTypeId] = useState<string | null>(null);
   const [editingArticle, setEditingArticle] = useState<ArticleType | null>(null);
   const [articleForm, setArticleForm] = useState({
     name: '',
     description: '',
     unit: 'unité',
     default_unit_price: '0',
+    is_price_cap: false,
   });
 
   const [deleteTypeId, setDeleteTypeId] = useState<string | null>(null);
   const [deleteArticleId, setDeleteArticleId] = useState<string | null>(null);
+  const [deleteArticleTypeId, setDeleteArticleTypeId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const selectedSupplierType = useMemo(
-    () => supplierTypes.find((type) => type.id === selectedSupplierTypeId) || null,
-    [supplierTypes, selectedSupplierTypeId]
-  );
+  const fetchAll = async () => {
+    const [typesRes, articlesRes] = await Promise.all([
+      supabase.from('supplier_types').select('id, name, description, is_active').order('name'),
+      supabase.from('article_types').select('id, supplier_type_id, name, description, unit, default_unit_price, is_active, is_price_cap').order('name'),
+    ]);
 
-  const fetchSupplierTypes = async () => {
-    const { data, error } = await supabase
-      .from('supplier_types')
-      .select('id, name, description, is_active')
-      .order('name');
+    if (typesRes.error) throw typesRes.error;
+    if (articlesRes.error) throw articlesRes.error;
 
-    if (error) throw error;
-
-    const types = (data || []) as SupplierType[];
+    const types = (typesRes.data || []) as SupplierType[];
     setSupplierTypes(types);
 
-    if (!selectedSupplierTypeId && types.length > 0) {
-      setSelectedSupplierTypeId(types[0].id);
-    }
-
-    if (selectedSupplierTypeId && !types.some((type) => type.id === selectedSupplierTypeId)) {
-      setSelectedSupplierTypeId(types[0]?.id || null);
-    }
-  };
-
-  const fetchArticleTypes = async (supplierTypeId: string | null) => {
-    if (!supplierTypeId) {
-      setArticleTypes([]);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('article_types')
-      .select('id, supplier_type_id, name, description, unit, default_unit_price, is_active')
-      .eq('supplier_type_id', supplierTypeId)
-      .order('name');
-
-    if (error) throw error;
-    setArticleTypes((data || []) as ArticleType[]);
+    const grouped: Record<string, ArticleType[]> = {};
+    (articlesRes.data || []).forEach((a: any) => {
+      if (!grouped[a.supplier_type_id]) grouped[a.supplier_type_id] = [];
+      grouped[a.supplier_type_id].push(a as ArticleType);
+    });
+    setArticlesByType(grouped);
   };
 
   useEffect(() => {
@@ -127,7 +116,7 @@ const SupplierCatalogTab = () => {
         if (adminError) throw adminError;
         setIsSuperAdmin(Boolean(adminCheck));
 
-        await fetchSupplierTypes();
+        await fetchAll();
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -142,22 +131,6 @@ const SupplierCatalogTab = () => {
     initialize();
   }, []);
 
-  useEffect(() => {
-    const loadArticles = async () => {
-      try {
-        await fetchArticleTypes(selectedSupplierTypeId);
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: error.message || 'Impossible de charger les prestations.',
-        });
-      }
-    };
-
-    loadArticles();
-  }, [selectedSupplierTypeId]);
-
   const openTypeDialog = (type?: SupplierType) => {
     if (type) {
       setEditingType(type);
@@ -169,7 +142,8 @@ const SupplierCatalogTab = () => {
     setTypeDialogOpen(true);
   };
 
-  const openArticleDialog = (article?: ArticleType) => {
+  const openArticleDialog = (supplierTypeId: string, article?: ArticleType) => {
+    setArticleDialogTypeId(supplierTypeId);
     if (article) {
       setEditingArticle(article);
       setArticleForm({
@@ -177,6 +151,7 @@ const SupplierCatalogTab = () => {
         description: article.description || '',
         unit: article.unit || 'unité',
         default_unit_price: String(article.default_unit_price ?? 0),
+        is_price_cap: article.is_price_cap || false,
       });
     } else {
       setEditingArticle(null);
@@ -185,6 +160,7 @@ const SupplierCatalogTab = () => {
         description: '',
         unit: 'unité',
         default_unit_price: '0',
+        is_price_cap: false,
       });
     }
     setArticleDialogOpen(true);
@@ -206,12 +182,8 @@ const SupplierCatalogTab = () => {
       if (editingType) {
         const { error } = await supabase
           .from('supplier_types')
-          .update({
-            name: typeForm.name.trim(),
-            description: typeForm.description.trim() || null,
-          })
+          .update({ name: typeForm.name.trim(), description: typeForm.description.trim() || null })
           .eq('id', editingType.id);
-
         if (error) throw error;
         toast({ title: 'Type fournisseur mis à jour' });
       } else {
@@ -221,31 +193,21 @@ const SupplierCatalogTab = () => {
           description: typeForm.description.trim() || null,
           is_active: true,
         });
-
         if (error) throw error;
         toast({ title: 'Type fournisseur créé' });
       }
 
       setTypeDialogOpen(false);
-      await fetchSupplierTypes();
+      await fetchAll();
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: error.message || 'Impossible de sauvegarder le type fournisseur.',
-      });
+      toast({ variant: 'destructive', title: 'Erreur', description: error.message });
     } finally {
       setSaving(false);
     }
   };
 
   const handleSaveArticle = async () => {
-    if (!isSuperAdmin) return;
-
-    if (!selectedSupplierTypeId) {
-      toast({ variant: 'destructive', title: 'Type requis', description: 'Sélectionnez un type fournisseur.' });
-      return;
-    }
+    if (!isSuperAdmin || !articleDialogTypeId) return;
 
     if (!articleForm.name.trim()) {
       toast({ variant: 'destructive', title: 'Champ requis', description: 'Le nom de la prestation est requis.' });
@@ -263,36 +225,28 @@ const SupplierCatalogTab = () => {
         description: articleForm.description.trim() || null,
         unit: articleForm.unit.trim() || null,
         default_unit_price: Number(articleForm.default_unit_price || 0),
+        is_price_cap: articleForm.is_price_cap,
       };
 
       if (editingArticle) {
-        const { error } = await supabase
-          .from('article_types')
-          .update(payload)
-          .eq('id', editingArticle.id);
-
+        const { error } = await supabase.from('article_types').update(payload).eq('id', editingArticle.id);
         if (error) throw error;
         toast({ title: 'Prestation mise à jour' });
       } else {
         const { error } = await supabase.from('article_types').insert({
           ...payload,
           user_id: user.id,
-          supplier_type_id: selectedSupplierTypeId,
+          supplier_type_id: articleDialogTypeId,
           is_active: true,
         });
-
         if (error) throw error;
         toast({ title: 'Prestation créée' });
       }
 
       setArticleDialogOpen(false);
-      await fetchArticleTypes(selectedSupplierTypeId);
+      await fetchAll();
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: error.message || 'Impossible de sauvegarder la prestation.',
-      });
+      toast({ variant: 'destructive', title: 'Erreur', description: error.message });
     } finally {
       setSaving(false);
     }
@@ -300,43 +254,33 @@ const SupplierCatalogTab = () => {
 
   const handleDeleteType = async () => {
     if (!isSuperAdmin || !deleteTypeId) return;
-
     try {
       const { error } = await supabase.from('supplier_types').delete().eq('id', deleteTypeId);
       if (error) throw error;
-
       toast({ title: 'Type fournisseur supprimé' });
       setDeleteTypeId(null);
-      await fetchSupplierTypes();
+      await fetchAll();
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description:
-          error.message ||
-          'Impossible de supprimer ce type. Vérifiez que ses prestations et fournisseurs sont reclassés.',
-      });
+      toast({ variant: 'destructive', title: 'Erreur', description: error.message });
     }
   };
 
   const handleDeleteArticle = async () => {
     if (!isSuperAdmin || !deleteArticleId) return;
-
     try {
       const { error } = await supabase.from('article_types').delete().eq('id', deleteArticleId);
       if (error) throw error;
-
       toast({ title: 'Prestation supprimée' });
       setDeleteArticleId(null);
-      await fetchArticleTypes(selectedSupplierTypeId);
+      setDeleteArticleTypeId(null);
+      await fetchAll();
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: error.message || 'Impossible de supprimer cette prestation.',
-      });
+      toast({ variant: 'destructive', title: 'Erreur', description: error.message });
     }
   };
+
+  const formatPrice = (price: number) =>
+    price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
   if (loading) {
     return (
@@ -349,155 +293,140 @@ const SupplierCatalogTab = () => {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <Card>
         <CardHeader>
-          <CardTitle>Bibliothèque fournisseurs & prestations</CardTitle>
-          <CardDescription>
-            Associez chaque type fournisseur à un mini-catalogue de prestations. Le choix “Autre” reste disponible à la saisie du BC.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Bibliothèque fournisseurs & prestations</CardTitle>
+              <CardDescription>
+                Chaque métier fournisseur dispose d'un catalogue de livrables. Les prix de référence et plafonds guident la saisie des bons de commande.
+              </CardDescription>
+            </div>
+            {isSuperAdmin && (
+              <Button onClick={() => openTypeDialog()} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Nouveau métier
+              </Button>
+            )}
+          </div>
           {!isSuperAdmin && (
-            <div className="rounded-md border p-3 text-sm text-muted-foreground">
+            <div className="rounded-md border p-3 text-sm text-muted-foreground mt-2">
               Vous êtes en lecture seule. Seul un super admin peut modifier cette bibliothèque.
             </div>
           )}
+        </CardHeader>
+        <CardContent>
+          {supplierTypes.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Aucun métier fournisseur défini.</p>
+          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Types fournisseurs</h3>
-                <Button size="sm" onClick={() => openTypeDialog()} disabled={!isSuperAdmin}>
-                  <Plus className="h-4 w-4 mr-1" /> Ajouter
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {supplierTypes.map((type) => (
-                  <div
-                    key={type.id}
-                    className={`p-3 border rounded-md cursor-pointer ${
-                      selectedSupplierTypeId === type.id ? 'bg-muted/50 border-primary' : ''
-                    }`}
-                    onClick={() => setSelectedSupplierTypeId(type.id)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{type.name}</p>
-                        {type.description && <p className="text-sm text-muted-foreground">{type.description}</p>}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {!type.is_active && <Badge variant="secondary">Inactif</Badge>}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openTypeDialog(type);
-                          }}
-                          disabled={!isSuperAdmin}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTypeId(type.id);
-                          }}
-                          disabled={!isSuperAdmin}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {supplierTypes.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Aucun type fournisseur défini.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">
-                  Prestations {selectedSupplierType ? `· ${selectedSupplierType.name}` : ''}
-                </h3>
-                <Button
-                  size="sm"
-                  onClick={() => openArticleDialog()}
-                  disabled={!isSuperAdmin || !selectedSupplierTypeId}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Ajouter
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {articleTypes.map((article) => (
-                  <div key={article.id} className="p-3 border rounded-md">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{article.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {article.unit || 'unité'} · Prix par défaut: {Number(article.default_unit_price || 0).toLocaleString('fr-FR', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        {article.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{article.description}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {supplierTypes.map((type) => {
+              const articles = articlesByType[type.id] || [];
+              return (
+                <Card key={type.id} className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <CardTitle className="text-base">{type.name}</CardTitle>
+                        {type.description && (
+                          <CardDescription className="text-xs mt-0.5">{type.description}</CardDescription>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openArticleDialog(article)}
-                          disabled={!isSuperAdmin}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteArticleId(article.id)}
-                          disabled={!isSuperAdmin}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {isSuperAdmin && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openTypeDialog(type)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTypeId(type.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                    <Badge variant="secondary" className="text-xs w-fit">
+                      {articles.length} prestation{articles.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-1.5">
+                    {articles.map((article) => (
+                      <div
+                        key={article.id}
+                        className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-muted/40 text-sm group"
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate font-medium">{article.name}</span>
+                          {article.is_price_cap && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <ShieldAlert className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Prix plafond : {formatPrice(Number(article.default_unit_price || 0))}</p>
+                                <p className="text-xs text-muted-foreground">Un BC dépassant ce montant restera en brouillon</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {!article.is_price_cap && Number(article.default_unit_price || 0) > 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Prix de référence : {formatPrice(Number(article.default_unit_price || 0))}</p>
+                                <p className="text-xs text-muted-foreground">{article.unit || 'unité'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs text-muted-foreground">
+                            {Number(article.default_unit_price || 0) > 0
+                              ? formatPrice(Number(article.default_unit_price || 0))
+                              : '—'}
+                          </span>
+                          {isSuperAdmin && (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openArticleDialog(type.id, article)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setDeleteArticleId(article.id); setDeleteArticleTypeId(type.id); }}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
 
-                {selectedSupplierTypeId && articleTypes.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Aucune prestation définie pour ce type.</p>
-                )}
+                    {articles.length === 0 && (
+                      <p className="text-xs text-muted-foreground px-2 py-1">Aucune prestation</p>
+                    )}
 
-                {!selectedSupplierTypeId && (
-                  <p className="text-sm text-muted-foreground">
-                    Sélectionnez un type fournisseur pour gérer son catalogue.
-                  </p>
-                )}
-              </div>
-            </div>
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs h-7 mt-1"
+                        onClick={() => openArticleDialog(type.id)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Ajouter une prestation
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
+      {/* Type dialog */}
       <Dialog open={typeDialogOpen} onOpenChange={setTypeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingType ? 'Modifier le type fournisseur' : 'Nouveau type fournisseur'}</DialogTitle>
-            <DialogDescription>
-              Ce type sera proposé lors de l’invitation d’un fournisseur.
-            </DialogDescription>
+            <DialogTitle>{editingType ? 'Modifier le métier' : 'Nouveau métier fournisseur'}</DialogTitle>
+            <DialogDescription>Ce métier sera proposé lors de l'invitation d'un fournisseur.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -521,9 +450,7 @@ const SupplierCatalogTab = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTypeDialogOpen(false)}>
-              Annuler
-            </Button>
+            <Button variant="outline" onClick={() => setTypeDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSaveType} disabled={saving || !isSuperAdmin}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
@@ -531,6 +458,7 @@ const SupplierCatalogTab = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Article dialog */}
       <Dialog open={articleDialogOpen} onOpenChange={setArticleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -571,6 +499,23 @@ const SupplierCatalogTab = () => {
                 />
               </div>
             </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="is-price-cap" className="font-medium flex items-center gap-1.5">
+                  <ShieldAlert className="h-4 w-4 text-orange-500" />
+                  Définir comme prix plafond
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Le BC restera en brouillon si le prix unitaire dépasse ce montant
+                </p>
+              </div>
+              <Switch
+                id="is-price-cap"
+                checked={articleForm.is_price_cap}
+                onCheckedChange={(checked) => setArticleForm((prev) => ({ ...prev, is_price_cap: checked }))}
+                disabled={Number(articleForm.default_unit_price || 0) <= 0}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="article-description">Description</Label>
               <Textarea
@@ -583,9 +528,7 @@ const SupplierCatalogTab = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setArticleDialogOpen(false)}>
-              Annuler
-            </Button>
+            <Button variant="outline" onClick={() => setArticleDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSaveArticle} disabled={saving || !isSuperAdmin}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
@@ -593,12 +536,13 @@ const SupplierCatalogTab = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete type */}
       <AlertDialog open={!!deleteTypeId} onOpenChange={(open) => !open && setDeleteTypeId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce type fournisseur ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer ce métier fournisseur ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action peut échouer si des fournisseurs ou prestations sont encore rattachés à ce type.
+              Cette action peut échouer si des fournisseurs ou prestations sont encore rattachés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -608,7 +552,8 @@ const SupplierCatalogTab = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!deleteArticleId} onOpenChange={(open) => !open && setDeleteArticleId(null)}>
+      {/* Delete article */}
+      <AlertDialog open={!!deleteArticleId} onOpenChange={(open) => { if (!open) { setDeleteArticleId(null); setDeleteArticleTypeId(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cette prestation ?</AlertDialogTitle>
@@ -620,7 +565,7 @@ const SupplierCatalogTab = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 };
 
