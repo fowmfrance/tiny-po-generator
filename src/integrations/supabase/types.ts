@@ -417,6 +417,45 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_purchase_orders: {
+        Row: {
+          amount_allocated: number
+          created_at: string
+          id: string
+          invoice_id: string
+          purchase_order_id: string
+        }
+        Insert: {
+          amount_allocated?: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          purchase_order_id: string
+        }
+        Update: {
+          amount_allocated?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          purchase_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_purchase_orders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_purchase_orders_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_confirmations: {
         Row: {
           confirmed_at: string
@@ -792,6 +831,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supplier_access_tokens_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_agreements: {
+        Row: {
+          attachment_url: string | null
+          created_at: string
+          currency: string
+          end_date: string
+          id: string
+          signed_at: string | null
+          signed_by: string | null
+          start_date: string
+          status: string
+          supplier_id: string
+          terms: string | null
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string
+          currency?: string
+          end_date: string
+          id?: string
+          signed_at?: string | null
+          signed_by?: string | null
+          start_date: string
+          status?: string
+          supplier_id: string
+          terms?: string | null
+          title: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string
+          currency?: string
+          end_date?: string
+          id?: string
+          signed_at?: string | null
+          signed_by?: string | null
+          start_date?: string
+          status?: string
+          supplier_id?: string
+          terms?: string | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_agreements_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
