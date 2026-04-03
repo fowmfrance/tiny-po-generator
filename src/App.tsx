@@ -28,6 +28,7 @@ import NotFound from './pages/NotFound';
 import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import MilestoneReport from './pages/MilestoneReport';
+import PriceBenchmark from './pages/PriceBenchmark';
 
 function App() {
   return (
