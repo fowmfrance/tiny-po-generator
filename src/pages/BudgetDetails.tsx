@@ -166,13 +166,13 @@ const BudgetDetails = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center gap-4">
-            <div>
-              <CardTitle className="text-xl">{budget.name}</CardTitle>
-              <CardDescription className="mt-1">
-                Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
-              </CardDescription>
-            </div>
+          <div>
+            <CardTitle className="text-xl">{budget.name}</CardTitle>
+            <CardDescription className="mt-1">
+              Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
+            </CardDescription>
+          </div>
+          <div className="pt-2">
             <BudgetWaterfallChart
               currency={budget.currency}
               initialAmount={metrics.initialAmount}
