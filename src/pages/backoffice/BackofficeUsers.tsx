@@ -8,12 +8,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
 
+interface Organization {
+  id: string;
+  name: string;
+}
+
 interface UserWithRoles {
   id: string;
   email: string;
   full_name: string | null;
   company: string | null;
   organization_id: string | null;
+  organization_name: string | null;
   created_at: string;
   roles: string[];
 }
