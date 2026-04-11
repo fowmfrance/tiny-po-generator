@@ -43,6 +43,16 @@ const Auth: React.FC = () => {
 
   const getRedirectOrigin = () => window.location.origin;
 
+  const redirectByRole = async (userId: string) => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin-sapajoo')
+      .maybeSingle();
+    navigate(data ? '/backoffice' : '/dashboard');
+  };
+
   useEffect(() => {
     // Check if this is a password reset flow
     const isReset = searchParams.get('reset') === 'true';
@@ -55,7 +65,7 @@ const Auth: React.FC = () => {
         setSession(session);
         // Don't redirect if we're in password reset mode
         if (session && !showResetPassword && event !== 'PASSWORD_RECOVERY') {
-          navigate('/dashboard');
+          redirectByRole(session.user.id);
         }
         // Handle password recovery event
         if (event === 'PASSWORD_RECOVERY') {
@@ -68,7 +78,7 @@ const Auth: React.FC = () => {
       setSession(session);
       // Don't redirect if we're in password reset mode
       if (session && !isReset) {
-        navigate('/dashboard');
+        redirectByRole(session.user.id);
       }
     });
 
