@@ -8,25 +8,40 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
 
+interface Organization {
+  id: string;
+  name: string;
+}
+
 interface UserWithRoles {
   id: string;
   email: string;
   full_name: string | null;
   company: string | null;
   organization_id: string | null;
+  organization_name: string | null;
   created_at: string;
   roles: string[];
 }
 
 const BackofficeUsers: React.FC = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const { toast } = useToast();
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    const { data: roles } = await supabase.from('user_roles').select('*');
+    const [{ data: profiles }, { data: roles }, { data: organizations }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_roles').select('*'),
+      supabase.from('organizations').select('id, name'),
+    ]);
+
+    setOrgs(organizations as Organization[] ?? []);
+
+    const orgMap: Record<string, string> = {};
+    organizations?.forEach(o => { orgMap[o.id] = o.name; });
 
     const roleMap: Record<string, string[]> = {};
     roles?.forEach(r => {
@@ -40,6 +55,7 @@ const BackofficeUsers: React.FC = () => {
       full_name: p.full_name,
       company: p.company,
       organization_id: p.organization_id,
+      organization_name: p.organization_id ? (orgMap[p.organization_id] || null) : null,
       created_at: p.created_at,
       roles: roleMap[p.id] || ['user'],
     }));
@@ -51,13 +67,23 @@ const BackofficeUsers: React.FC = () => {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    // Remove existing non-system roles, add new one
     await supabase.from('user_roles').delete().eq('user_id', userId).neq('role', 'admin-sapajoo');
     const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole });
     if (error) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Rôle mis à jour' });
+      fetchUsers();
+    }
+  };
+
+  const handleOrgChange = async (userId: string, orgId: string) => {
+    const value = orgId === '__none__' ? null : orgId;
+    const { error } = await supabase.from('profiles').update({ organization_id: value }).eq('id', userId);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Organisation mise à jour' });
       fetchUsers();
     }
   };
@@ -94,7 +120,7 @@ const BackofficeUsers: React.FC = () => {
               <TableRow>
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Société</TableHead>
+                <TableHead>Organisation</TableHead>
                 <TableHead>Rôles</TableHead>
                 <TableHead>Modifier rôle</TableHead>
                 <TableHead>Inscrit le</TableHead>
@@ -109,7 +135,22 @@ const BackofficeUsers: React.FC = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name || '—'}</TableCell>
                   <TableCell className="text-sm">{user.email}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{user.company || '—'}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={user.organization_id || '__none__'}
+                      onValueChange={(v) => handleOrgChange(user.id, v)}
+                    >
+                      <SelectTrigger className="w-40 h-8 text-xs">
+                        <SelectValue placeholder="Aucune" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Aucune —</SelectItem>
+                        {orgs.map(org => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       {user.roles.map(r => (
