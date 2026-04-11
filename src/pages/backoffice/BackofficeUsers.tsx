@@ -120,7 +120,7 @@ const BackofficeUsers: React.FC = () => {
               <TableRow>
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Société</TableHead>
+                <TableHead>Organisation</TableHead>
                 <TableHead>Rôles</TableHead>
                 <TableHead>Modifier rôle</TableHead>
                 <TableHead>Inscrit le</TableHead>
@@ -135,7 +135,22 @@ const BackofficeUsers: React.FC = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name || '—'}</TableCell>
                   <TableCell className="text-sm">{user.email}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{user.company || '—'}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={user.organization_id || '__none__'}
+                      onValueChange={(v) => handleOrgChange(user.id, v)}
+                    >
+                      <SelectTrigger className="w-40 h-8 text-xs">
+                        <SelectValue placeholder="Aucune" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Aucune —</SelectItem>
+                        {orgs.map(org => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       {user.roles.map(r => (
