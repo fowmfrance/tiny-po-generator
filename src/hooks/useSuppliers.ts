@@ -104,6 +104,21 @@ export function useSuppliers() {
         .single();
 
       if (error) throw error;
+
+      // Send welcome email (best-effort)
+      try {
+        await supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'supplier-welcome',
+            recipientEmail: data.email,
+            idempotencyKey: `supplier-welcome-${data.id}`,
+            templateData: { supplierName: data.name },
+          },
+        });
+      } catch {
+        // Non-blocking
+      }
+
       return data;
     },
     onSuccess: () => {
