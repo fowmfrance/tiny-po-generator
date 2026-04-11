@@ -67,13 +67,23 @@ const BackofficeUsers: React.FC = () => {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    // Remove existing non-system roles, add new one
     await supabase.from('user_roles').delete().eq('user_id', userId).neq('role', 'admin-sapajoo');
     const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole });
     if (error) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Rôle mis à jour' });
+      fetchUsers();
+    }
+  };
+
+  const handleOrgChange = async (userId: string, orgId: string) => {
+    const value = orgId === '__none__' ? null : orgId;
+    const { error } = await supabase.from('profiles').update({ organization_id: value }).eq('id', userId);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Organisation mise à jour' });
       fetchUsers();
     }
   };
