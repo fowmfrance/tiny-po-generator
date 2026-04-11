@@ -26,13 +26,22 @@ interface UserWithRoles {
 
 const BackofficeUsers: React.FC = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const { toast } = useToast();
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    const { data: roles } = await supabase.from('user_roles').select('*');
+    const [{ data: profiles }, { data: roles }, { data: organizations }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_roles').select('*'),
+      supabase.from('organizations').select('id, name'),
+    ]);
+
+    setOrgs(organizations as Organization[] ?? []);
+
+    const orgMap: Record<string, string> = {};
+    organizations?.forEach(o => { orgMap[o.id] = o.name; });
 
     const roleMap: Record<string, string[]> = {};
     roles?.forEach(r => {
@@ -46,6 +55,7 @@ const BackofficeUsers: React.FC = () => {
       full_name: p.full_name,
       company: p.company,
       organization_id: p.organization_id,
+      organization_name: p.organization_id ? (orgMap[p.organization_id] || null) : null,
       created_at: p.created_at,
       roles: roleMap[p.id] || ['user'],
     }));
