@@ -56,6 +56,28 @@ export function useSupplierAccessToken(supplierId?: string) {
     },
   });
 
+  const sendMagicLink = useMutation({
+    mutationFn: async (supplierIdParam: string) => {
+      const { data, error } = await supabase.functions.invoke('send-supplier-magic-link', {
+        body: { supplier_id: supplierIdParam },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['supplier-access-token', supplierId] });
+      toast({
+        title: 'Lien envoyé',
+        description: data?.emailSent
+          ? 'Un email avec le lien d\'accès a été envoyé au fournisseur.'
+          : 'Le lien a été créé mais l\'email n\'a pas pu être envoyé.',
+      });
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const getPortalUrl = (token: string) => {
     const base = window.location.origin;
     return `${base}/supplier/portal/${token}`;
@@ -78,6 +100,7 @@ export function useSupplierAccessToken(supplierId?: string) {
     token: tokenQuery.data,
     isLoading: tokenQuery.isLoading,
     generateToken,
+    sendMagicLink,
     copyPortalLink,
     getPortalUrl,
   };
