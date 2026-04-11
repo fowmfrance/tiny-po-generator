@@ -29,6 +29,12 @@ import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import MilestoneReport from './pages/MilestoneReport';
 import PriceBenchmark from './pages/PriceBenchmark';
+import ProtectedBackofficeRoute from './components/backoffice/ProtectedBackofficeRoute';
+import BackofficeLayout from './components/backoffice/BackofficeLayout';
+import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
+import BackofficeOrganizations from './pages/backoffice/BackofficeOrganizations';
+import BackofficeUsers from './pages/backoffice/BackofficeUsers';
+import BackofficePermissions from './pages/backoffice/BackofficePermissions';
 
 function App() {
   return (
