@@ -121,14 +121,16 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
 
       if (error) throw error;
 
+      // Send welcome email (best-effort)
       try {
-        await notifyVendorInvited(
-          { email: createdSupplier.email, name: createdSupplier.name },
-          {
-            email: user.email || 'noreply@local',
-            name: (user.user_metadata?.full_name as string) || user.email || 'Utilisateur',
-          }
-        );
+        await supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'supplier-welcome',
+            recipientEmail: createdSupplier.email,
+            idempotencyKey: `supplier-welcome-${createdSupplier.id}`,
+            templateData: { supplierName: createdSupplier.name },
+          },
+        });
       } catch {
         // Best effort only
       }
