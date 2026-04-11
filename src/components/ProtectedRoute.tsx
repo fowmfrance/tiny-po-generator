@@ -7,27 +7,34 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<'loading' | 'user' | 'admin-sapajoo' | 'unauthenticated'>('loading');
 
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: any, session: any) => {
-        setSession(session);
+    const check = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setState('unauthenticated');
+        return;
       }
-    );
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'admin-sapajoo')
+        .maybeSingle();
+
+      setState(data ? 'admin-sapajoo' : 'user');
+    };
+    check();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) setState('unauthenticated');
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -35,8 +42,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!session) {
+  if (state === 'unauthenticated') {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (state === 'admin-sapajoo') {
+    return <Navigate to="/backoffice" replace />;
   }
 
   return <>{children}</>;
