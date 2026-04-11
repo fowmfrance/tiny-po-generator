@@ -70,6 +70,13 @@ function App() {
         <Route path="/supplier/purchaseorders/:vendorId" element={<SupplierPOView />} />
         <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        {/* Back-office Sapajoo */}
+        <Route path="/backoffice" element={<ProtectedBackofficeRoute><BackofficeLayout /></ProtectedBackofficeRoute>}>
+          <Route index element={<BackofficeDashboard />} />
+          <Route path="organizations" element={<BackofficeOrganizations />} />
+          <Route path="users" element={<BackofficeUsers />} />
+          <Route path="permissions" element={<BackofficePermissions />} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
