@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as supplierMagicLink } from './supplier-magic-link.tsx'
 import { template as supplierWelcome } from './supplier-welcome.tsx'
+import { template as supplierInviteCopy } from './supplier-invite-copy.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'supplier-magic-link': supplierMagicLink,
   'supplier-welcome': supplierWelcome,
+  'supplier-invite-copy': supplierInviteCopy,
 }
