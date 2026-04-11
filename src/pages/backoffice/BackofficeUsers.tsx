@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 
 interface Organization {
   id: string;
@@ -28,6 +30,7 @@ const BackofficeUsers: React.FC = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const { toast } = useToast();
 
@@ -88,6 +91,37 @@ const BackofficeUsers: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    setDeleting(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+
+      if (res.error) {
+        toast({ title: 'Erreur', description: res.error.message, variant: 'destructive' });
+      } else if (res.data?.error) {
+        toast({ title: 'Erreur', description: res.data.error, variant: 'destructive' });
+      } else {
+        const reassignedTo = res.data?.reassignedTo;
+        const reassignedUser = reassignedTo ? users.find(u => u.id === reassignedTo) : null;
+        toast({
+          title: 'Utilisateur supprimé',
+          description: reassignedUser
+            ? `Les données ont été réassignées à ${reassignedUser.email}`
+            : 'Utilisateur supprimé avec succès',
+        });
+        fetchUsers();
+      }
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const filtered = users.filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -124,13 +158,14 @@ const BackofficeUsers: React.FC = () => {
                 <TableHead>Rôles</TableHead>
                 <TableHead>Modifier rôle</TableHead>
                 <TableHead>Inscrit le</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Aucun utilisateur trouvé</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Aucun utilisateur trouvé</TableCell></TableRow>
               ) : filtered.map(user => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name || '—'}</TableCell>
@@ -177,6 +212,42 @@ const BackofficeUsers: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                  </TableCell>
+                  <TableCell>
+                    {!user.roles.includes('admin-sapajoo') && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            disabled={deleting === user.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer cet utilisateur ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              L'utilisateur <strong>{user.email}</strong> sera définitivement supprimé.
+                              Ses données (bons de commande, budgets, factures…) seront réassignées à l'administrateur de son organisation
+                              {user.organization_name ? ` (${user.organization_name})` : ''}.
+                              Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
