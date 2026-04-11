@@ -497,6 +497,48 @@ export type Database = {
           },
         ]
       }
+      organizations: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          max_users: number
+          name: string
+          plan: string
+          siret: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          max_users?: number
+          name: string
+          plan?: string
+          siret?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          max_users?: number
+          name?: string
+          plan?: string
+          siret?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_batch_invoices: {
         Row: {
           amount_paid: number
@@ -591,6 +633,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          organization_id: string | null
           updated_at: string
         }
         Insert: {
@@ -599,6 +642,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          organization_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -607,9 +651,18 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          organization_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_order_items: {
         Row: {

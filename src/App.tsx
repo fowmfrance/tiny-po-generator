@@ -29,6 +29,12 @@ import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import MilestoneReport from './pages/MilestoneReport';
 import PriceBenchmark from './pages/PriceBenchmark';
+import ProtectedBackofficeRoute from './components/backoffice/ProtectedBackofficeRoute';
+import BackofficeLayout from './components/backoffice/BackofficeLayout';
+import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
+import BackofficeOrganizations from './pages/backoffice/BackofficeOrganizations';
+import BackofficeUsers from './pages/backoffice/BackofficeUsers';
+import BackofficePermissions from './pages/backoffice/BackofficePermissions';
 
 function App() {
   return (
@@ -64,6 +70,13 @@ function App() {
         <Route path="/supplier/purchaseorders/:vendorId" element={<SupplierPOView />} />
         <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        {/* Back-office Sapajoo */}
+        <Route path="/backoffice" element={<ProtectedBackofficeRoute><BackofficeLayout /></ProtectedBackofficeRoute>}>
+          <Route index element={<BackofficeDashboard />} />
+          <Route path="organizations" element={<BackofficeOrganizations />} />
+          <Route path="users" element={<BackofficeUsers />} />
+          <Route path="permissions" element={<BackofficePermissions />} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
