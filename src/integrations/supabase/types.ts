@@ -543,6 +543,111 @@ export type Database = {
           },
         ]
       }
+      kyc_document_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kyc_level_requirements: {
+        Row: {
+          created_at: string
+          document_type_id: string
+          id: string
+          is_mandatory: boolean
+          kyc_level_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_type_id: string
+          id?: string
+          is_mandatory?: boolean
+          kyc_level_id: string
+        }
+        Update: {
+          created_at?: string
+          document_type_id?: string
+          id?: string
+          is_mandatory?: boolean
+          kyc_level_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_level_requirements_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_level_requirements_kyc_level_id_fkey"
+            columns: ["kyc_level_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kyc_levels: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       milestone_confirmations: {
         Row: {
           confirmed_at: string
@@ -721,6 +826,7 @@ export type Database = {
           full_name: string | null
           id: string
           organization_id: string | null
+          receive_email_copies: boolean
           updated_at: string
         }
         Insert: {
@@ -730,6 +836,7 @@ export type Database = {
           full_name?: string | null
           id: string
           organization_id?: string | null
+          receive_email_copies?: boolean
           updated_at?: string
         }
         Update: {
@@ -739,6 +846,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id?: string | null
+          receive_email_copies?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -1186,6 +1294,63 @@ export type Database = {
           },
         ]
       }
+      supplier_kyc_documents: {
+        Row: {
+          created_at: string
+          document_type_id: string
+          file_url: string
+          id: string
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          supplier_id: string
+          updated_at: string
+          uploaded_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_type_id: string
+          file_url: string
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_type_id?: string
+          file_url?: string
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_kyc_documents_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_kyc_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_ratings: {
         Row: {
           comment: string | null
@@ -1271,6 +1436,8 @@ export type Database = {
           has_negotiated_rates: boolean | null
           id: string
           is_active: boolean | null
+          kyc_level_id: string | null
+          kyc_status: string
           name: string
           phone: string | null
           specialty: string | null
@@ -1289,6 +1456,8 @@ export type Database = {
           has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
+          kyc_level_id?: string | null
+          kyc_status?: string
           name: string
           phone?: string | null
           specialty?: string | null
@@ -1307,6 +1476,8 @@ export type Database = {
           has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
+          kyc_level_id?: string | null
+          kyc_status?: string
           name?: string
           phone?: string | null
           specialty?: string | null
@@ -1316,6 +1487,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "suppliers_kyc_level_id_fkey"
+            columns: ["kyc_level_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suppliers_supplier_type_id_fkey"
             columns: ["supplier_type_id"]
