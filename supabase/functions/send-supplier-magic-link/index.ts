@@ -34,10 +34,10 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get supplier info
+    // Get supplier info (including kyc_level_id)
     const { data: supplier, error: supplierError } = await supabase
       .from('suppliers')
-      .select('id, name, email')
+      .select('id, name, email, kyc_level_id')
       .eq('id', supplier_id)
       .single()
 
@@ -48,6 +48,22 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Fetch KYC required documents if a level is assigned
+    let kycDocumentNames: string[] = []
+    if (supplier.kyc_level_id) {
+      const { data: requirements } = await supabase
+        .from('kyc_level_requirements')
+        .select('kyc_document_types(name)')
+        .eq('kyc_level_id', supplier.kyc_level_id)
+        .eq('is_mandatory', true)
+
+      if (requirements) {
+        kycDocumentNames = requirements
+          .map((r: any) => r.kyc_document_types?.name)
+          .filter(Boolean)
+      }
+    }
+
     // Deactivate existing tokens
     await supabase
       .from('supplier_access_tokens')
@@ -55,7 +71,7 @@ Deno.serve(async (req) => {
       .eq('supplier_id', supplier_id)
       .eq('is_active', true)
 
-    // Create new token (email_verified = true since the link IS the verification)
+    // Create new token
     const { data: newToken, error: tokenError } = await supabase
       .from('supplier_access_tokens')
       .insert({
@@ -78,22 +94,49 @@ Deno.serve(async (req) => {
     const origin = req.headers.get('origin') || 'https://sapajoo.lovable.app'
     const portalUrl = `${origin}/supplier/portal/${newToken.token}`
 
-    // Send magic link email via transactional email system
+    // Send welcome email with magic link + KYC docs
     const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
       body: {
-        templateName: 'supplier-magic-link',
+        templateName: 'supplier-welcome',
         recipientEmail: supplier.email,
-        idempotencyKey: `supplier-magic-link-${newToken.id}`,
+        idempotencyKey: `supplier-welcome-${newToken.id}`,
         templateData: {
           supplierName: supplier.name,
           portalUrl,
+          kycDocuments: kycDocumentNames.length > 0 ? kycDocumentNames : undefined,
         },
       },
     })
 
     if (emailError) {
-      console.error('Failed to send magic link email', emailError)
-      // Token was created, so return success with a warning
+      console.error('Failed to send welcome email', emailError)
+    }
+
+    // Send copy to inviting user if they have receive_email_copies enabled
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name, receive_email_copies')
+        .eq('id', caller.id)
+        .single()
+
+      if (profile?.receive_email_copies) {
+        await supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'supplier-invite-copy',
+            recipientEmail: profile.email,
+            idempotencyKey: `supplier-invite-copy-${newToken.id}`,
+            templateData: {
+              supplierName: supplier.name,
+              supplierEmail: supplier.email,
+              kycDocuments: kycDocumentNames.length > 0 ? kycDocumentNames : undefined,
+              inviterName: profile.full_name || undefined,
+            },
+          },
+        })
+      }
+    } catch (copyErr) {
+      console.error('Failed to send copy email (non-blocking)', copyErr)
     }
 
     return new Response(
