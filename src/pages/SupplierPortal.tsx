@@ -1,40 +1,20 @@
-
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from 'react';
 import PortalHeader from '@/components/supplier/PortalHeader';
-import SupplierLoginForm from '@/components/supplier/SupplierLoginForm';
 import GuestInvoiceForm from '@/components/supplier/GuestInvoiceForm';
-import TestCredentialsInfo from '@/components/supplier/TestCredentialsInfo';
 
 const SupplierPortal: React.FC = () => {
-  const [error, setError] = useState('');
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-muted flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <PortalHeader />
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="guest">Invité</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <SupplierLoginForm setError={setError} />
-            </TabsContent>
-            
-            <TabsContent value="guest">
-              <GuestInvoiceForm setError={setError} />
-            </TabsContent>
-          </Tabs>
-          
-          {error && (
-            <div className="text-red-500 text-sm mt-4">{error}</div>
-          )}
-          
-          <TestCredentialsInfo />
+        <div className="bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Déposer une facture</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Si vous avez reçu un lien d'accès par email, utilisez-le pour accéder à votre espace complet.
+            Sinon, vous pouvez déposer une facture en tant qu'invité ci-dessous.
+          </p>
+          <GuestInvoiceForm setError={() => {}} />
         </div>
       </div>
     </div>

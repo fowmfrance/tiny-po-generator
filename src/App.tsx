@@ -25,6 +25,7 @@ import SupplierInvoiceCreate from './pages/SupplierInvoiceCreate';
 import SupplierPOView from './pages/SupplierPOView';
 import SupplierPortalAccess from './pages/SupplierPortalAccess';
 import NotFound from './pages/NotFound';
+import Unsubscribe from './pages/Unsubscribe';
 import Auth from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import MilestoneReport from './pages/MilestoneReport';
@@ -70,6 +71,7 @@ function App() {
         <Route path="/supplier/purchaseorders/:vendorId" element={<SupplierPOView />} />
         <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         {/* Back-office Sapajoo */}
         <Route path="/backoffice" element={<ProtectedBackofficeRoute><BackofficeLayout /></ProtectedBackofficeRoute>}>
           <Route index element={<BackofficeDashboard />} />

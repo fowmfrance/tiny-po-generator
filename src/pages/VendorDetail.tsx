@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  ArrowLeft, Mail, Phone, Building, FileText, Share2,
+  ArrowLeft, Mail, Phone, Building, FileText, Share2, Send,
   AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ const VendorDetail = () => {
   const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
-  const { copyPortalLink } = useSupplierAccessToken(id);
+  const { copyPortalLink, sendMagicLink } = useSupplierAccessToken(id);
 
   const supplier = useMemo(() => suppliers.find(s => s.id === id), [suppliers, id]);
   const supplierPOs = useMemo(() => purchaseOrders.filter(po => po.supplier_id === id), [purchaseOrders, id]);
@@ -104,6 +104,14 @@ const VendorDetail = () => {
             onClick={() => copyPortalLink()}
           >
             <Copy className="w-4 h-4" /> Copier lien portail
+          </Button>
+          <Button
+            variant="default"
+            className="flex items-center gap-2"
+            onClick={() => id && sendMagicLink.mutate(id)}
+            disabled={sendMagicLink.isPending}
+          >
+            <Send className="w-4 h-4" /> Envoyer le lien par email
           </Button>
         </div>
       </div>
