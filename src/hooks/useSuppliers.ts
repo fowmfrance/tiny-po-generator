@@ -16,6 +16,8 @@ export interface Supplier {
   has_negotiated_rates: boolean;
   business_volume: number;
   is_active: boolean;
+  kyc_level_id: string | null;
+  kyc_status: string;
   created_at: string;
   updated_at: string;
   // Joined
