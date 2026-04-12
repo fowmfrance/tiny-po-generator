@@ -19,11 +19,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase, ShieldCheck } from 'lucide-react';
 import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
 import NumberingTab from '@/components/settings/NumberingTab';
 import BankMappingTab from '@/components/settings/BankMappingTab';
 import SupplierCatalogTab from '@/components/settings/SupplierCatalogTab';
+import KYCSettingsTab from '@/components/settings/KYCSettingsTab';
 
 interface CurrencyRate {
   currency: BudgetCurrency;
