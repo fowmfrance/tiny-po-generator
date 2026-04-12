@@ -96,6 +96,15 @@ const PurchaseOrderDetail = () => {
 
   return (
     <div className="space-y-6">
+      {isKycBlocking && po.status === 'draft' && (
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">KYC fournisseur en attente</p>
+            <p className="text-sm">Ce bon de commande restera en brouillon tant que le fournisseur n'aura pas finalisé sa vérification KYC.</p>
+          </div>
+        </div>
+      )}
       {/* Header - navigation only */}
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/purchase-orders')} className="p-2">
