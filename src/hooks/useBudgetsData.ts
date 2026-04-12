@@ -168,6 +168,10 @@ export function useBudgetsData() {
           resalePrice: budget.resale_price ? Number(budget.resale_price) : undefined,
           status: budget.status,
           milestones,
+          completionPercentage: Number(budget.completion_percentage || 0),
+          clientId: budget.client_id || null,
+          clientName: (budget as any).clients?.name || null,
+          projectManagerId: budget.project_manager_id || null,
         };
       });
 

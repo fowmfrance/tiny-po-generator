@@ -41,4 +41,8 @@ export interface Budget {
   status?: string;
   milestones?: BudgetMilestone[];
   milestoneMode?: MilestoneMode;
+  completionPercentage?: number;
+  clientId?: string | null;
+  clientName?: string | null;
+  projectManagerId?: string | null;
 }
