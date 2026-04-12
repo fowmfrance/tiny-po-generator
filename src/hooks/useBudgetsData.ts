@@ -33,7 +33,7 @@ export function useBudgetsData() {
         supabase
           .from('budgets')
           .select(
-            `
+          `
             *,
             budget_milestones (
               id,
@@ -44,6 +44,10 @@ export function useBudgetsData() {
               completion_percentage,
               is_completed,
               order_index
+            ),
+            clients (
+              id,
+              name
             )
           `
           )
