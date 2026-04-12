@@ -1,5 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -27,11 +29,14 @@ import {
   Clock,
   Calendar,
   DollarSign,
-  Package
+  Package,
+  FileCheck
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockVendors } from '@/types/vendor';
 import { mockPurchaseOrders } from './PurchaseOrders';
 import { Progress } from '@/components/ui/progress';
+import SupplierKYCTab from '@/components/supplier/SupplierKYCTab';
 
 const SupplierPOView = () => {
   const { id } = useParams<{ id: string }>();
