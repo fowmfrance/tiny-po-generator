@@ -39,8 +39,25 @@ import { Progress } from '@/components/ui/progress';
 import SupplierKYCTab from '@/components/supplier/SupplierKYCTab';
 
 const SupplierPOView = () => {
-  const { id } = useParams<{ id: string }>();
+  const { vendorId: id } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
+
+  // Check if this supplier has KYC requirements
+  const { data: supplierData } = useQuery({
+    queryKey: ['supplier-portal-kyc', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('kyc_level_id, kyc_status')
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const hasKyc = !!supplierData?.kyc_level_id;
   
   // Get vendor details
   const vendor = mockVendors.find(v => v.id === id);
