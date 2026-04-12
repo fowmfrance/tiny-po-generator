@@ -114,6 +114,10 @@ const Settings = () => {
             <Briefcase className="h-4 w-4 mr-2" />
             Fournisseurs & Prestations
           </TabsTrigger>
+          <TabsTrigger value="kyc">
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            KYC
+          </TabsTrigger>
           <TabsTrigger value="currencies">
             <Euro className="h-4 w-4 mr-2" />
             Devises
@@ -142,6 +146,10 @@ const Settings = () => {
         
         <TabsContent value="supplier-catalog" className="mt-6">
           <SupplierCatalogTab />
+        </TabsContent>
+
+        <TabsContent value="kyc" className="mt-6">
+          <KYCSettingsTab />
         </TabsContent>
 
         <TabsContent value="currencies" className="mt-6">
