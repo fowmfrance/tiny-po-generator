@@ -39,6 +39,22 @@ const PurchaseOrderDetail = () => {
   const { updatePOStatus, deletePO } = usePurchaseOrders();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  // Check supplier KYC status
+  const { data: supplierKycStatus } = useQuery({
+    queryKey: ['supplier-kyc-status', po?.supplier_id],
+    enabled: !!po?.supplier_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('suppliers')
+        .select('kyc_status, kyc_level_id')
+        .eq('id', po!.supplier_id)
+        .single();
+      return data;
+    },
+  });
+
+  const isKycBlocking = supplierKycStatus?.kyc_level_id && supplierKycStatus?.kyc_status !== 'verified';
+
   const handleStatusChange = (newStatus: string) => {
     if (!po) return;
     updatePOStatus.mutate(
