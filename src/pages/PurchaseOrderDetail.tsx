@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { POInvoiceSection } from '@/components/purchase-orders/POInvoiceSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,22 @@ const PurchaseOrderDetail = () => {
   const { data: po, isLoading } = usePurchaseOrder(id);
   const { updatePOStatus, deletePO } = usePurchaseOrders();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Check supplier KYC status
+  const { data: supplierKycStatus } = useQuery({
+    queryKey: ['supplier-kyc-status', po?.supplier_id],
+    enabled: !!po?.supplier_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('suppliers')
+        .select('kyc_status, kyc_level_id')
+        .eq('id', po!.supplier_id)
+        .single();
+      return data;
+    },
+  });
+
+  const isKycBlocking = supplierKycStatus?.kyc_level_id && supplierKycStatus?.kyc_status !== 'verified';
 
   const handleStatusChange = (newStatus: string) => {
     if (!po) return;
@@ -78,6 +96,15 @@ const PurchaseOrderDetail = () => {
 
   return (
     <div className="space-y-6">
+      {isKycBlocking && po.status === 'draft' && (
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">KYC fournisseur en attente</p>
+            <p className="text-sm">Ce bon de commande restera en brouillon tant que le fournisseur n'aura pas finalisé sa vérification KYC.</p>
+          </div>
+        </div>
+      )}
       {/* Header - navigation only */}
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/purchase-orders')} className="p-2">
@@ -237,9 +264,15 @@ const PurchaseOrderDetail = () => {
               <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
                 <Pencil className="h-4 w-4" /> Modifier
               </Button>
-              <Button onClick={() => handleStatusChange('pending')}>
-                Soumettre pour approbation
-              </Button>
+              {isKycBlocking ? (
+                <Button disabled className="flex items-center gap-2" title="Le fournisseur doit finaliser son KYC">
+                  <AlertTriangle className="h-4 w-4" /> KYC en attente
+                </Button>
+              ) : (
+                <Button onClick={() => handleStatusChange('pending')}>
+                  Soumettre pour approbation
+                </Button>
+              )}
             </>
           )}
           {po.status === 'pending' && (
