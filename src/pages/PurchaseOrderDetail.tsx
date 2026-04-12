@@ -255,9 +255,15 @@ const PurchaseOrderDetail = () => {
               <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}>
                 <Pencil className="h-4 w-4" /> Modifier
               </Button>
-              <Button onClick={() => handleStatusChange('pending')}>
-                Soumettre pour approbation
-              </Button>
+              {isKycBlocking ? (
+                <Button disabled className="flex items-center gap-2" title="Le fournisseur doit finaliser son KYC">
+                  <AlertTriangle className="h-4 w-4" /> KYC en attente
+                </Button>
+              ) : (
+                <Button onClick={() => handleStatusChange('pending')}>
+                  Soumettre pour approbation
+                </Button>
+              )}
             </>
           )}
           {po.status === 'pending' && (
