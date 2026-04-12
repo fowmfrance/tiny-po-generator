@@ -319,7 +319,9 @@ export type Database = {
       budgets: {
         Row: {
           budget_type_id: string
+          client_id: string | null
           code: string
+          completion_percentage: number
           created_at: string
           currency: string
           end_date: string | null
@@ -328,6 +330,7 @@ export type Database = {
           initial_amount: number
           milestone_mode: string | null
           name: string
+          project_manager_id: string | null
           recognition_method_id: string | null
           resale_price: number | null
           start_date: string | null
@@ -337,7 +340,9 @@ export type Database = {
         }
         Insert: {
           budget_type_id: string
+          client_id?: string | null
           code: string
+          completion_percentage?: number
           created_at?: string
           currency?: string
           end_date?: string | null
@@ -346,6 +351,7 @@ export type Database = {
           initial_amount?: number
           milestone_mode?: string | null
           name: string
+          project_manager_id?: string | null
           recognition_method_id?: string | null
           resale_price?: number | null
           start_date?: string | null
@@ -355,7 +361,9 @@ export type Database = {
         }
         Update: {
           budget_type_id?: string
+          client_id?: string | null
           code?: string
+          completion_percentage?: number
           created_at?: string
           currency?: string
           end_date?: string | null
@@ -364,6 +372,7 @@ export type Database = {
           initial_amount?: number
           milestone_mode?: string | null
           name?: string
+          project_manager_id?: string | null
           recognition_method_id?: string | null
           resale_price?: number | null
           start_date?: string | null
@@ -373,6 +382,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "budgets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "budgets_recognition_method_id_fkey"
             columns: ["recognition_method_id"]
             isOneToOne: false
@@ -380,6 +396,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       email_send_log: {
         Row: {
