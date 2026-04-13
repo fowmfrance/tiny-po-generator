@@ -177,11 +177,8 @@ export function POInvoiceSection({
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {invoice.attachment_url ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Fichier joint
-                          </Badge>
+                        {invoice.attachment_url && invoice.attachment_url.trim() !== '' ? (
+                          <AttachmentLink attachmentUrl={invoice.attachment_url} />
                         ) : (
                           <Badge variant="outline">
                             <AlertCircle className="h-3 w-3 mr-1" />
