@@ -197,14 +197,12 @@ const VendorDetail = () => {
           <TabsTrigger value="kpis" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /> KPIs
           </TabsTrigger>
-          {supplier.kyc_level_id && (
-            <TabsTrigger value="kyc" className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4" /> KYC
-              {supplier.kyc_status === 'pending' && (
-                <span className="ml-1 h-2 w-2 rounded-full bg-amber-500" />
-              )}
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="kyc" className="flex items-center gap-1.5">
+            <FileText className="h-4 w-4" /> KYC
+            {supplier.kyc_status === 'pending' && (
+              <span className="ml-1 h-2 w-2 rounded-full bg-amber-500" />
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-4">
@@ -357,14 +355,12 @@ const VendorDetail = () => {
           />
         </TabsContent>
 
-        {supplier.kyc_level_id && (
-          <TabsContent value="kyc" className="mt-4">
-            <VendorKYCReviewTab
-              supplierId={id!}
-              supplierName={supplier.name}
-            />
-          </TabsContent>
-        )}
+        <TabsContent value="kyc" className="mt-4">
+          <VendorKYCReviewTab
+            supplierId={id!}
+            supplierName={supplier.name}
+          />
+        </TabsContent>
       </Tabs>
 
       {supplier && (

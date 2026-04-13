@@ -1,12 +1,9 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Mail, 
   Phone, 
   Building, 
-  ArrowRight,
-  MapPin,
   Star,
   Handshake,
   TrendingUp
@@ -14,12 +11,11 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
 import { Vendor } from '@/types/vendor';
 
 interface VendorCardProps {
@@ -27,6 +23,8 @@ interface VendorCardProps {
 }
 
 const VendorCard = ({ vendor }: VendorCardProps) => {
+  const navigate = useNavigate();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { 
       style: 'currency', 
@@ -35,28 +33,22 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
     }).format(amount);
   };
 
-  const renderRating = (rating: number | undefined, totalRatings: number | undefined) => {
-    if (!rating || rating === 0) {
-      return <span className="text-muted-foreground text-xs">Pas de note</span>;
-    }
-    return (
-      <div className="flex items-center gap-1">
-        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-        <span className="font-medium">{rating.toFixed(1)}</span>
-        {totalRatings && totalRatings > 0 && (
-          <span className="text-muted-foreground text-xs">({totalRatings})</span>
-        )}
-      </div>
-    );
-  };
+  const hasEmail = vendor.email && !vendor.email.includes('.temp');
+  const hasPhone = !!vendor.phone && vendor.phone.trim() !== '';
 
   return (
-    <Card key={vendor.id} className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card 
+      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => navigate(`/vendors/${vendor.id}`)}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <CardTitle className="text-lg">{vendor.name}</CardTitle>
-            <CardDescription>{vendor.category}</CardDescription>
+            <div className="flex items-center gap-2">
+              <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-lg">{vendor.name}</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground">{vendor.category}</p>
             {vendor.specialty && (
               <Badge variant="secondary" className="text-xs">
                 {vendor.specialty}
@@ -73,32 +65,42 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
             {vendor.status === 'inactive' && (
               <span className="status-badge status-draft">Inactif</span>
             )}
-            {renderRating(vendor.averageRating, vendor.totalRatings)}
+            {(vendor.averageRating || 0) > 0 ? (
+              <div className="flex items-center gap-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <span className="font-medium text-sm">{vendor.averageRating!.toFixed(1)}</span>
+                {(vendor.totalRatings || 0) > 0 && (
+                  <span className="text-muted-foreground text-xs">({vendor.totalRatings})</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-muted-foreground text-xs">Pas de note</span>
+            )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="pb-4">
         <div className="space-y-2">
           <div className="flex items-center text-sm">
-            <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{vendor.email}</span>
+            <Mail 
+              className={`h-4 w-4 mr-2 ${hasEmail ? 'text-muted-foreground' : 'text-muted-foreground/20'}`} 
+              strokeWidth={hasEmail ? 2.5 : 1.5}
+            />
+            <span className={hasEmail ? '' : 'text-muted-foreground/40'}>{vendor.email}</span>
           </div>
           <div className="flex items-center text-sm">
-            <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{vendor.phone}</span>
+            <Phone 
+              className={`h-4 w-4 mr-2 ${hasPhone ? 'text-muted-foreground' : 'text-muted-foreground/20'}`}
+              strokeWidth={hasPhone ? 2.5 : 1.5}
+            />
+            <span className={hasPhone ? '' : 'text-muted-foreground/40'}>{hasPhone ? vendor.phone : '—'}</span>
           </div>
           <div className="flex items-center text-sm">
             <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{vendor.totalPOs} Bons de Commande</span>
+            <span>{vendor.totalPOs} BdC</span>
           </div>
-          {vendor.city && vendor.country && (
-            <div className="flex items-center text-sm">
-              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>{vendor.city}, {vendor.country}</span>
-            </div>
-          )}
           
-          {/* New indicators row */}
+          {/* Indicators row */}
           <div className="flex items-center gap-3 pt-2 border-t mt-2">
             {vendor.hasNegotiatedRates && (
               <div className="flex items-center gap-1 text-xs text-green-600">
@@ -115,15 +117,6 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="bg-muted/50 pt-3">
-        <Link 
-          to={`/vendors/${vendor.id}`} 
-          className="text-primary hover:text-primary/80 text-sm flex items-center ml-auto"
-        >
-          Voir les détails
-          <ArrowRight className="w-4 h-4 ml-1" />
-        </Link>
-      </CardFooter>
     </Card>
   );
 };

@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
 import { Filter, Activity, MapPin, Globe, Star, Handshake, TrendingUp } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -10,12 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface VendorFiltersProps {
   showFilters: boolean;
   toggleFilters: () => void;
-  categoryFilter: string;
-  setCategoryFilter: (value: string) => void;
+  categoryFilter: string[];
+  setCategoryFilter: (value: string[]) => void;
   statusFilter: string;
   setStatusFilter: (value: string) => void;
   cityFilter: string;
@@ -64,7 +69,7 @@ const VendorFilters = ({
 }: VendorFiltersProps) => {
   
   const activeFiltersCount = [
-    categoryFilter, 
+    categoryFilter.length > 0 ? 'active' : 'all',
     statusFilter, 
     countryFilter, 
     cityFilter,
@@ -73,6 +78,17 @@ const VendorFilters = ({
     volumeFilter,
     ratingFilter
   ].filter(f => f !== 'all').length;
+
+  const toggleCategory = (cat: string) => {
+    if (categoryFilter.includes(cat)) {
+      setCategoryFilter(categoryFilter.filter(c => c !== cat));
+    } else {
+      setCategoryFilter([...categoryFilter, cat]);
+    }
+  };
+
+  // Filter out 'all' from categories for multi-select
+  const realCategories = categories.filter(c => c !== 'all');
 
   return (
     <>
@@ -93,6 +109,43 @@ const VendorFilters = ({
       {showFilters && (
         <div className="bg-muted/50 p-4 rounded-lg border">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {/* Catégorie multi-select */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-muted-foreground" />
+                Catégorie
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start font-normal">
+                    {categoryFilter.length === 0 
+                      ? 'Toutes les catégories' 
+                      : categoryFilter.length === 1 
+                        ? categoryFilter[0] 
+                        : `${categoryFilter.length} catégories`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3" align="start">
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {realCategories.map(cat => (
+                      <label key={cat} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
+                        <Checkbox
+                          checked={categoryFilter.includes(cat)}
+                          onCheckedChange={() => toggleCategory(cat)}
+                        />
+                        <span className="text-sm">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {categoryFilter.length > 0 && (
+                    <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setCategoryFilter([])}>
+                      Effacer
+                    </Button>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Spécialité */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -167,26 +220,6 @@ const VendorFilters = ({
                   <SelectItem value="4">⭐ 4+</SelectItem>
                   <SelectItem value="3.5">⭐ 3.5+</SelectItem>
                   <SelectItem value="3">⭐ 3+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Catégorie */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-muted-foreground" />
-                Catégorie
-              </Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Toutes les catégories" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category === 'all' ? 'Toutes les catégories' : category}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>
