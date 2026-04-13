@@ -2,16 +2,16 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertTriangle, Clock, FileText, Link2, ExternalLink, Download, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, FileText, Link2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { InvoiceWithPaymentStatus } from '@/types/payment';
 import { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { formatCurrency } from '@/utils/paymentUtils';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
+import { InvoiceAttachmentPreview } from '@/components/payments/InvoiceAttachmentPreview';
 
 interface VendorInvoicesTabProps {
   supplierInvoices: InvoiceWithPaymentStatus[];
@@ -21,7 +21,6 @@ interface VendorInvoicesTabProps {
 function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabProps) {
   const navigate = useNavigate();
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceWithPaymentStatus | null>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   // Load many-to-many links
   const invoiceIds = useMemo(() => supplierInvoices.map(i => i.id), [supplierInvoices]);
@@ -87,22 +86,8 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
     }
   };
 
-  const handleOpenPreview = async (inv: InvoiceWithPaymentStatus) => {
+  const handleOpenPreview = (inv: InvoiceWithPaymentStatus) => {
     setPreviewInvoice(inv);
-    setSignedUrl(null);
-    if (inv.attachment_url) {
-      if (inv.attachment_url.startsWith('http')) {
-        setSignedUrl(inv.attachment_url);
-      } else {
-        const { data, error } = await supabase.storage
-          .from('invoice-attachments')
-          .createSignedUrl(inv.attachment_url, 3600);
-        if (error) {
-          console.error('Error creating signed URL:', error);
-        }
-        setSignedUrl(data?.signedUrl || null);
-      }
-    }
   };
 
   if (enrichedInvoices.length === 0) {
@@ -238,36 +223,10 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
                 )}
               </div>
 
-              {signedUrl ? (
-                <div className="flex-1 min-h-0 flex flex-col gap-2">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Ouvrir
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={signedUrl} download>
-                        <Download className="h-4 w-4 mr-1" />
-                        Télécharger
-                      </a>
-                    </Button>
-                  </div>
-                  <iframe
-                    src={`https://docs.google.com/gview?url=${encodeURIComponent(signedUrl)}&embedded=true`}
-                    className="w-full flex-1 min-h-[400px] rounded-md border"
-                    title="Aperçu facture"
-                  />
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
-                  <div className="text-center py-12">
-                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>Aucun document attaché à cette facture.</p>
-                  </div>
-                </div>
-              )}
+              <InvoiceAttachmentPreview
+                attachmentUrl={previewInvoice.attachment_url}
+                title={`Facture ${previewInvoice.invoice_number}`}
+              />
             </div>
           )}
         </DialogContent>

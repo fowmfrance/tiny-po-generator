@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/paymentUtils';
+import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
 
 interface POInvoiceSectionProps {
   poId: string;
@@ -29,31 +30,35 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 };
 
 function AttachmentLink({ attachmentUrl }: { attachmentUrl: string }) {
-  const [url, setUrl] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [isOpening, setIsOpening] = useState(false);
 
-  React.useEffect(() => {
-    if (attachmentUrl.startsWith('http')) {
-      setUrl(attachmentUrl);
-    } else {
-      supabase.storage
-        .from('invoice-attachments')
-        .createSignedUrl(attachmentUrl, 3600)
-        .then(({ data }) => setUrl(data?.signedUrl || null));
+  const handleOpen = async () => {
+    try {
+      setIsOpening(true);
+      const opened = await openInvoiceAttachmentInNewTab(attachmentUrl);
+      if (!opened) {
+        toast({ title: 'Erreur', description: 'Impossible d’ouvrir le document.', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Error opening invoice attachment:', error);
+      toast({ title: 'Erreur', description: 'Impossible d’ouvrir le document.', variant: 'destructive' });
+    } finally {
+      setIsOpening(false);
     }
-  }, [attachmentUrl]);
+  };
 
   return (
-    <a
-      href={url || '#'}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => { if (!url) e.preventDefault(); }}
+    <button
+      type="button"
+      onClick={handleOpen}
+      disabled={isOpening}
       className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
     >
-      <CheckCircle className="h-3 w-3" />
+      {isOpening ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
       <ExternalLink className="h-3 w-3" />
       Fichier joint
-    </a>
+    </button>
   );
 }
 
@@ -99,10 +104,6 @@ export function POInvoiceSection({
         .from('invoice-attachments')
         .upload(filePath, file);
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('invoice-attachments')
-        .getPublicUrl(filePath);
 
       // Create invoice record
       const invoiceNumber = `FAC-${poNumber}-${(invoices.length + 1).toString().padStart(2, '0')}`;

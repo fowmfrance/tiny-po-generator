@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, ExternalLink, X, Download } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { SupplierLink } from '@/components/ui/supplier-link';
 import {
   Table,
@@ -19,10 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
+import { InvoiceAttachmentPreview } from './InvoiceAttachmentPreview';
 import { formatCurrency } from '@/utils/paymentUtils';
-import { supabase } from '@/integrations/supabase/client';
 import type { InvoiceWithPaymentStatus } from '@/types/payment';
 
 interface InvoicesTableProps {
@@ -31,15 +30,6 @@ interface InvoicesTableProps {
   onSelectionChange: (id: string, selected: boolean) => void;
   onSelectAll: (selected: boolean) => void;
   showCheckboxes?: boolean;
-}
-
-function getAttachmentUrl(path: string | null): string | null {
-  if (!path) return null;
-  // If it's already a full URL, return it
-  if (path.startsWith('http')) return path;
-  // Otherwise build a signed URL from storage
-  const { data } = supabase.storage.from('invoice-attachments').getPublicUrl(path);
-  return data?.publicUrl || null;
 }
 
 export function InvoicesTable({
@@ -52,24 +42,9 @@ export function InvoicesTable({
   const allSelected = invoices.length > 0 && invoices.every(inv => selectedIds.has(inv.id));
   const someSelected = invoices.some(inv => selectedIds.has(inv.id));
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceWithPaymentStatus | null>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
-  const handleOpenPreview = async (invoice: InvoiceWithPaymentStatus) => {
+  const handleOpenPreview = (invoice: InvoiceWithPaymentStatus) => {
     setPreviewInvoice(invoice);
-    setSignedUrl(null);
-    if (invoice.attachment_url) {
-      if (invoice.attachment_url.startsWith('http')) {
-        setSignedUrl(invoice.attachment_url);
-      } else {
-        const { data, error } = await supabase.storage
-          .from('invoice-attachments')
-          .createSignedUrl(invoice.attachment_url, 3600);
-        if (error) {
-          console.error('Error creating signed URL:', error);
-        }
-        setSignedUrl(data?.signedUrl || null);
-      }
-    }
   };
 
   return (
@@ -216,43 +191,10 @@ export function InvoicesTable({
                 )}
               </div>
 
-              {/* PDF preview or no-attachment message */}
-              {signedUrl ? (
-                <div className="flex-1 min-h-0 flex flex-col gap-2">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Ouvrir
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={signedUrl} download>
-                        <Download className="h-4 w-4 mr-1" />
-                        Télécharger
-                      </a>
-                    </Button>
-                  </div>
-                  <object
-                    data={signedUrl}
-                    type="application/pdf"
-                    className="w-full flex-1 min-h-[400px] rounded-md border"
-                  >
-                    <iframe
-                      src={signedUrl}
-                      className="w-full h-full min-h-[400px]"
-                      title={`Facture ${previewInvoice.invoice_number}`}
-                    />
-                  </object>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
-                  <div className="text-center py-12">
-                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>Aucun document attaché à cette facture.</p>
-                  </div>
-                </div>
-              )}
+              <InvoiceAttachmentPreview
+                attachmentUrl={previewInvoice.attachment_url}
+                title={`Facture ${previewInvoice.invoice_number}`}
+              />
             </div>
           )}
         </DialogContent>
