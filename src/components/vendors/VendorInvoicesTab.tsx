@@ -1,14 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertTriangle, Clock, FileText, Link2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, FileText, Link2, ExternalLink, Download, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { InvoiceWithPaymentStatus } from '@/types/payment';
 import { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { formatCurrency } from '@/utils/paymentUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
 
 interface VendorInvoicesTabProps {
   supplierInvoices: InvoiceWithPaymentStatus[];
@@ -17,6 +20,8 @@ interface VendorInvoicesTabProps {
 
 function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabProps) {
   const navigate = useNavigate();
+  const [previewInvoice, setPreviewInvoice] = useState<InvoiceWithPaymentStatus | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   // Load many-to-many links
   const invoiceIds = useMemo(() => supplierInvoices.map(i => i.id), [supplierInvoices]);
@@ -33,14 +38,12 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
     },
   });
 
-  // Map PO id -> PO for quick lookup
   const poMap = useMemo(() => {
     const map = new Map<string, PurchaseOrder>();
     supplierPOs.forEach(po => map.set(po.id, po));
     return map;
   }, [supplierPOs]);
 
-  // Enrich invoices with linked POs
   const enrichedInvoices = useMemo(() => {
     return supplierInvoices.map(inv => {
       const links = (invoicePOLinks || []).filter(l => l.invoice_id === inv.id);
@@ -48,7 +51,6 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
         ...l,
         po: poMap.get(l.purchase_order_id),
       }));
-      // Also include legacy po_number match if no junction links
       if (linkedPOs.length === 0 && inv.po_number) {
         const matchedPO = supplierPOs.find(po => po.po_number === inv.po_number);
         if (matchedPO) {
@@ -85,6 +87,22 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
     }
   };
 
+  const handleOpenPreview = async (inv: InvoiceWithPaymentStatus) => {
+    setPreviewInvoice(inv);
+    if (inv.attachment_url) {
+      if (inv.attachment_url.startsWith('http')) {
+        setSignedUrl(inv.attachment_url);
+      } else {
+        const { data } = await supabase.storage
+          .from('invoice-attachments')
+          .createSignedUrl(inv.attachment_url, 3600);
+        setSignedUrl(data?.signedUrl || null);
+      }
+    } else {
+      setSignedUrl(null);
+    }
+  };
+
   if (enrichedInvoices.length === 0) {
     return (
       <Card>
@@ -97,62 +115,158 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
   }
 
   return (
-    <div className="space-y-4">
-      {enrichedInvoices.map(inv => (
-        <Card key={inv.id}>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="font-semibold text-sm">{inv.invoice_number}</span>
-                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusStyle(inv.payment_status)}`}>
-                    {statusIcon(inv.payment_status)}
-                    {statusLabel(inv.payment_status)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-1">
-                  <span>Date : {new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
-                  <span>Échéance : {new Date(inv.due_date).toLocaleDateString('fr-FR')}</span>
-                  {inv.paid_date && <span>Payée le : {new Date(inv.paid_date).toLocaleDateString('fr-FR')}</span>}
+    <>
+      <div className="space-y-4">
+        {enrichedInvoices.map(inv => (
+          <Card 
+            key={inv.id} 
+            className="cursor-pointer hover:border-primary/40 transition-colors"
+            onClick={() => handleOpenPreview(inv)}
+          >
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    {inv.attachment_url && <FileText className="h-4 w-4 text-primary shrink-0" />}
+                    <span className="font-semibold text-sm">{inv.invoice_number}</span>
+                    <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusStyle(inv.payment_status)}`}>
+                      {statusIcon(inv.payment_status)}
+                      {statusLabel(inv.payment_status)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-1">
+                    <span>Date facture : {new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
+                    <span>Reçue le : {new Date(inv.received_date).toLocaleDateString('fr-FR')}</span>
+                    <span>Échéance : {new Date(inv.due_date).toLocaleDateString('fr-FR')}</span>
+                    {inv.paid_date && <span>Payée le : {new Date(inv.paid_date).toLocaleDateString('fr-FR')}</span>}
+                  </div>
+
+                  {inv.linkedPOs.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Link2 className="h-3 w-3" /> Bons de commande liés
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {inv.linkedPOs.map((link: any, idx: number) => (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              link.po && navigate(`/purchase-orders/${link.po.id}`);
+                            }}
+                          >
+                            {link.po?.po_number || link.purchase_order_id.slice(0, 8)}
+                            {link.amount_allocated > 0 && (
+                              <span className="ml-1 text-muted-foreground">
+                                ({formatCurrency(link.amount_allocated, inv.currency)})
+                              </span>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Linked POs */}
-                {inv.linkedPOs.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <Link2 className="h-3 w-3" /> Bons de commande liés
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {inv.linkedPOs.map((link: any, idx: number) => (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => link.po && navigate(`/purchase-orders/${link.po.id}`)}
-                        >
-                          {link.po?.po_number || link.purchase_order_id.slice(0, 8)}
-                          {link.amount_allocated > 0 && (
-                            <span className="ml-1 text-muted-foreground">
-                              ({formatCurrency(link.amount_allocated, inv.currency)})
-                            </span>
-                          )}
-                        </Button>
-                      ))}
-                    </div>
+                <div className="text-right shrink-0">
+                  <p className="text-lg font-bold">{formatCurrency(Number(inv.amount), inv.currency)}</p>
+                  {inv.po_number && <p className="text-xs text-muted-foreground">Réf. {inv.po_number}</p>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Invoice preview dialog */}
+      <Dialog open={!!previewInvoice} onOpenChange={(open) => !open && setPreviewInvoice(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Facture {previewInvoice?.invoice_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {previewInvoice && (
+            <div className="flex flex-col gap-4 flex-1 min-h-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Fournisseur</p>
+                  <p className="font-medium">{previewInvoice.supplier?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Montant</p>
+                  <p className="font-medium">{formatCurrency(Number(previewInvoice.amount), previewInvoice.currency)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date facture</p>
+                  <p className="font-medium">{format(parseISO(previewInvoice.invoice_date), 'dd MMM yyyy', { locale: fr })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Reçue le</p>
+                  <p className="font-medium">{format(parseISO(previewInvoice.received_date), 'dd MMM yyyy', { locale: fr })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Échéance</p>
+                  <p className="font-medium">{format(parseISO(previewInvoice.due_date), 'dd MMM yyyy', { locale: fr })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Statut</p>
+                  <PaymentStatusBadge status={previewInvoice.payment_status} />
+                </div>
+                {previewInvoice.po_number && (
+                  <div>
+                    <p className="text-muted-foreground">N° BC</p>
+                    <p className="font-medium">{previewInvoice.po_number}</p>
+                  </div>
+                )}
+                {previewInvoice.project_code && (
+                  <div>
+                    <p className="text-muted-foreground">Projet</p>
+                    <p className="font-medium">{previewInvoice.project_code}</p>
                   </div>
                 )}
               </div>
 
-              <div className="text-right shrink-0">
-                <p className="text-lg font-bold">{formatCurrency(Number(inv.amount), inv.currency)}</p>
-                {inv.po_number && <p className="text-xs text-muted-foreground">Réf. {inv.po_number}</p>}
-              </div>
+              {signedUrl ? (
+                <div className="flex-1 min-h-0 flex flex-col gap-2">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Ouvrir
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={signedUrl} download>
+                        <Download className="h-4 w-4 mr-1" />
+                        Télécharger
+                      </a>
+                    </Button>
+                  </div>
+                  <iframe
+                    src={signedUrl}
+                    className="w-full flex-1 min-h-[400px] rounded-md border"
+                    title={`Facture ${previewInvoice.invoice_number}`}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
+                  <div className="text-center py-12">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>Aucun document attaché à cette facture.</p>
+                  </div>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
