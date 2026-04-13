@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSupplierDashboard } from '@/hooks/useSupplierDashboard';
+import { useSupplierDashboard, PeriodKey } from '@/hooks/useSupplierDashboard';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  ResponsiveContainer, Tooltip, Legend,
+  ResponsiveContainer, Tooltip,
 } from 'recharts';
-import { TrendingUp, TrendingDown, ShoppingCart, Users, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, FileText } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const RePieChart = PieChart as unknown as React.ComponentType<any>;
 const RePie = Pie as unknown as React.ComponentType<any>;
@@ -19,7 +20,16 @@ const ReYAxis = YAxis as unknown as React.ComponentType<any>;
 const ReCartesianGrid = CartesianGrid as unknown as React.ComponentType<any>;
 const ReResponsiveContainer = ResponsiveContainer as unknown as React.ComponentType<any>;
 const ReTooltip = Tooltip as unknown as React.ComponentType<any>;
-const ReLegend = Legend as unknown as React.ComponentType<any>;
+
+const PERIODS: { key: PeriodKey; label: string }[] = [
+  { key: '1M', label: '1M' },
+  { key: '3M', label: '3M' },
+  { key: '6M', label: '6M' },
+  { key: '12M', label: '12M' },
+  { key: 'LTM', label: 'LTM' },
+  { key: 'YTD', label: 'YTD' },
+  { key: 'Tout', label: 'Tout' },
+];
 
 const fmtE = (v: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
@@ -28,7 +38,6 @@ const fmtE = (v: number) =>
 
 const pct = (v: number, t: number) => (t > 0 ? `${((v / t) * 100).toFixed(1)}%` : '—');
 
-// Dark tooltip
 const DarkTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -118,18 +127,39 @@ const DonutCard = ({ title, data, total }: { title: string; data: { name: string
   </Card>
 );
 
+const PeriodFilter = ({ selected, onChange }: { selected: PeriodKey; onChange: (p: PeriodKey) => void }) => (
+  <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+    <span className="text-xs text-muted-foreground px-2">Période</span>
+    {PERIODS.map(({ key, label }) => (
+      <button
+        key={key}
+        onClick={() => onChange(key)}
+        className={cn(
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+          selected === key
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-background'
+        )}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
 const SupplierDashboardTab: React.FC = () => {
-  const { data, isLoading } = useSupplierDashboard();
+  const [period, setPeriod] = useState<PeriodKey>('YTD');
+  const { data, isLoading } = useSupplierDashboard(period);
   const [showByTrade, setShowByTrade] = useState(false);
 
   if (isLoading || !data) {
     return <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Chargement du dashboard…</p></div>;
   }
 
-  const variation = data.totalN1 > 0 ? ((data.totalN - data.totalN1) / data.totalN1) * 100 : null;
-  const poVariation = data.poCountN1 > 0 ? ((data.poCountN - data.poCountN1) / data.poCountN1) * 100 : null;
+  const periodLabel = period === 'Tout' ? 'Total' : period;
+  const variation = data.totalPrev > 0 ? ((data.totalN - data.totalPrev) / data.totalPrev) * 100 : null;
+  const poVariation = data.poCountPrev > 0 ? ((data.poCountN - data.poCountPrev) / data.poCountPrev) * 100 : null;
 
-  // Build bar chart data
   const barData = showByTrade
     ? data.monthlyData.map(m => ({ month: m.month, ...m.byTrade }))
     : data.monthlyData.map(m => ({ month: m.month, Projet: m.projet, 'Hors projet': m.horsProjet }));
@@ -144,26 +174,31 @@ const SupplierDashboardTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Period filter bar */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <PeriodFilter selected={period} onChange={setPeriod} />
+      </div>
+
       {/* KPI row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard
-          title="Dépenses YTD"
+          title={`Dépenses ${periodLabel}`}
           value={fmtE(data.totalN)}
-          subtitle={`N-1 : ${fmtE(data.totalN1)}`}
+          subtitle={`Période préc. : ${fmtE(data.totalPrev)}`}
           icon={TrendingUp}
-          trend={variation !== null ? { value: variation, label: 'vs N-1' } : undefined}
+          trend={variation !== null ? { value: variation, label: 'vs préc.' } : undefined}
         />
         <KPICard
           title="Bons de commande"
           value={String(data.poCountN)}
-          subtitle={`N-1 : ${data.poCountN1}`}
+          subtitle={`Période préc. : ${data.poCountPrev}`}
           icon={FileText}
-          trend={poVariation !== null ? { value: poVariation, label: 'vs N-1' } : undefined}
+          trend={poVariation !== null ? { value: poVariation, label: 'vs préc.' } : undefined}
         />
         <KPICard
           title="Fournisseurs actifs"
           value={String(data.supplierCountN)}
-          subtitle="Année en cours"
+          subtitle={`Période préc. : ${data.supplierCountPrev}`}
           icon={Users}
         />
       </div>
