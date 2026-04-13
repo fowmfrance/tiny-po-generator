@@ -354,11 +354,14 @@ const SupplierCatalogTab = () => {
                 <Card key={type.id} className="border shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <CardTitle className="text-base">{type.name}</CardTitle>
-                        {type.description && (
-                          <CardDescription className="text-xs mt-0.5">{type.description}</CardDescription>
-                        )}
+                      <div className="min-w-0 flex items-center gap-2">
+                        <SupplierTypeIcon iconName={type.icon} className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <CardTitle className="text-base">{type.name}</CardTitle>
+                          {type.description && (
+                            <CardDescription className="text-xs mt-0.5">{type.description}</CardDescription>
+                          )}
+                        </div>
                       </div>
                       {isSuperAdmin && (
                         <div className="flex items-center gap-1 shrink-0">
@@ -474,6 +477,26 @@ const SupplierCatalogTab = () => {
                 rows={3}
                 placeholder="Description métier"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Icône</Label>
+              <div className="flex flex-wrap gap-2">
+                {ICON_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTypeForm((prev) => ({ ...prev, icon: opt.value }))}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs transition-colors ${
+                      typeForm.icon === opt.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <SupplierTypeIcon iconName={opt.value} className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
