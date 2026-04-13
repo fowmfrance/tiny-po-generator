@@ -217,6 +217,7 @@ const SupplierCatalogTab = () => {
           user_id: user.id,
           name: typeForm.name.trim(),
           description: typeForm.description.trim() || null,
+          icon: typeForm.icon || null,
           is_active: true,
         });
         if (error) throw error;
