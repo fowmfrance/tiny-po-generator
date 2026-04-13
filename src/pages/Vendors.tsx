@@ -31,6 +31,8 @@ function supplierToVendor(s: Supplier): Vendor {
     isPOExempt: s.is_po_exempt || false,
     paymentMethodName: s.payment_method?.name || undefined,
     paymentModalityName: s.payment_modality?.name || undefined,
+    ytdAmount: s.ytd_amount || 0,
+    prevYearAmount: s.prev_year_amount || 0,
   };
 }
 

@@ -175,7 +175,11 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
 
                 <div className="text-right shrink-0">
                   <p className="text-lg font-bold">{formatCurrency(Number(inv.amount), inv.currency)}</p>
-                  {inv.po_number && <p className="text-xs text-muted-foreground">Réf. {inv.po_number}</p>}
+                  {(inv.linkedPOs.length > 0 || inv.po_number) && (
+                    <p className="text-xs text-muted-foreground">
+                      Réf. {inv.linkedPOs[0]?.po?.po_number || inv.po_number}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -255,11 +259,24 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
                     type="application/pdf"
                     className="w-full flex-1 min-h-[400px] rounded-md border"
                   >
-                    <iframe
-                      src={signedUrl}
-                      className="w-full h-full min-h-[400px]"
-                      title={`Facture ${previewInvoice.invoice_number}`}
-                    />
+                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] border rounded-md bg-muted/20 p-6">
+                      <FileText className="h-12 w-12 mb-3 opacity-30" />
+                      <p className="text-sm text-muted-foreground mb-3">Impossible d'afficher le document dans le navigateur.</p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Ouvrir dans un nouvel onglet
+                          </a>
+                        </Button>
+                        <Button variant="default" size="sm" asChild>
+                          <a href={signedUrl} download>
+                            <Download className="h-4 w-4 mr-1" />
+                            Télécharger
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
                   </object>
                 </div>
               ) : (

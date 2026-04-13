@@ -8,7 +8,8 @@ import {
   Handshake,
   TrendingUp,
   ShieldOff,
-  CreditCard
+  CreditCard,
+  CalendarRange
 } from 'lucide-react';
 import {
   Card,
@@ -37,6 +38,7 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
 
   const hasEmail = vendor.email && !vendor.email.includes('.temp');
   const hasPhone = !!vendor.phone && vendor.phone.trim() !== '';
+  const currentYear = new Date().getFullYear();
 
   return (
     <Card 
@@ -46,11 +48,11 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-lg">{vendor.name}</CardTitle>
+            <CardTitle className="text-lg">{vendor.name}</CardTitle>
+            <div className="flex items-center gap-1.5">
+              <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{vendor.category}</p>
             </div>
-            <p className="text-sm text-muted-foreground">{vendor.category}</p>
             {vendor.specialty && (
               <Badge variant="secondary" className="text-xs">
                 {vendor.specialty}
@@ -102,6 +104,22 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
             <span>{vendor.totalPOs} BdC</span>
           </div>
           
+          {/* YTD and N-1 spend */}
+          <div className="flex items-center gap-4 text-sm">
+            {(vendor.ytdAmount || 0) > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3" />
+                <span>{formatCurrency(vendor.ytdAmount!)} <span className="text-muted-foreground/60">({currentYear})</span></span>
+              </div>
+            )}
+            {(vendor.prevYearAmount || 0) > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CalendarRange className="h-3 w-3" />
+                <span>{formatCurrency(vendor.prevYearAmount!)} <span className="text-muted-foreground/60">({currentYear - 1})</span></span>
+              </div>
+            )}
+          </div>
+
           {/* Indicators row */}
           <div className="flex items-center gap-3 pt-2 border-t mt-2 flex-wrap">
             {vendor.isPOExempt && (
@@ -120,12 +138,6 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <Handshake className="h-3 w-3" />
                 <span>Tarifs négociés</span>
-              </div>
-            )}
-            {vendor.businessVolume !== undefined && vendor.businessVolume > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendingUp className="h-3 w-3" />
-                <span>{formatCurrency(vendor.businessVolume)}</span>
               </div>
             )}
           </div>
