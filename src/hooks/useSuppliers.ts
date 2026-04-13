@@ -157,6 +157,26 @@ export function useSuppliers() {
     },
   });
 
+  const updateSupplier = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Supplier> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      toast({ title: 'Fournisseur mis à jour', description: 'Les modifications ont été enregistrées.' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const deleteSupplier = useMutation({
     mutationFn: async ({ id, contactActions }: { 
       id: string; 
