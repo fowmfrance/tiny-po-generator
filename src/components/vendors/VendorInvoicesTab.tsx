@@ -254,11 +254,25 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
                       </a>
                     </Button>
                   </div>
-                  <iframe
-                    src={`https://docs.google.com/gview?url=${encodeURIComponent(signedUrl)}&embedded=true`}
-                    className="w-full flex-1 min-h-[400px] rounded-md border"
-                    title="Aperçu facture"
-                  />
+                  {previewInvoice.attachment_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img
+                      src={signedUrl}
+                      alt="Aperçu facture"
+                      className="w-full max-h-[600px] object-contain rounded-md border"
+                    />
+                  ) : (
+                    <object
+                      data={signedUrl}
+                      type="application/pdf"
+                      className="w-full flex-1 min-h-[500px] rounded-md border"
+                    >
+                      <iframe
+                        src={signedUrl}
+                        className="w-full h-full min-h-[500px] rounded-md border"
+                        title="Aperçu facture"
+                      />
+                    </object>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
