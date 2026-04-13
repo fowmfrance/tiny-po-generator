@@ -26,8 +26,9 @@ const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [editOpen, setEditOpen] = useState(false);
   
-  const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
+  const { suppliers, isLoading: loadingSuppliers, updateSupplier } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
   const { copyPortalLink, sendMagicLink } = useSupplierAccessToken(id);
