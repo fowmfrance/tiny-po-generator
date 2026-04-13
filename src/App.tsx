@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import { Toaster } from './components/ui/toaster';
+import { TooltipProvider } from './components/ui/tooltip';
 import Layout from './components/Layout';
 import Index from './pages/Index';
 import MentionsLegales from './pages/MentionsLegales';
