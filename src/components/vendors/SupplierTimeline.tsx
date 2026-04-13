@@ -9,6 +9,8 @@ interface PO {
   id: string;
   po_number: string;
   created_at: string;
+  sent_at?: string | null;
+  expected_delivery_date?: string | null;
   total_amount: number;
   currency: string;
   status: string;
@@ -50,7 +52,6 @@ const INV_STATUS_COLORS: Record<string, string> = {
   not_due: 'bg-slate-300',
 };
 
-// Group POs with their invoices, compute timeline positions
 export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
   const navigate = useNavigate();
 
@@ -59,11 +60,9 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
       return { groups: [], timeRange: { min: new Date(), max: new Date() }, isEmpty: true };
     }
 
-    // Build groups: each PO + its invoices
     const poMap = new Map<string, PO>();
     purchaseOrders.forEach(po => poMap.set(po.id, po));
 
-    // Invoices linked to POs
     const invoicesByPO = new Map<string, Invoice[]>();
     const orphanInvoices: Invoice[] = [];
     invoices.forEach(inv => {
@@ -76,12 +75,8 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
       }
     });
 
-    const groups: {
-      po: PO | null;
-      invoices: Invoice[];
-    }[] = [];
+    const groups: { po: PO | null; invoices: Invoice[] }[] = [];
 
-    // POs sorted by date
     const sortedPOs = [...purchaseOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     sortedPOs.forEach(po => {
       groups.push({
@@ -96,7 +91,11 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
 
     // Compute time range
     const allDates: number[] = [];
-    purchaseOrders.forEach(po => allDates.push(new Date(po.created_at).getTime()));
+    purchaseOrders.forEach(po => {
+      allDates.push(new Date(po.created_at).getTime());
+      if (po.sent_at) allDates.push(new Date(po.sent_at).getTime());
+      if (po.expected_delivery_date) allDates.push(new Date(po.expected_delivery_date).getTime());
+    });
     invoices.forEach(inv => {
       allDates.push(new Date(inv.invoice_date).getTime());
       if (inv.due_date) allDates.push(new Date(inv.due_date).getTime());
@@ -105,7 +104,6 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
 
     const min = new Date(Math.min(...allDates));
     const max = new Date(Math.max(...allDates));
-    // Add padding
     const padding = (max.getTime() - min.getTime()) * 0.05 || 30 * 24 * 60 * 60 * 1000;
     min.setTime(min.getTime() - padding);
     max.setTime(max.getTime() + padding);
@@ -150,12 +148,20 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle>Historique</CardTitle>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-blue-200 border border-blue-300" />
-              Bon de commande
+              <span className="w-3 h-3 rounded-sm bg-indigo-200/60 border border-indigo-300" />
+              Période BdC (envoi → livraison)
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 border border-indigo-600" />
+              Envoi BdC
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 border-2 border-indigo-500 rounded-full bg-background" />
+              Livraison prévue
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-emerald-400 border border-emerald-500" />
@@ -220,35 +226,91 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
                   />
                 ))}
 
-                {/* PO marker */}
-                {group.po && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                {/* PO zone: colored area between sent_at and expected_delivery_date */}
+                {group.po && (() => {
+                  const sentDate = group.po.sent_at;
+                  const deliveryDate = group.po.expected_delivery_date;
+                  const startDate = sentDate || group.po.created_at;
+                  // End date: delivery date, or last invoice due date, or just a small bar
+                  const endDate = deliveryDate
+                    || (group.invoices.length > 0 ? group.invoices[group.invoices.length - 1].due_date : null);
+
+                  const leftPct = toPercent(startDate);
+                  const rightPct = endDate ? toPercent(endDate) : leftPct;
+                  const widthPct = Math.max(0.5, rightPct - leftPct);
+
+                  return (
+                    <>
+                      {/* Background zone between sent and delivery */}
                       <div
-                        className={cn(
-                          'absolute top-1 h-6 rounded-sm border cursor-pointer hover:opacity-80 transition-opacity min-w-[8px]',
-                          STATUS_COLORS[group.po.status] || 'bg-muted',
-                          group.po.status === 'approved' ? 'border-blue-300' : 'border-muted-foreground/20'
-                        )}
-                        style={{
-                          left: `${toPercent(group.po.created_at)}%`,
-                          width: group.invoices.length > 0
-                            ? `${Math.max(2, toPercent(group.invoices[group.invoices.length - 1].due_date || group.invoices[group.invoices.length - 1].invoice_date) - toPercent(group.po.created_at))}%`
-                            : '8px',
-                        }}
-                        onClick={() => navigate(`/purchase-orders/${group.po!.id}`)}
+                        className="absolute top-0 bottom-0 bg-indigo-100/50 border-y border-indigo-200/40"
+                        style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                       />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="text-xs space-y-0.5">
-                        <p className="font-semibold">{group.po.po_number}</p>
-                        <p>{fmtDate(group.po.created_at)} · {formatCurrency(Number(group.po.total_amount), group.po.currency)}</p>
-                        <p>Statut: {group.po.status}</p>
-                        {group.po.budget && <p>Budget: {group.po.budget.name}</p>}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+
+                      {/* Sent date marker (filled dot) */}
+                      {sentDate && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="absolute top-1.5 w-5 h-5 rounded-full bg-indigo-500 border-2 border-background z-20 cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+                              style={{ left: `${toPercent(sentDate)}%`, transform: 'translateX(-50%)' }}
+                            >
+                              <span className="text-[8px] text-white font-bold">E</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-semibold">Envoyé le {fmtDate(sentDate)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      {/* Expected delivery date marker (outline dot) */}
+                      {deliveryDate && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="absolute top-1.5 w-5 h-5 rounded-full bg-background border-2 border-indigo-500 z-20 cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+                              style={{ left: `${toPercent(deliveryDate)}%`, transform: 'translateX(-50%)' }}
+                            >
+                              <span className="text-[8px] text-indigo-600 font-bold">L</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs font-semibold">Livraison prévue le {fmtDate(deliveryDate)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      {/* PO creation marker (if different from sent) */}
+                      {!sentDate && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={cn(
+                                'absolute top-1 h-6 rounded-sm border cursor-pointer hover:opacity-80 transition-opacity min-w-[8px]',
+                                STATUS_COLORS[group.po!.status] || 'bg-muted',
+                                'border-muted-foreground/20'
+                              )}
+                              style={{
+                                left: `${toPercent(group.po!.created_at)}%`,
+                                width: '8px',
+                              }}
+                              onClick={() => navigate(`/purchase-orders/${group.po!.id}`)}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs space-y-0.5">
+                              <p className="font-semibold">{group.po!.po_number}</p>
+                              <p>Créé le {fmtDate(group.po!.created_at)}</p>
+                              <p>{formatCurrency(Number(group.po!.total_amount), group.po!.currency)}</p>
+                              <p>Statut: {group.po!.status}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Invoice dots */}
                 {group.invoices.map((inv) => (
