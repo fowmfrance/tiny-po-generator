@@ -1,0 +1,1 @@
+ALTER TABLE public.supplier_types ADD COLUMN icon text DEFAULT NULL;
