@@ -152,6 +152,16 @@ const VendorDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
         </Button>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              className="flex items-center gap-2" 
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" /> Supprimer
+            </Button>
+          )}
           <Button 
             variant="outline" 
             className="flex items-center gap-2" 
