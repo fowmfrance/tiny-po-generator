@@ -42,12 +42,13 @@ import BackofficePaymentMethods from './pages/backoffice/BackofficePaymentMethod
 
 function App() {
   return (
-    <Router>
-      {/* Remove logo from here since it's now in the header */}
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/login" element={<Navigate to="/auth" replace />} />
+    <TooltipProvider>
+      <Router>
+        {/* Remove logo from here since it's now in the header */}
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
         <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
         <Route path="/banques" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
