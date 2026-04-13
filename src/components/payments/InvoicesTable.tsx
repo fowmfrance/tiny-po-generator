@@ -233,17 +233,25 @@ export function InvoicesTable({
                       </a>
                     </Button>
                   </div>
-                  <object
-                    data={signedUrl}
-                    type="application/pdf"
-                    className="w-full flex-1 min-h-[400px] rounded-md border"
-                  >
-                    <iframe
+                  {previewInvoice.attachment_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img
                       src={signedUrl}
-                      className="w-full h-full min-h-[400px]"
-                      title={`Facture ${previewInvoice.invoice_number}`}
+                      alt="Aperçu facture"
+                      className="w-full max-h-[600px] object-contain rounded-md border"
                     />
-                  </object>
+                  ) : (
+                    <object
+                      data={signedUrl}
+                      type="application/pdf"
+                      className="w-full flex-1 min-h-[500px] rounded-md border"
+                    >
+                      <iframe
+                        src={signedUrl}
+                        className="w-full h-full min-h-[500px]"
+                        title={`Facture ${previewInvoice.invoice_number}`}
+                      />
+                    </object>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
