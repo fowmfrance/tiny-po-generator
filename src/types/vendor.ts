@@ -17,6 +17,7 @@ export interface Vendor {
   averageRating?: number;
   totalRatings?: number;
   supplierTypeId?: string;
+  supplierTypeIcon?: string;
 }
 
 export interface SupplierType {
