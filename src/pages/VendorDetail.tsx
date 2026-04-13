@@ -370,10 +370,10 @@ const VendorDetail = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="invoices" className="mt-4">
-          <VendorInvoicesTab
-            supplierInvoices={supplierInvoices}
-            supplierPOs={supplierPOs}
+        <TabsContent value="historique" className="mt-4">
+          <SupplierTimeline
+            purchaseOrders={supplierPOs}
+            invoices={supplierInvoices}
           />
         </TabsContent>
 
