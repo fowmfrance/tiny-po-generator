@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  ArrowLeft, Mail, Phone, Building, FileText, Share2, Send,
+  ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
   AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import VendorKPITab from '@/components/vendors/VendorKPITab';
 import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
+import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
