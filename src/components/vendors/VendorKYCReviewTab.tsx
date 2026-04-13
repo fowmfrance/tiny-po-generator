@@ -10,6 +10,7 @@ import {
   CheckCircle2, XCircle, Clock, FileText, Eye,
   AlertCircle, ShieldCheck, Loader2, AlertTriangle, CreditCard
 } from 'lucide-react';
+import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle
@@ -268,13 +269,22 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
                             size="sm"
                             className="text-xs h-7"
                             onClick={async () => {
-                              if (inv.attachment_url.startsWith('http')) {
-                                window.open(inv.attachment_url, '_blank');
-                              } else {
-                                const { data } = await supabase.storage
-                                  .from('invoice-attachments')
-                                  .createSignedUrl(inv.attachment_url, 3600);
-                                if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                              try {
+                                const opened = await openInvoiceAttachmentInNewTab(inv.attachment_url);
+                                if (!opened) {
+                                  toast({
+                                    title: 'Erreur',
+                                    description: 'Impossible d’ouvrir la facture.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Error opening invoice attachment:', error);
+                                toast({
+                                  title: 'Erreur',
+                                  description: 'Impossible d’ouvrir la facture.',
+                                  variant: 'destructive',
+                                });
                               }
                             }}
                           >

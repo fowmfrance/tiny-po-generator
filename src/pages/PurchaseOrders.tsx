@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { PurchaseOrdersFilters } from '@/components/purchase-orders/PurchaseOrdersFilters';
 import { PurchaseOrdersCardView } from '@/components/purchase-orders/PurchaseOrdersCardView';
 import { PurchaseOrdersTableView } from '@/components/purchase-orders/PurchaseOrdersTableView';
@@ -17,8 +17,6 @@ export interface PurchaseOrder {
   date: string;
   status: PurchaseOrderStatus;
   paymentProgress?: number;
-  budgetId?: string;
-  budgetName?: string;
 }
 
 const PurchaseOrders = () => {
@@ -38,26 +36,12 @@ const PurchaseOrders = () => {
     date: new Date(po.created_at).toLocaleDateString('fr-FR'),
     status: po.status as PurchaseOrderStatus,
     paymentProgress: po.status === 'paid' ? 100 : po.status === 'matched' ? 60 : 0,
-    budgetId: po.budget_id || undefined,
-    budgetName: po.budget?.name || undefined,
   }));
-
-  // Build budget map for card view
-  const budgetMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    purchaseOrders.forEach(po => {
-      if (po.budget_id && po.budget?.name) {
-        map[po.budget_id] = po.budget.name;
-      }
-    });
-    return map;
-  }, [purchaseOrders]);
 
   const filteredPOs = displayPOs.filter(po => {
     const matchesSearch = 
       po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      po.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (po.budgetName || '').toLowerCase().includes(searchTerm.toLowerCase());
+      po.vendor.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || po.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -94,7 +78,7 @@ const PurchaseOrders = () => {
 
       {filteredPOs.length > 0 ? (
         viewMode === 'card' ? (
-          <PurchaseOrdersCardView purchaseOrders={filteredPOs} budgetMap={budgetMap} />
+          <PurchaseOrdersCardView purchaseOrders={filteredPOs} />
         ) : (
           <PurchaseOrdersTableView purchaseOrders={filteredPOs} />
         )
