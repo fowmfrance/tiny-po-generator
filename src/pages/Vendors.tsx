@@ -37,7 +37,7 @@ const Vendors = () => {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   
   // Filter states
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
@@ -63,7 +63,7 @@ const Vendors = () => {
       vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (vendor.specialty?.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesCategory = categoryFilter === 'all' || vendor.category === categoryFilter;
+    const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(vendor.category);
     const matchesStatus = statusFilter === 'all' || vendor.status === statusFilter;
     const matchesCountry = countryFilter === 'all' || vendor.country === countryFilter;
     const matchesCity = cityFilter === 'all' || vendor.city === cityFilter;
@@ -100,7 +100,7 @@ const Vendors = () => {
   const toggleFilters = () => setShowFilters(!showFilters);
 
   const resetFilters = () => {
-    setCategoryFilter('all');
+    setCategoryFilter([]);
     setStatusFilter('all');
     setCountryFilter('all');
     setCityFilter('all');
