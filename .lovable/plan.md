@@ -1,62 +1,54 @@
 
 
-# Plan : Import des 80 projets Nina Noten
+## Plan: Fix vendor card, PDF viewer, and invoice references
 
-## Résumé
+### Issues identified
 
-Importer les projets du CSV dans l'instance de clement@fowm.io. Cela nécessite des modifications de schéma (nouvelles colonnes sur `budgets`, nouvelle table `clients`) puis l'insertion des 80 lignes.
+1. **PDF viewer broken** — The `<object>` / `<iframe>` approach for signed URLs often fails due to browser CORS/CSP restrictions on Supabase signed URLs. Replace with Google Docs viewer as fallback or use `embed` with proper headers.
 
-## Modifications de schéma (migration)
+2. **Invoice "Réf. BC" column always empty** — All 411 invoices have `po_number = NULL` in the database, but 383 have `purchase_order_id` populated. The overview tab and invoices tab display `inv.po_number` which is always null. Fix: join `purchase_order_id` to `purchase_orders` to retrieve the actual `po_number`.
 
-### 1. Nouvelle table `clients`
-Stocke les clients des projets (company_name du CSV).
+3. **Icon next to name instead of category** — On VendorCard, the `SupplierTypeIcon` is rendered in the same row as the name (line 49-51). Move it next to the category text (line 53).
 
+4. **YTD and N-1 amounts on vendor card** — Add two computed values: total PO amount for current year and previous year. Requires fetching `purchase_orders.total_amount` and `created_at` per supplier.
+
+---
+
+### Changes
+
+**File: `src/components/vendors/VendorCard.tsx`**
+- Move `SupplierTypeIcon` from the name row to next to `vendor.category`
+- Add YTD amount and N-1 amount display (two compact lines with `TrendingUp` icon)
+- Remove `businessVolume` display (replaced by computed YTD)
+
+**File: `src/types/vendor.ts`**
+- Add `ytdAmount` and `prevYearAmount` to `Vendor` interface
+
+**File: `src/pages/Vendors.tsx`** (supplierToVendor mapping)
+- Map new `ytdAmount` / `prevYearAmount` from supplier data
+
+**File: `src/hooks/useSuppliers.ts`**
+- Enhance PO query to fetch `total_amount` and `created_at` per supplier
+- Compute YTD (current year) and N-1 (previous year) sums per supplier
+- Add `ytd_amount` and `prev_year_amount` to returned Supplier type
+
+**File: `src/pages/VendorDetail.tsx`** (overview tab invoices section)
+- Replace `inv.po_number` with a lookup from `purchase_order_id` → PO number using the already-loaded `supplierPOs`
+
+**File: `src/components/vendors/VendorInvoicesTab.tsx`**
+- Already handles PO linking via `invoicePOLinks` and `poMap` — verify the Réf BC display uses `linkedPOs` instead of `inv.po_number`
+
+**File: PDF viewer fix** (VendorInvoicesTab.tsx + POInvoiceSection.tsx)
+- Replace `<object>` + `<iframe>` with an `<iframe>` using Google Docs viewer URL for PDFs (`https://docs.google.com/gview?url=ENCODED_URL&embedded=true`) as primary, with direct URL as fallback for images
+- Add a download button always visible
+
+### Data fix (SQL)
+- Backfill `po_number` on `supplier_invoices` from `purchase_orders`:
 ```sql
-CREATE TABLE public.clients (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  name text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(user_id, name)
-);
-ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
--- RLS: user_id = auth.uid() pour SELECT/INSERT/UPDATE/DELETE
+UPDATE supplier_invoices si
+SET po_number = po.po_number
+FROM purchase_orders po
+WHERE si.purchase_order_id = po.id
+AND si.po_number IS NULL;
 ```
-
-### 2. Nouvelles colonnes sur `budgets`
-- `client_id uuid` — référence vers `clients`
-- `project_manager_id uuid` — futur lien vers un user/profile (nullable, tu les lieras après avoir créé les users)
-- `completion_percentage numeric DEFAULT 0` — % de reconnaissance à date (progress du CSV)
-
-### 3. Création des budget_types pour cet utilisateur
-Insérer les deux types manquants :
-- `project` (Projet) — format `PRJ-{YYYY}-{SEQ}`
-- `ga` (Services généraux) — format `GA-{YYYY}-{SEQ}`
-
-## Insertion des données
-
-### 4. Script d'import
-Un script exécuté via `psql` / insert tool qui :
-1. Parse le CSV
-2. Crée les entrées `clients` uniques (dédupliquées par `company_name`)
-3. Insère les 80 budgets avec :
-   - `budget_type_id` = `'project'` si type_label ≠ "Interne", `'ga'` sinon
-   - `initial_amount` = `total_cost`
-   - `resale_price` = `total_amount` (uniquement si pas Interne)
-   - `recognition_method_id` = `8ee98649-b925-486d-8606-47257bf8b94e` (linéaire)
-   - `completion_percentage` = `progress` du CSV
-   - `created_at` = valeur du CSV
-   - `start_date` / `end_date` depuis le CSV
-   - `client_id` = lien vers la table clients
-   - `project_manager_id` = NULL (à lier plus tard)
-   - `code` = généré séquentiellement (PRJ-2026-002, PRJ-2026-003... ou GA-2026-001...)
-   - `status` = `'active'` si actif=1, `'completed'` sinon
-   - `currency` = `'EUR'`
-
-## Détails techniques
-
-- **User ID cible** : `1968507c-9dd7-4f0b-badf-3d44dfd97456`
-- **Budget existant** : PRJ-2026-001 (BIDOUDOU) — les codes commenceront après
-- **Recognition method** : `8ee98649-b925-486d-8606-47257bf8b94e`
-- Les `project_manager` du CSV (prénoms) seront stockés temporairement quelque part ou ignorés pour l'instant — tu les lieras manuellement après création des users
 
