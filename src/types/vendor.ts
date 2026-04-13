@@ -18,6 +18,9 @@ export interface Vendor {
   totalRatings?: number;
   supplierTypeId?: string;
   supplierTypeIcon?: string;
+  isPOExempt?: boolean;
+  paymentMethodName?: string;
+  paymentModalityName?: string;
 }
 
 export interface SupplierType {
