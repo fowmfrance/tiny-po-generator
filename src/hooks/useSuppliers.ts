@@ -177,11 +177,66 @@ export function useSuppliers() {
     },
   });
 
+  const deleteSupplier = useMutation({
+    mutationFn: async ({ id, contactActions }: { 
+      id: string; 
+      contactActions: Array<{ contactId: string; action: 'delete' | 'move'; targetSupplierId?: string }>;
+    }) => {
+      // 1. Preserve supplier name in POs and invoices
+      const { data: supplierData } = await supabase
+        .from('suppliers')
+        .select('name')
+        .eq('id', id)
+        .single();
+
+      if (supplierData) {
+        await supabase
+          .from('purchase_orders')
+          .update({ supplier_name: supplierData.name } as any)
+          .eq('supplier_id', id);
+        await supabase
+          .from('supplier_invoices')
+          .update({ supplier_name: supplierData.name } as any)
+          .eq('supplier_id', id);
+      }
+
+      // 2. Handle contacts
+      for (const ca of contactActions) {
+        if (ca.action === 'move' && ca.targetSupplierId) {
+          await supabase
+            .from('supplier_contacts')
+            .update({ supplier_id: ca.targetSupplierId } as any)
+            .eq('id', ca.contactId);
+        } else {
+          await supabase
+            .from('supplier_contacts')
+            .delete()
+            .eq('id', ca.contactId);
+        }
+      }
+
+      // 3. Delete the supplier (cascades tokens, bank accounts, agreements, ratings, KYC docs)
+      const { error } = await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      toast({ title: 'Fournisseur supprimé', description: 'Le fournisseur a été supprimé définitivement.' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     suppliers: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     createSupplier,
     updateSupplier,
+    deleteSupplier,
   };
 }

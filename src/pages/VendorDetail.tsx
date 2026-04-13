@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History, Users
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History, Users, Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -24,6 +24,8 @@ import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
+import { DeleteSupplierDialog } from '@/components/vendors/DeleteSupplierDialog';
+import { useSupplierContacts } from '@/hooks/useSupplierContacts';
 import { subMonths, startOfYear, isAfter, parseISO } from 'date-fns';
 
 type PeriodFilter = '1M' | '3M' | '6M' | '12M' | 'YTD' | 'ALL';
@@ -45,6 +47,7 @@ const VendorDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [period, setPeriod] = useState<PeriodFilter>('ALL');
 
@@ -59,10 +62,11 @@ const VendorDetail = () => {
     });
   }, []);
   
-  const { suppliers, isLoading: loadingSuppliers, updateSupplier } = useSuppliers();
+  const { suppliers, isLoading: loadingSuppliers, updateSupplier, deleteSupplier } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
   const { copyPortalLink, sendMagicLink } = useSupplierAccessToken(id);
+  const { contacts } = useSupplierContacts(id);
 
   const supplier = useMemo(() => suppliers.find(s => s.id === id), [suppliers, id]);
   const supplierPOs = useMemo(() => purchaseOrders.filter(po => po.supplier_id === id), [purchaseOrders, id]);
@@ -148,6 +152,16 @@ const VendorDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
         </Button>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              className="flex items-center gap-2" 
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" /> Supprimer
+            </Button>
+          )}
           <Button 
             variant="outline" 
             className="flex items-center gap-2" 
@@ -452,6 +466,22 @@ const VendorDetail = () => {
           }}
           isPending={updateSupplier.isPending}
           isAdmin={isAdmin}
+        />
+      )}
+
+      {supplier && (
+        <DeleteSupplierDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          supplier={supplier}
+          contacts={contacts}
+          otherSuppliers={suppliers.filter(s => s.id !== id)}
+          poCount={supplierPOs.length}
+          invoiceCount={supplierInvoices.length}
+          onConfirm={async (contactActions) => {
+            await deleteSupplier.mutateAsync({ id: id!, contactActions });
+            navigate('/vendors');
+          }}
         />
       )}
     </div>
