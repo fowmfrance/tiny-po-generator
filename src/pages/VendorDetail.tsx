@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  ArrowLeft, Mail, Phone, Building, FileText, Share2, Send,
+  ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
   AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -20,13 +20,15 @@ import { useQuery } from '@tanstack/react-query';
 import VendorKPITab from '@/components/vendors/VendorKPITab';
 import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
+import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [editOpen, setEditOpen] = useState(false);
   
-  const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
+  const { suppliers, isLoading: loadingSuppliers, updateSupplier } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
   const { invoices, isLoading: loadingInvoices } = useSupplierInvoices();
   const { copyPortalLink, sendMagicLink } = useSupplierAccessToken(id);
@@ -122,7 +124,12 @@ const VendorDetail = () => {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-2xl">{supplier.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl">{supplier.name}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-muted-foreground">{supplier.supplier_type?.name || 'Non classé'}</p>
               {supplier.specialty && <Badge variant="secondary" className="mt-1">{supplier.specialty}</Badge>}
             </div>
@@ -359,6 +366,20 @@ const VendorDetail = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      {supplier && (
+        <EditSupplierContactDialog
+          supplier={supplier}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSave={(updates) => {
+            updateSupplier.mutate(updates, {
+              onSuccess: () => setEditOpen(false),
+            });
+          }}
+          isPending={updateSupplier.isPending}
+        />
+      )}
     </div>
   );
 };
