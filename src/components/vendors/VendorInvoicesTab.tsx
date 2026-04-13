@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { InvoiceWithPaymentStatus } from '@/types/payment';
 import { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { formatCurrency } from '@/utils/paymentUtils';
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
