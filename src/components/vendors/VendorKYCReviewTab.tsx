@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import {
-  CheckCircle2, XCircle, Clock, FileText, Download, Eye,
-  AlertCircle, ShieldCheck, Loader2
+  CheckCircle2, XCircle, Clock, FileText, Eye,
+  AlertCircle, ShieldCheck, Loader2, AlertTriangle, CreditCard
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -89,6 +89,36 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
     },
   });
 
+  // Fetch bank accounts for RIB comparison
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ['supplier-bank-accounts', supplierId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('supplier_bank_accounts')
+        .select('*')
+        .eq('supplier_id', supplierId)
+        .eq('is_archived', false)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
+  // Fetch latest invoices to check RIB on invoices
+  const { data: latestInvoices = [] } = useQuery({
+    queryKey: ['supplier-invoices-rib-check', supplierId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .select('id, invoice_number, attachment_url, invoice_date')
+        .eq('supplier_id', supplierId)
+        .order('invoice_date', { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
   // Approve mutation
   const approveMutation = useMutation({
     mutationFn: async (docId: string) => {
@@ -124,7 +154,6 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-documents-admin', supplierId] });
-      // If rejected, set supplier KYC status back to pending
       supabase.from('suppliers').update({ kyc_status: 'pending' } as any).eq('id', supplierId).then();
       queryClient.invalidateQueries({ queryKey: ['supplier-kyc-admin', supplierId] });
       setRejectDialog(null);
@@ -134,7 +163,6 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
   });
 
   const checkAndUpdateOverallStatus = async () => {
-    // Refetch docs to check if all mandatory docs are approved
     const { data: freshDocs } = await supabase
       .from('supplier_kyc_documents')
       .select('document_type_id, status')
@@ -165,21 +193,6 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
     }
   };
 
-  // No KYC level assigned
-  if (!supplier?.kyc_level_id) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Aucun niveau KYC assigné</h3>
-          <p className="text-sm text-muted-foreground">
-            Ce fournisseur n'a pas de vérification documentaire requise.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -187,6 +200,10 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
       </div>
     );
   }
+
+  const hasKycLevel = !!supplier?.kyc_level_id;
+  const hasBankAccounts = bankAccounts.length > 0;
+  const hasInvoices = latestInvoices.length > 0;
 
   const kycStatusLabel: Record<string, { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
     none: { text: 'Non démarré', variant: 'outline' },
@@ -197,116 +214,207 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* RIB / Bank accounts section — always visible */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5" />
-                Revue KYC — {supplierName}
-              </CardTitle>
-              {kycLevel && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Niveau : <span className="font-medium">{kycLevel.name}</span>
-                  {kycLevel.description && ` — ${kycLevel.description}`}
-                </p>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Comptes bancaires (RIB)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasBankAccounts ? (
+            <div className="space-y-3">
+              {bankAccounts.map((ba: any) => (
+                <div key={ba.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{ba.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {ba.bank_name || 'Banque non renseignée'} • {ba.currency}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {ba.is_primary && <Badge variant="default" className="text-xs">Principal</Badge>}
+                    {ba.verified_at ? (
+                      <Badge variant="secondary" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Vérifié
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Non vérifié</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {/* RIB consistency alert */}
+              {hasInvoices && (
+                <div className="mt-4 p-3 border rounded-lg bg-amber-50 border-amber-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Vérification RIB recommandée</p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        Comparez le RIB figurant sur les dernières factures avec le(s) compte(s) bancaire(s) enregistré(s) ci-dessus. 
+                        En cas de divergence, contactez le fournisseur avant tout paiement.
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {latestInvoices.filter((inv: any) => inv.attachment_url).slice(0, 3).map((inv: any) => (
+                          <Button
+                            key={inv.id}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={async () => {
+                              if (inv.attachment_url.startsWith('http')) {
+                                window.open(inv.attachment_url, '_blank');
+                              } else {
+                                const { data } = await supabase.storage
+                                  .from('invoice-attachments')
+                                  .createSignedUrl(inv.attachment_url, 3600);
+                                if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                              }
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            {inv.invoice_number}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-            <Badge variant={currentStatus.variant}>{currentStatus.text}</Badge>
-          </div>
-        </CardHeader>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Aucun compte bancaire enregistré pour ce fournisseur.</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Documents grid */}
-      <div className="space-y-3">
-        {requirements.map((req: any) => {
-          const docType = req.document_type;
-          const doc = getLatestDoc(req.document_type_id);
-          const status = doc?.status;
-          const config = status ? statusConfig[status] : null;
-
-          return (
-            <Card key={req.id}>
-              <div className="flex items-center justify-between p-4 sm:p-5">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`flex-shrink-0 p-2.5 rounded-lg ${
-                    status === 'approved' ? 'bg-green-100 text-green-600' :
-                    status === 'rejected' ? 'bg-red-100 text-red-600' :
-                    status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                    'bg-muted text-muted-foreground'
-                  }`}>
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium">{docType?.name || 'Document'}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {req.is_mandatory && (
-                        <span className="text-xs text-destructive font-medium">Obligatoire</span>
-                      )}
-                      {config && (
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${config.color}`}>
-                          <config.icon className="h-3 w-3" />
-                          {config.label}
-                        </span>
-                      )}
-                    </div>
-                    {doc?.notes && status === 'rejected' && (
-                      <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" /> {doc.notes}
-                      </p>
-                    )}
-                    {doc && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Déposé le {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                  {doc ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewFile(doc.file_url)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> Voir
-                      </Button>
-                      {status !== 'approved' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => approveMutation.mutate(doc.id)}
-                            disabled={approveMutation.isPending}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1" /> Valider
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setRejectDialog({ docId: doc.id, docName: docType?.name || 'Document' })}
-                            disabled={rejectMutation.isPending}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" /> Refuser
-                          </Button>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      <Clock className="h-3 w-3 mr-1" /> Non déposé
-                    </Badge>
+      {/* KYC Documents section */}
+      {hasKycLevel ? (
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5" />
+                    Revue KYC — {supplierName}
+                  </CardTitle>
+                  {kycLevel && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Niveau : <span className="font-medium">{kycLevel.name}</span>
+                      {kycLevel.description && ` — ${kycLevel.description}`}
+                    </p>
                   )}
                 </div>
+                <Badge variant={currentStatus.variant}>{currentStatus.text}</Badge>
               </div>
-            </Card>
-          );
-        })}
-      </div>
+            </CardHeader>
+          </Card>
+
+          <div className="space-y-3">
+            {requirements.map((req: any) => {
+              const docType = req.document_type;
+              const doc = getLatestDoc(req.document_type_id);
+              const status = doc?.status;
+              const config = status ? statusConfig[status] : null;
+
+              return (
+                <Card key={req.id}>
+                  <div className="flex items-center justify-between p-4 sm:p-5">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`flex-shrink-0 p-2.5 rounded-lg ${
+                        status === 'approved' ? 'bg-green-100 text-green-600' :
+                        status === 'rejected' ? 'bg-red-100 text-red-600' :
+                        status === 'pending' ? 'bg-amber-100 text-amber-600' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium">{docType?.name || 'Document'}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {req.is_mandatory && (
+                            <span className="text-xs text-destructive font-medium">Obligatoire</span>
+                          )}
+                          {config && (
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${config.color}`}>
+                              <config.icon className="h-3 w-3" />
+                              {config.label}
+                            </span>
+                          )}
+                        </div>
+                        {doc?.notes && status === 'rejected' && (
+                          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" /> {doc.notes}
+                          </p>
+                        )}
+                        {doc && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Déposé le {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      {doc ? (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleViewFile(doc.file_url)}>
+                            <Eye className="h-4 w-4 mr-1" /> Voir
+                          </Button>
+                          {status !== 'approved' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => approveMutation.mutate(doc.id)}
+                                disabled={approveMutation.isPending}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" /> Valider
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setRejectDialog({ docId: doc.id, docName: docType?.name || 'Document' })}
+                                disabled={rejectMutation.isPending}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" /> Refuser
+                              </Button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          <Clock className="h-3 w-3 mr-1" /> Non déposé
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <ShieldCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+            <p className="text-sm text-muted-foreground">
+              Aucun niveau KYC assigné à ce fournisseur. Seuls les comptes bancaires sont consultables ci-dessus.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Reject dialog */}
       <Dialog open={!!rejectDialog} onOpenChange={() => { setRejectDialog(null); setRejectNotes(''); }}>
