@@ -22,6 +22,7 @@ import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 import SupplierTimeline from '@/components/vendors/SupplierTimeline';
+import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -286,6 +287,9 @@ const VendorDetail = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Contacts */}
+          <SupplierContactsSection supplierId={id!} />
 
           {/* Timeline / Gantt */}
           <SupplierTimeline
