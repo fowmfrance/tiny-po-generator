@@ -208,7 +208,7 @@ const SupplierCatalogTab = () => {
       if (editingType) {
         const { error } = await supabase
           .from('supplier_types')
-          .update({ name: typeForm.name.trim(), description: typeForm.description.trim() || null })
+          .update({ name: typeForm.name.trim(), description: typeForm.description.trim() || null, icon: typeForm.icon || null })
           .eq('id', editingType.id);
         if (error) throw error;
         toast({ title: 'Type fournisseur mis à jour' });
