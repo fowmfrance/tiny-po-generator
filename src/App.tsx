@@ -15,6 +15,7 @@ import CreatePO from './pages/CreatePO';
 import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
 import Vendors from './pages/Vendors';
 import VendorDetail from './pages/VendorDetail';
+import DAS2 from './pages/DAS2';
 import Payments from './pages/Payments';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
@@ -59,6 +60,7 @@ function App() {
         <Route path="/purchase-orders/:id/edit" element={<ProtectedRoute><Layout><CreatePO /></Layout></ProtectedRoute>} />
         <Route path="/vendors" element={<ProtectedRoute><Layout><Vendors /></Layout></ProtectedRoute>} />
         <Route path="/vendors/:id" element={<ProtectedRoute><Layout><VendorDetail /></Layout></ProtectedRoute>} />
+        <Route path="/das2" element={<ProtectedRoute><Layout><DAS2 /></Layout></ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
         <Route path="/invoices" element={<Navigate to="/payments" replace />} />
         <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />

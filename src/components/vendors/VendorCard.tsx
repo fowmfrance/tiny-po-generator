@@ -6,10 +6,8 @@ import {
   Building, 
   Star,
   Handshake,
-  TrendingUp,
   ShieldOff,
   CreditCard,
-  CalendarRange
 } from 'lucide-react';
 import {
   Card,
@@ -19,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Vendor } from '@/types/vendor';
 
 interface VendorCardProps {
@@ -36,109 +35,94 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
     }).format(amount);
   };
 
-  const hasEmail = vendor.email && !vendor.email.includes('.temp');
+  const hasEmail = !!vendor.email && vendor.email.trim() !== '' && !vendor.email.includes('.temp');
   const hasPhone = !!vendor.phone && vendor.phone.trim() !== '';
-  const currentYear = new Date().getFullYear();
 
   return (
     <Card 
       className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => navigate(`/vendors/${vendor.id}`)}
     >
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <CardTitle className="text-lg">{vendor.name}</CardTitle>
-            <div className="flex items-center gap-1.5">
-              <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{vendor.category}</p>
+      <CardHeader className="pb-1 pt-3 px-3">
+        <div className="flex justify-between items-start gap-1">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-sm font-semibold truncate">{vendor.name}</CardTitle>
+            <div className="flex items-center gap-1 mt-0.5">
+              <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <p className="text-xs text-muted-foreground truncate">{vendor.category}</p>
             </div>
-            {vendor.specialty && (
-              <Badge variant="secondary" className="text-xs">
-                {vendor.specialty}
-              </Badge>
-            )}
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Contact icons */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Mail 
+                  className={`h-3.5 w-3.5 ${hasEmail ? 'text-muted-foreground' : 'text-muted-foreground/20'}`}
+                  strokeWidth={hasEmail ? 2.5 : 1.5}
+                />
+              </TooltipTrigger>
+              <TooltipContent>{hasEmail ? vendor.email : 'Pas d\'email'}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Phone 
+                  className={`h-3.5 w-3.5 ${hasPhone ? 'text-muted-foreground' : 'text-muted-foreground/20'}`}
+                  strokeWidth={hasPhone ? 2.5 : 1.5}
+                />
+              </TooltipTrigger>
+              <TooltipContent>{hasPhone ? vendor.phone : 'Pas de téléphone'}</TooltipContent>
+            </Tooltip>
+            {/* Status */}
             {vendor.status === 'active' && (
-              <span className="status-badge status-approved">Actif</span>
-            )}
-            {vendor.status === 'pending' && (
-              <span className="status-badge status-pending">En attente</span>
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
             )}
             {vendor.status === 'inactive' && (
-              <span className="status-badge status-draft">Inactif</span>
-            )}
-            {(vendor.averageRating || 0) > 0 ? (
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium text-sm">{vendor.averageRating!.toFixed(1)}</span>
-                {(vendor.totalRatings || 0) > 0 && (
-                  <span className="text-muted-foreground text-xs">({vendor.totalRatings})</span>
-                )}
-              </div>
-            ) : (
-              <span className="text-muted-foreground text-xs">Pas de note</span>
+              <span className="w-2 h-2 rounded-full bg-muted-foreground/30 flex-shrink-0" />
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pb-4">
-        <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <Mail 
-              className={`h-4 w-4 mr-2 ${hasEmail ? 'text-muted-foreground' : 'text-muted-foreground/20'}`} 
-              strokeWidth={hasEmail ? 2.5 : 1.5}
-            />
-            <span className={hasEmail ? '' : 'text-muted-foreground/40'}>{vendor.email}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Phone 
-              className={`h-4 w-4 mr-2 ${hasPhone ? 'text-muted-foreground' : 'text-muted-foreground/20'}`}
-              strokeWidth={hasPhone ? 2.5 : 1.5}
-            />
-            <span className={hasPhone ? '' : 'text-muted-foreground/40'}>{hasPhone ? vendor.phone : '—'}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{vendor.totalPOs} BdC</span>
-          </div>
-          
-          {/* YTD and N-1 spend */}
-          <div className="flex items-center gap-4 text-sm">
-            {(vendor.ytdAmount || 0) > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendingUp className="h-3 w-3" />
-                <span>{formatCurrency(vendor.ytdAmount!)} <span className="text-muted-foreground/60">({currentYear})</span></span>
-              </div>
-            )}
-            {(vendor.prevYearAmount || 0) > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <CalendarRange className="h-3 w-3" />
-                <span>{formatCurrency(vendor.prevYearAmount!)} <span className="text-muted-foreground/60">({currentYear - 1})</span></span>
+      <CardContent className="pb-3 px-3 pt-1">
+        <div className="space-y-1">
+          {/* Stats row */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Building className="h-3 w-3" />
+              <span>{vendor.totalPOs} BdC</span>
+            </div>
+            {(vendor.averageRating || 0) > 0 && (
+              <div className="flex items-center gap-0.5">
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <span className="font-medium">{vendor.averageRating!.toFixed(1)}</span>
               </div>
             )}
           </div>
 
-          {/* Indicators row */}
-          <div className="flex items-center gap-3 pt-2 border-t mt-2 flex-wrap">
+          {/* Spend */}
+          {((vendor.ytdAmount || 0) > 0 || (vendor.prevYearAmount || 0) > 0) && (
+            <div className="flex gap-2 text-[10px] text-muted-foreground">
+              {(vendor.ytdAmount || 0) > 0 && (
+                <span>{formatCurrency(vendor.ytdAmount!)} <span className="opacity-60">YTD</span></span>
+              )}
+              {(vendor.prevYearAmount || 0) > 0 && (
+                <span>{formatCurrency(vendor.prevYearAmount!)} <span className="opacity-60">N-1</span></span>
+              )}
+            </div>
+          )}
+
+          {/* Indicators */}
+          <div className="flex items-center gap-2 flex-wrap">
             {vendor.isPOExempt && (
-              <div className="flex items-center gap-1 text-xs text-amber-600">
-                <ShieldOff className="h-3 w-3" />
-                <span>Dispensé de BdC</span>
-              </div>
+              <ShieldOff className="h-3 w-3 text-amber-600" />
             )}
             {vendor.paymentMethodName && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                 <CreditCard className="h-3 w-3" />
-                <span>{vendor.paymentMethodName}{vendor.paymentModalityName ? ` · ${vendor.paymentModalityName}` : ''}</span>
+                <span className="truncate max-w-[60px]">{vendor.paymentMethodName}</span>
               </div>
             )}
             {vendor.hasNegotiatedRates && (
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <Handshake className="h-3 w-3" />
-                <span>Tarifs négociés</span>
-              </div>
+              <Handshake className="h-3 w-3 text-green-600" />
             )}
           </div>
         </div>
