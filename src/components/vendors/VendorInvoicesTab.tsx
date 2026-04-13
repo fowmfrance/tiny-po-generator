@@ -254,30 +254,11 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
                       </a>
                     </Button>
                   </div>
-                  <object
-                    data={signedUrl}
-                    type="application/pdf"
+                  <iframe
+                    src={`https://docs.google.com/gview?url=${encodeURIComponent(signedUrl)}&embedded=true`}
                     className="w-full flex-1 min-h-[400px] rounded-md border"
-                  >
-                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] border rounded-md bg-muted/20 p-6">
-                      <FileText className="h-12 w-12 mb-3 opacity-30" />
-                      <p className="text-sm text-muted-foreground mb-3">Impossible d'afficher le document dans le navigateur.</p>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Ouvrir dans un nouvel onglet
-                          </a>
-                        </Button>
-                        <Button variant="default" size="sm" asChild>
-                          <a href={signedUrl} download>
-                            <Download className="h-4 w-4 mr-1" />
-                            Télécharger
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  </object>
+                    title="Aperçu facture"
+                  />
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">

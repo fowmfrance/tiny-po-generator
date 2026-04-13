@@ -72,7 +72,7 @@ const MonthlyMetricsChart: React.FC<MonthlyMetricsChartProps> = ({ timeRange }) 
   });
 
   const formatEuro = (value: number) => {
-    return `${value.toLocaleString()} €`;
+    return `${value.toLocaleString('fr-FR')} €`;
   };
 
   return (

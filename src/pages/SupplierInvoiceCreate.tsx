@@ -169,7 +169,7 @@ const SupplierInvoiceCreate = () => {
                     <Label htmlFor="po-amount">PO Amount</Label>
                     <Input 
                       id="po-amount"
-                      value={`${purchaseOrder.currency} ${purchaseOrder.amount.toLocaleString()}`}
+                      value={`${purchaseOrder.currency} ${purchaseOrder.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       disabled
                       className="bg-gray-50"
                     />

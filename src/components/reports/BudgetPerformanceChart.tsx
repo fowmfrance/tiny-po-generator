@@ -50,7 +50,7 @@ const BudgetPerformanceChart: React.FC<BudgetPerformanceChartProps> = ({ timeRan
 
   const formatEuro = (value: number) => {
     const prefix = value >= 0 ? '+' : '';
-    return `${prefix}${value.toLocaleString()} €`;
+    return `${prefix}${value.toLocaleString('fr-FR')} €`;
   };
 
   return (

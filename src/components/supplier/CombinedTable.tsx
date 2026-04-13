@@ -84,7 +84,7 @@ const CombinedTable: React.FC<CombinedTableProps> = ({
             </TableCell>
             <TableCell>{po.poNumber}</TableCell>
             <TableCell>
-              {po.amount.toLocaleString()} {po.currency}
+              {po.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {po.currency}
             </TableCell>
             <TableCell>
               <StatusBadge status={po.status as PurchaseOrderStatus} />

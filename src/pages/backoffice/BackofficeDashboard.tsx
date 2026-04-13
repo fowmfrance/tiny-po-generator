@@ -67,7 +67,7 @@ const BackofficeDashboard: React.FC = () => {
               {loading ? (
                 <div className="h-8 w-16 bg-muted animate-pulse rounded" />
               ) : (
-                <p className="text-3xl font-bold">{card.value.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{card.value.toLocaleString('fr-FR')}</p>
               )}
             </CardContent>
           </Card>

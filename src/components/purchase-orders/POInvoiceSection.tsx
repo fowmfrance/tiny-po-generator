@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,35 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   rejected: { label: 'Rejetée', color: 'bg-red-100 text-red-700 border-red-200' },
   paid: { label: 'Payée', color: 'bg-blue-100 text-blue-700 border-blue-200' },
 };
+
+function AttachmentLink({ attachmentUrl }: { attachmentUrl: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (attachmentUrl.startsWith('http')) {
+      setUrl(attachmentUrl);
+    } else {
+      supabase.storage
+        .from('invoice-attachments')
+        .createSignedUrl(attachmentUrl, 3600)
+        .then(({ data }) => setUrl(data?.signedUrl || null));
+    }
+  }, [attachmentUrl]);
+
+  return (
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => { if (!url) e.preventDefault(); }}
+      className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
+    >
+      <CheckCircle className="h-3 w-3" />
+      <ExternalLink className="h-3 w-3" />
+      Fichier joint
+    </a>
+  );
+}
 
 export function POInvoiceSection({
   poId,
@@ -177,11 +206,8 @@ export function POInvoiceSection({
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {invoice.attachment_url ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Fichier joint
-                          </Badge>
+                        {invoice.attachment_url && invoice.attachment_url.trim() !== '' ? (
+                          <AttachmentLink attachmentUrl={invoice.attachment_url} />
                         ) : (
                           <Badge variant="outline">
                             <AlertCircle className="h-3 w-3 mr-1" />

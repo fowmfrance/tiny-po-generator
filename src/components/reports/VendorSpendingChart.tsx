@@ -41,7 +41,7 @@ const VendorSpendingChart: React.FC<VendorSpendingChartProps> = ({ timeRange }) 
   const data = getMockData(timeRange);
   
   const formatEuro = (value: number) => {
-    return `${value.toLocaleString()} €`;
+    return `${value.toLocaleString('fr-FR')} €`;
   };
   
   return (
