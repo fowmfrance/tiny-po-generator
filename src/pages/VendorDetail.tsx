@@ -468,6 +468,22 @@ const VendorDetail = () => {
           isAdmin={isAdmin}
         />
       )}
+
+      {supplier && (
+        <DeleteSupplierDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          supplier={supplier}
+          contacts={contacts}
+          otherSuppliers={suppliers.filter(s => s.id !== id)}
+          poCount={supplierPOs.length}
+          invoiceCount={supplierInvoices.length}
+          onConfirm={async (contactActions) => {
+            await deleteSupplier.mutateAsync({ id: id!, contactActions });
+            navigate('/vendors');
+          }}
+        />
+      )}
     </div>
   );
 };
