@@ -33,6 +33,31 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2, ShieldAlert, Info } from 'lucide-react';
+import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
+
+// Common Lucide icon options for supplier types
+const ICON_OPTIONS = [
+  { value: 'camera', label: 'Appareil photo' },
+  { value: 'video', label: 'Vidéo' },
+  { value: 'film', label: 'Film / Post-prod' },
+  { value: 'pen-tool', label: 'Création' },
+  { value: 'palette', label: 'Design' },
+  { value: 'scissors', label: 'Stylisme' },
+  { value: 'sparkles', label: 'Beauté' },
+  { value: 'user', label: 'Mannequin' },
+  { value: 'briefcase', label: 'Conseil' },
+  { value: 'scale', label: 'Juridique' },
+  { value: 'monitor', label: 'IT' },
+  { value: 'utensils', label: 'Restauration' },
+  { value: 'plane', label: 'Voyage' },
+  { value: 'truck', label: 'Logistique' },
+  { value: 'lamp-desk', label: 'Studio' },
+  { value: 'building-2', label: 'Services généraux' },
+  { value: 'music', label: 'Musique' },
+  { value: 'mic', label: 'Audio' },
+  { value: 'megaphone', label: 'Communication' },
+  { value: 'image', label: 'Image' },
+];
 
 interface SupplierType {
   id: string;
