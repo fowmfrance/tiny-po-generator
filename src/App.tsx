@@ -36,6 +36,7 @@ import BackofficeDashboard from './pages/backoffice/BackofficeDashboard';
 import BackofficeOrganizations from './pages/backoffice/BackofficeOrganizations';
 import BackofficeUsers from './pages/backoffice/BackofficeUsers';
 import BackofficePermissions from './pages/backoffice/BackofficePermissions';
+import BackofficePaymentMethods from './pages/backoffice/BackofficePaymentMethods';
 
 function App() {
   return (
@@ -78,6 +79,7 @@ function App() {
           <Route path="organizations" element={<BackofficeOrganizations />} />
           <Route path="users" element={<BackofficeUsers />} />
           <Route path="permissions" element={<BackofficePermissions />} />
+          <Route path="payment-methods" element={<BackofficePaymentMethods />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
