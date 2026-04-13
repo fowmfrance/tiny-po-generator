@@ -28,6 +28,35 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   paid: { label: 'Payée', color: 'bg-blue-100 text-blue-700 border-blue-200' },
 };
 
+function AttachmentLink({ attachmentUrl }: { attachmentUrl: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (attachmentUrl.startsWith('http')) {
+      setUrl(attachmentUrl);
+    } else {
+      supabase.storage
+        .from('invoice-attachments')
+        .createSignedUrl(attachmentUrl, 3600)
+        .then(({ data }) => setUrl(data?.signedUrl || null));
+    }
+  }, [attachmentUrl]);
+
+  return (
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => { if (!url) e.preventDefault(); }}
+      className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
+    >
+      <CheckCircle className="h-3 w-3" />
+      <ExternalLink className="h-3 w-3" />
+      Fichier joint
+    </a>
+  );
+}
+
 export function POInvoiceSection({
   poId,
   poNumber,
