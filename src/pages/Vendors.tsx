@@ -28,6 +28,9 @@ function supplierToVendor(s: Supplier): Vendor {
     totalRatings: s.total_ratings || 0,
     supplierTypeId: s.supplier_type_id || undefined,
     supplierTypeIcon: s.supplier_type?.icon || undefined,
+    isPOExempt: s.is_po_exempt || false,
+    paymentMethodName: s.payment_method?.name || undefined,
+    paymentModalityName: s.payment_modality?.name || undefined,
   };
 }
 
