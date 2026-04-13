@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History, Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -24,6 +24,21 @@ import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
+import { subMonths, startOfYear, isAfter, parseISO } from 'date-fns';
+
+type PeriodFilter = '1M' | '3M' | '6M' | '12M' | 'YTD' | 'ALL';
+
+function getFilterDate(period: PeriodFilter): Date | null {
+  const now = new Date();
+  switch (period) {
+    case '1M': return subMonths(now, 1);
+    case '3M': return subMonths(now, 3);
+    case '6M': return subMonths(now, 6);
+    case '12M': return subMonths(now, 12);
+    case 'YTD': return startOfYear(now);
+    case 'ALL': return null;
+  }
+}
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +46,7 @@ const VendorDetail = () => {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [period, setPeriod] = useState<PeriodFilter>('ALL');
 
   // Check admin role
   React.useEffect(() => {
@@ -51,6 +67,27 @@ const VendorDetail = () => {
   const supplier = useMemo(() => suppliers.find(s => s.id === id), [suppliers, id]);
   const supplierPOs = useMemo(() => purchaseOrders.filter(po => po.supplier_id === id), [purchaseOrders, id]);
   const supplierInvoices = useMemo(() => invoices.filter(inv => inv.supplier_id === id), [invoices, id]);
+
+  // Filtered data by period
+  const filterDate = useMemo(() => getFilterDate(period), [period]);
+
+  const filteredPOs = useMemo(() => {
+    if (!filterDate) return supplierPOs;
+    return supplierPOs.filter(po => isAfter(parseISO(po.created_at), filterDate));
+  }, [supplierPOs, filterDate]);
+
+  const filteredInvoices = useMemo(() => {
+    if (!filterDate) return supplierInvoices;
+    return supplierInvoices.filter(inv => isAfter(parseISO(inv.invoice_date), filterDate));
+  }, [supplierInvoices, filterDate]);
+
+  const paidInvoices = useMemo(() => filteredInvoices.filter(inv => inv.payment_status === 'paid'), [filteredInvoices]);
+  const pendingInvoices = useMemo(() => filteredInvoices.filter(inv => inv.payment_status === 'not_due' || inv.payment_status === 'due_soon'), [filteredInvoices]);
+  const overdueInvoices = useMemo(() => filteredInvoices.filter(inv => inv.payment_status === 'overdue'), [filteredInvoices]);
+
+  const totalCommande = useMemo(() => filteredPOs.reduce((s, po) => s + Number(po.total_amount), 0), [filteredPOs]);
+  const totalFacture = useMemo(() => filteredInvoices.reduce((s, inv) => s + Number(inv.amount), 0), [filteredInvoices]);
+  const totalPaye = useMemo(() => paidInvoices.reduce((s, inv) => s + Number(inv.amount), 0), [paidInvoices]);
 
   // Load PO items for KPI calculations
   const { data: poItems } = useQuery({
@@ -102,12 +139,7 @@ const VendorDetail = () => {
     );
   }
 
-  const paidInvoices = supplierInvoices.filter(inv => inv.payment_status === 'paid');
-  const pendingInvoices = supplierInvoices.filter(inv => inv.payment_status === 'not_due' || inv.payment_status === 'due_soon');
-  const overdueInvoices = supplierInvoices.filter(inv => inv.payment_status === 'overdue');
-  const totalOutstanding = supplierInvoices
-    .filter(inv => inv.payment_status !== 'paid')
-    .reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const periodButtons: PeriodFilter[] = ['1M', '3M', '6M', '12M', 'YTD', 'ALL'];
 
   return (
     <div className="space-y-6">
@@ -218,6 +250,9 @@ const VendorDetail = () => {
           <TabsTrigger value="overview" className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" /> Aperçu
           </TabsTrigger>
+          <TabsTrigger value="contacts" className="flex items-center gap-1.5">
+            <Users className="h-4 w-4" /> Contacts
+          </TabsTrigger>
           <TabsTrigger value="historique" className="flex items-center gap-1.5">
             <History className="h-4 w-4" /> Historique
           </TabsTrigger>
@@ -233,64 +268,72 @@ const VendorDetail = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* Header card + Payment status side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Résumé</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bons de commande</p>
-                    <p className="text-xl font-bold">{supplierPOs.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Factures</p>
-                    <p className="text-xl font-bold">{supplierInvoices.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total commandé</p>
-                    <p className="text-xl font-bold">{formatCurrency(supplierPOs.reduce((s, po) => s + Number(po.total_amount), 0))}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total facturé</p>
-                    <p className="text-xl font-bold">{formatCurrency(supplierInvoices.reduce((s, inv) => s + Number(inv.amount), 0))}</p>
-                  </div>
+          {/* Unified summary card */}
+          <Card>
+            <CardContent className="pt-5">
+              {/* Period filters */}
+              <div className="flex items-center justify-between mb-4">
+                <CardTitle className="text-base">Synthèse</CardTitle>
+                <div className="flex gap-1">
+                  {periodButtons.map(p => (
+                    <Button
+                      key={p}
+                      variant={period === p ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => setPeriod(p)}
+                    >
+                      {p === 'ALL' ? 'Tout' : p}
+                    </Button>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Payment Status */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Statut Paiements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-green-50 rounded-md p-2 text-center">
+              {/* Row 1: counts + payment status chart */}
+              <div className="flex items-center gap-4 flex-wrap mb-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-bold">{filteredPOs.length}</span>
+                  <span className="text-sm text-muted-foreground">BdC</span>
+                </div>
+                <span className="text-muted-foreground">·</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-bold">{filteredInvoices.length}</span>
+                  <span className="text-sm text-muted-foreground">factures reçues</span>
+                </div>
+                <span className="text-muted-foreground">dont :</span>
+                <div className="flex gap-2">
+                  <div className="bg-green-50 rounded-md px-3 py-1.5 text-center">
                     <span className="text-lg font-bold text-green-600">{paidInvoices.length}</span>
                     <p className="text-[10px] text-green-700">Payées</p>
                   </div>
-                  <div className="bg-yellow-50 rounded-md p-2 text-center">
+                  <div className="bg-yellow-50 rounded-md px-3 py-1.5 text-center">
                     <span className="text-lg font-bold text-yellow-600">{pendingInvoices.length}</span>
                     <p className="text-[10px] text-yellow-700">En attente</p>
                   </div>
-                  <div className="bg-red-50 rounded-md p-2 text-center">
+                  <div className="bg-red-50 rounded-md px-3 py-1.5 text-center">
                     <span className="text-lg font-bold text-red-600">{overdueInvoices.length}</span>
                     <p className="text-[10px] text-red-700">Échues</p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total en attente</p>
-                  <p className="text-xl font-bold">{formatCurrency(totalOutstanding)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
 
-          {/* Contacts */}
-          <SupplierContactsSection supplierId={id!} />
+              {/* Row 2: financial totals */}
+              <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total commandé</p>
+                  <p className="text-xl font-bold">{formatCurrency(totalCommande)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total facturé</p>
+                  <p className="text-xl font-bold">{formatCurrency(totalFacture)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total payé</p>
+                  <p className="text-xl font-bold">{formatCurrency(totalPaye)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* BdC section */}
           <Card>
@@ -368,6 +411,10 @@ const VendorDetail = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="mt-4">
+          <SupplierContactsSection supplierId={id!} />
         </TabsContent>
 
         <TabsContent value="historique" className="mt-4">
