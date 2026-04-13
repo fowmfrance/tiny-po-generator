@@ -18,10 +18,15 @@ export interface Supplier {
   is_active: boolean;
   kyc_level_id: string | null;
   kyc_status: string;
+  is_po_exempt: boolean;
+  default_payment_method_id: string | null;
+  default_payment_modality_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined
   supplier_type?: { id: string; name: string; color: string | null; icon: string | null } | null;
+  payment_method?: { id: string; name: string; code: string } | null;
+  payment_modality?: { id: string; name: string; code: string } | null;
   // Computed
   average_rating?: number;
   total_ratings?: number;
@@ -43,7 +48,9 @@ export function useSuppliers() {
         .from('suppliers')
         .select(`
           *,
-          supplier_type:supplier_types(id, name, color, icon)
+          supplier_type:supplier_types(id, name, color, icon),
+          payment_method:payment_methods(id, name, code),
+          payment_modality:payment_modalities(id, name, code)
         `)
         .order('name');
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -27,6 +27,18 @@ const VendorDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin role
+  React.useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase.rpc('has_role', { _user_id: data.user.id, _role: 'admin' }).then(({ data: isAdm }) => {
+          setIsAdmin(Boolean(isAdm));
+        });
+      }
+    });
+  }, []);
   
   const { suppliers, isLoading: loadingSuppliers, updateSupplier } = useSuppliers();
   const { purchaseOrders, isLoading: loadingPOs } = usePurchaseOrders();
@@ -179,6 +191,18 @@ const VendorDetail = () => {
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <TrendingUp className="h-3 w-3" />
                 <span>{formatCurrency(supplier.business_volume)}</span>
+              </div>
+            )}
+            {supplier.is_po_exempt && (
+              <Badge variant="outline" className="text-amber-600 border-amber-300">
+                <ShieldOff className="h-3 w-3 mr-1" />
+                Dispensé de BdC
+              </Badge>
+            )}
+            {supplier.payment_method && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CreditCard className="h-3 w-3" />
+                <span>{supplier.payment_method.name}{supplier.payment_modality ? ` · ${supplier.payment_modality.name}` : ''}</span>
               </div>
             )}
           </div>
@@ -374,6 +398,7 @@ const VendorDetail = () => {
             });
           }}
           isPending={updateSupplier.isPending}
+          isAdmin={isAdmin}
         />
       )}
     </div>

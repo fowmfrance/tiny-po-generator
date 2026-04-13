@@ -6,7 +6,9 @@ import {
   Building, 
   Star,
   Handshake,
-  TrendingUp
+  TrendingUp,
+  ShieldOff,
+  CreditCard
 } from 'lucide-react';
 import {
   Card,
@@ -101,7 +103,19 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
           </div>
           
           {/* Indicators row */}
-          <div className="flex items-center gap-3 pt-2 border-t mt-2">
+          <div className="flex items-center gap-3 pt-2 border-t mt-2 flex-wrap">
+            {vendor.isPOExempt && (
+              <div className="flex items-center gap-1 text-xs text-amber-600">
+                <ShieldOff className="h-3 w-3" />
+                <span>Dispensé de BdC</span>
+              </div>
+            )}
+            {vendor.paymentMethodName && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CreditCard className="h-3 w-3" />
+                <span>{vendor.paymentMethodName}{vendor.paymentModalityName ? ` · ${vendor.paymentModalityName}` : ''}</span>
+              </div>
+            )}
             {vendor.hasNegotiatedRates && (
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <Handshake className="h-3 w-3" />

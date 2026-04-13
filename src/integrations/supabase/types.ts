@@ -858,6 +858,77 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          code: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_modalities: {
+        Row: {
+          code: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          payment_method_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_method_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_method_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_modalities_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company: string | null
@@ -1475,10 +1546,13 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string
+          default_payment_method_id: string | null
+          default_payment_modality_id: string | null
           email: string
           has_negotiated_rates: boolean | null
           id: string
           is_active: boolean | null
+          is_po_exempt: boolean
           kyc_level_id: string | null
           kyc_status: string
           name: string
@@ -1495,10 +1569,13 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          default_payment_method_id?: string | null
+          default_payment_modality_id?: string | null
           email: string
           has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_po_exempt?: boolean
           kyc_level_id?: string | null
           kyc_status?: string
           name: string
@@ -1515,10 +1592,13 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          default_payment_method_id?: string | null
+          default_payment_modality_id?: string | null
           email?: string
           has_negotiated_rates?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_po_exempt?: boolean
           kyc_level_id?: string | null
           kyc_status?: string
           name?: string
@@ -1530,6 +1610,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "suppliers_default_payment_method_id_fkey"
+            columns: ["default_payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_default_payment_modality_id_fkey"
+            columns: ["default_payment_modality_id"]
+            isOneToOne: false
+            referencedRelation: "payment_modalities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suppliers_kyc_level_id_fkey"
             columns: ["kyc_level_id"]
