@@ -17,6 +17,15 @@ export interface SupplierDashboardData {
     horsProjet: number;
     byTrade: Record<string, number>;
     budgetVentes: number;
+    caLinearise: number;
+  }[];
+  cumulativeData: {
+    month: string;
+    sortKey: string;
+    ca: number;
+    chargesInternes: number;
+    chargesExternes: number;
+    cumul: number;
   }[];
   totalN: number;
   totalPrev: number;
@@ -84,6 +93,28 @@ function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string)
   return { start, end, prevStart, prevEnd, comparable };
 }
 
+/** Spread an amount linearly across months between start and end (inclusive). */
+function spreadLinearMonthly(amount: number, startDate: string | null, endDate: string | null): Map<string, number> {
+  const result = new Map<string, number>();
+  if (!startDate || !endDate || amount <= 0) return result;
+  const s = new Date(startDate);
+  const e = new Date(endDate);
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return result;
+
+  // Count months (inclusive)
+  const months: string[] = [];
+  const cursor = new Date(s.getFullYear(), s.getMonth(), 1);
+  const endMonth = new Date(e.getFullYear(), e.getMonth(), 1);
+  while (cursor <= endMonth) {
+    months.push(format(cursor, 'yyyy-MM'));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  if (months.length === 0) return result;
+  const perMonth = amount / months.length;
+  months.forEach(m => result.set(m, perMonth));
+  return result;
+}
+
 function buildAggregation(
   posList: any[],
   supplierMap: Map<string, any>,
@@ -92,9 +123,8 @@ function buildAggregation(
   let projetTotal = 0, horsProjetTotal = 0;
   const tradeMap = new Map<string, { total: number; color: string }>();
   const pmMap = new Map<string, number>();
-  const monthMap = new Map<string, { projet: number; horsProjet: number; byTrade: Record<string, number>; budgetVentes: number }>();
+  const monthMap = new Map<string, { projet: number; horsProjet: number; byTrade: Record<string, number>; budgetVentes: number; chargesExternes: number }>();
   const uniqueSuppliers = new Set<string>();
-  const seenBudgets = new Set<string>();
 
   posList.forEach((p: any) => {
     const amt = Number(p.total_amount) || 0;
@@ -114,24 +144,47 @@ function buildAggregation(
 
     const d = new Date(p.created_at);
     const key = format(d, 'yyyy-MM');
-    const entry = monthMap.get(key) || { projet: 0, horsProjet: 0, byTrade: {}, budgetVentes: 0 };
+    const entry = monthMap.get(key) || { projet: 0, horsProjet: 0, byTrade: {}, budgetVentes: 0, chargesExternes: 0 };
     if (p.budget_id) entry.projet += amt; else entry.horsProjet += amt;
     entry.byTrade[tradeName] = (entry.byTrade[tradeName] || 0) + amt;
 
-    // Add budget ventes (resale_price) once per budget per month
-    if (p.budget_id && !seenBudgets.has(`${p.budget_id}-${key}`)) {
-      seenBudgets.add(`${p.budget_id}-${key}`);
+    // External project charges = PO-date based
+    if (p.budget_id) {
       const budget = budgetMap.get(p.budget_id);
       if (budget) {
         const resale = Number(budget.resale_price) || 0;
-        const initial = Number(budget.initial_amount) || 0;
-        // Budget de ventes = resale_price if set, otherwise initial_amount (internal project = no margin)
-        entry.budgetVentes += resale > 0 ? resale : initial;
+        if (resale > 0) {
+          entry.chargesExternes += amt;
+        }
       }
     }
 
     monthMap.set(key, entry);
   });
+
+  // Compute linearized revenue (CA) and internal charges from budgets
+  const caMonthly = new Map<string, number>();
+  const chargesInternesMonthly = new Map<string, number>();
+
+  budgetMap.forEach((budget) => {
+    const resale = Number(budget.resale_price) || 0;
+    const initial = Number(budget.initial_amount) || 0;
+    if (resale > 0) {
+      // External project → spread resale_price as revenue
+      const spread = spreadLinearMonthly(resale, budget.start_date, budget.end_date);
+      spread.forEach((v, m) => caMonthly.set(m, (caMonthly.get(m) || 0) + v));
+    } else if (initial > 0) {
+      // Internal project → spread initial_amount as charges
+      const spread = spreadLinearMonthly(initial, budget.start_date, budget.end_date);
+      spread.forEach((v, m) => chargesInternesMonthly.set(m, (chargesInternesMonthly.get(m) || 0) + v));
+    }
+  });
+
+  // Merge all month keys
+  const allMonthKeys = new Set<string>();
+  monthMap.forEach((_, k) => allMonthKeys.add(k));
+  caMonthly.forEach((_, k) => allMonthKeys.add(k));
+  chargesInternesMonthly.forEach((_, k) => allMonthKeys.add(k));
 
   const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
@@ -148,21 +201,44 @@ function buildAggregation(
     .map(([name, value], i) => ({ name, value, color: PAYMENT_COLORS[i % PAYMENT_COLORS.length] }))
     .sort((a, b) => b.value - a.value);
 
-  const monthlyData = Array.from(monthMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, data]) => {
-      const [y, m] = key.split('-');
-      return {
-        month: `${monthNames[parseInt(m) - 1]} ${y.slice(2)}`,
-        sortKey: key,
-        ...data,
-      };
-    });
+  const sortedKeys = Array.from(allMonthKeys).sort();
+
+  const monthlyData = sortedKeys.map(key => {
+    const data = monthMap.get(key) || { projet: 0, horsProjet: 0, byTrade: {}, budgetVentes: 0, chargesExternes: 0 };
+    const [y, m] = key.split('-');
+    return {
+      month: `${monthNames[parseInt(m) - 1]} ${y.slice(2)}`,
+      sortKey: key,
+      projet: data.projet,
+      horsProjet: data.horsProjet,
+      byTrade: data.byTrade,
+      budgetVentes: 0, // kept for compatibility
+      caLinearise: caMonthly.get(key) || 0,
+    };
+  });
+
+  // Build cumulative data
+  let cumul = 0;
+  const cumulativeData = sortedKeys.map(key => {
+    const ca = caMonthly.get(key) || 0;
+    const ci = chargesInternesMonthly.get(key) || 0;
+    const ce = (monthMap.get(key)?.chargesExternes) || 0;
+    cumul += ca - ci - ce;
+    const [y, m] = key.split('-');
+    return {
+      month: `${monthNames[parseInt(m) - 1]} ${y.slice(2)}`,
+      sortKey: key,
+      ca,
+      chargesInternes: ci,
+      chargesExternes: ce,
+      cumul,
+    };
+  });
 
   const total = posList.reduce((s: number, p: any) => s + (Number(p.total_amount) || 0), 0);
   const trades = byTrade.map(t => ({ name: t.name, color: t.color }));
 
-  return { projectSplit, byTrade, byPaymentMethod, monthlyData, total, poCount: posList.length, supplierCount: uniqueSuppliers.size, trades };
+  return { projectSplit, byTrade, byPaymentMethod, monthlyData, cumulativeData, total, poCount: posList.length, supplierCount: uniqueSuppliers.size, trades };
 }
 
 export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: string, customTo?: string) {
@@ -175,7 +251,7 @@ export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: str
       const [posRes, suppRes, budgetsRes] = await Promise.all([
         supabase.from('purchase_orders').select('id, total_amount, budget_id, created_at, supplier_id').order('created_at'),
         supabase.from('suppliers').select('id, supplier_type_id, default_payment_method_id, supplier_type:supplier_types(name, color), payment_method:payment_methods(name)'),
-        supabase.from('budgets').select('id, initial_amount, resale_price'),
+        supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date'),
       ]);
 
       if (posRes.error) throw posRes.error;
@@ -194,7 +270,7 @@ export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: str
         return d >= start && d <= end;
       });
 
-      let prev = { projectSplit: [], byTrade: [], byPaymentMethod: [], monthlyData: [], total: 0, poCount: 0, supplierCount: 0, trades: [] };
+      let prev = { projectSplit: [], byTrade: [], byPaymentMethod: [], monthlyData: [], cumulativeData: [], total: 0, poCount: 0, supplierCount: 0, trades: [] };
 
       if (comparable && prevStart && prevEnd) {
         const posPrev = allPos.filter((p: any) => {
@@ -211,6 +287,7 @@ export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: str
         byTrade: current.byTrade,
         byPaymentMethod: current.byPaymentMethod,
         monthlyData: current.monthlyData,
+        cumulativeData: current.cumulativeData,
         totalN: current.total,
         totalPrev: prev.total,
         poCountN: current.poCount,
