@@ -63,6 +63,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
       supplier_id: formData.supplier_id,
       invoice_number: formData.invoice_number,
       po_number: formData.po_number || null,
+      purchase_order_id: null,
       project_code: formData.project_code || null,
       amount: parseFloat(formData.amount),
       currency: formData.currency,
