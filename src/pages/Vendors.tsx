@@ -27,6 +27,7 @@ function supplierToVendor(s: Supplier): Vendor {
     averageRating: s.average_rating || 0,
     totalRatings: s.total_ratings || 0,
     supplierTypeId: s.supplier_type_id || undefined,
+    supplierTypeIcon: s.supplier_type?.icon || undefined,
   };
 }
 
