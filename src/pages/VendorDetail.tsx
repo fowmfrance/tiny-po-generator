@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -21,6 +21,7 @@ import VendorKPITab from '@/components/vendors/VendorKPITab';
 import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
+import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -230,141 +231,67 @@ const VendorDetail = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Payment Status */}
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle>Statut Paiements</CardTitle>
+          {/* Header card + Payment status side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Résumé</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-green-50 rounded-md p-2 text-center">
-                      <span className="text-xl font-bold text-green-600">{paidInvoices.length}</span>
-                      <p className="text-xs text-green-700">Payées</p>
-                    </div>
-                    <div className="bg-yellow-50 rounded-md p-2 text-center">
-                      <span className="text-xl font-bold text-yellow-600">{pendingInvoices.length}</span>
-                      <p className="text-xs text-yellow-700">En attente</p>
-                    </div>
-                    <div className="bg-red-50 rounded-md p-2 text-center">
-                      <span className="text-xl font-bold text-red-600">{overdueInvoices.length}</span>
-                      <p className="text-xs text-red-700">Échues</p>
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bons de commande</p>
+                    <p className="text-xl font-bold">{supplierPOs.length}</p>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Total en attente</h4>
-                    <p className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</p>
+                    <p className="text-xs text-muted-foreground">Factures</p>
+                    <p className="text-xl font-bold">{supplierInvoices.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total commandé</p>
+                    <p className="text-xl font-bold">{formatCurrency(supplierPOs.reduce((s, po) => s + Number(po.total_amount), 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total facturé</p>
+                    <p className="text-xl font-bold">{formatCurrency(supplierInvoices.reduce((s, inv) => s + Number(inv.amount), 0))}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Purchase Orders */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Bons de Commande
-                </CardTitle>
+            {/* Payment Status */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Statut Paiements</CardTitle>
               </CardHeader>
               <CardContent>
-                {supplierPOs.length > 0 ? (
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-medium text-muted-foreground">N° BC</th>
-                          <th className="px-4 py-3 text-left font-medium text-muted-foreground">Budget</th>
-                          <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                          <th className="px-4 py-3 text-right font-medium text-muted-foreground">Montant</th>
-                          <th className="px-4 py-3 text-center font-medium text-muted-foreground">Statut</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {supplierPOs.map(po => (
-                          <tr key={po.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/purchase-orders/${po.id}`)}>
-                            <td className="px-4 py-3 font-medium text-primary">{po.po_number}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{po.budget?.name || '—'}</td>
-                            <td className="px-4 py-3">{new Date(po.created_at).toLocaleDateString('fr-FR')}</td>
-                            <td className="px-4 py-3 text-right font-medium">{formatCurrency(Number(po.total_amount), po.currency)}</td>
-                            <td className="px-4 py-3 text-center">
-                              <Badge variant={po.status === 'paid' ? 'default' : po.status === 'approved' ? 'secondary' : 'outline'}>
-                                {po.status}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="bg-green-50 rounded-md p-2 text-center">
+                    <span className="text-lg font-bold text-green-600">{paidInvoices.length}</span>
+                    <p className="text-[10px] text-green-700">Payées</p>
                   </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-6">Aucun bon de commande pour ce fournisseur.</p>
-                )}
+                  <div className="bg-yellow-50 rounded-md p-2 text-center">
+                    <span className="text-lg font-bold text-yellow-600">{pendingInvoices.length}</span>
+                    <p className="text-[10px] text-yellow-700">En attente</p>
+                  </div>
+                  <div className="bg-red-50 rounded-md p-2 text-center">
+                    <span className="text-lg font-bold text-red-600">{overdueInvoices.length}</span>
+                    <p className="text-[10px] text-red-700">Échues</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total en attente</p>
+                  <p className="text-xl font-bold">{formatCurrency(totalOutstanding)}</p>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Invoices */}
-          {supplierInvoices.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Factures</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">N° Facture</th>
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Réf. BC</th>
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Échéance</th>
-                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Montant</th>
-                        <th className="px-4 py-3 text-center font-medium text-muted-foreground">Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {supplierInvoices.map(inv => {
-                        const poRef = inv.po_number || supplierPOs.find(po => po.id === inv.purchase_order_id)?.po_number || '—';
-                        return (
-                        <tr key={inv.id}>
-                          <td className="px-4 py-3 font-medium">{inv.invoice_number}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{poRef}</td>
-                          <td className="px-4 py-3">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</td>
-                          <td className="px-4 py-3">{new Date(inv.due_date).toLocaleDateString('fr-FR')}</td>
-                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(Number(inv.amount), inv.currency)}</td>
-                          <td className="px-4 py-3 text-center">
-                            {inv.payment_status === 'paid' && (
-                              <span className="inline-flex items-center text-xs font-medium text-green-800 bg-green-100 px-2 py-0.5 rounded-full">
-                                <CheckCircle className="w-3 h-3 mr-1" /> Payée
-                              </span>
-                            )}
-                            {inv.payment_status === 'overdue' && (
-                              <span className="inline-flex items-center text-xs font-medium text-red-800 bg-red-100 px-2 py-0.5 rounded-full">
-                                <AlertTriangle className="w-3 h-3 mr-1" /> Échue
-                              </span>
-                            )}
-                            {inv.payment_status === 'due_soon' && (
-                              <span className="inline-flex items-center text-xs font-medium text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                                <ClockIcon className="w-3 h-3 mr-1" /> Bientôt due
-                              </span>
-                            )}
-                            {inv.payment_status === 'not_due' && (
-                              <span className="inline-flex items-center text-xs font-medium text-gray-800 bg-gray-100 px-2 py-0.5 rounded-full">
-                                <ClockIcon className="w-3 h-3 mr-1" /> À venir
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Timeline / Gantt */}
+          <SupplierTimeline
+            purchaseOrders={supplierPOs}
+            invoices={supplierInvoices}
+          />
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-4">
