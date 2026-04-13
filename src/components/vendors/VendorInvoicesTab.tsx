@@ -89,17 +89,19 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
 
   const handleOpenPreview = async (inv: InvoiceWithPaymentStatus) => {
     setPreviewInvoice(inv);
+    setSignedUrl(null);
     if (inv.attachment_url) {
       if (inv.attachment_url.startsWith('http')) {
         setSignedUrl(inv.attachment_url);
       } else {
-        const { data } = await supabase.storage
+        const { data, error } = await supabase.storage
           .from('invoice-attachments')
           .createSignedUrl(inv.attachment_url, 3600);
+        if (error) {
+          console.error('Error creating signed URL:', error);
+        }
         setSignedUrl(data?.signedUrl || null);
       }
-    } else {
-      setSignedUrl(null);
     }
   };
 
@@ -248,11 +250,17 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
                       </a>
                     </Button>
                   </div>
-                  <iframe
-                    src={signedUrl}
+                  <object
+                    data={signedUrl}
+                    type="application/pdf"
                     className="w-full flex-1 min-h-[400px] rounded-md border"
-                    title={`Facture ${previewInvoice.invoice_number}`}
-                  />
+                  >
+                    <iframe
+                      src={signedUrl}
+                      className="w-full h-full min-h-[400px]"
+                      title={`Facture ${previewInvoice.invoice_number}`}
+                    />
+                  </object>
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-md">
