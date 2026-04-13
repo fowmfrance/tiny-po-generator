@@ -1,8 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Truck } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
 import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
+import { SupplierLink } from '@/components/ui/supplier-link';
 
 interface PurchaseOrderCardProps {
   id: string;
@@ -16,6 +23,9 @@ interface PurchaseOrderCardProps {
   paymentProgress?: number;
 }
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+
 const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   id,
   poNumber,
@@ -25,60 +35,56 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   currency,
   date,
   status,
-  paymentProgress = 0
+  paymentProgress = 0,
 }) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="group bg-card rounded-xl border border-border hover:border-slate-400 transition-colors duration-200 p-6 flex flex-col justify-between h-full">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-1 rounded">
-            BC #{poNumber}
-          </span>
-          <h3 className="mt-3 text-lg font-semibold text-foreground">
-            <Link to={`/vendors/${vendorId}`} className="hover:text-accent transition-colors">
-              {vendor}
-            </Link>
-          </h3>
-        </div>
-        <StatusBadge status={status} />
-      </div>
-
-      <div className="mb-6">
-        <span className="text-3xl font-bold tracking-tight text-foreground">
-          {amount.toLocaleString('fr-FR')} €
-        </span>
-        <div className="text-sm text-muted-foreground mt-1">{date}</div>
-      </div>
-
-      {(status === 'approved' || status === 'matched' || status === 'paid') && (
-        <div className="mb-4">
-          <div className="progress-bar">
-            <div 
-              className="progress-bar-fill" 
-              style={{ width: `${paymentProgress}%` }}
-            />
+    <Card
+      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => navigate(`/purchase-orders/${id}`)}
+    >
+      <CardHeader className="pb-1 pt-3 px-3">
+        <div className="flex justify-between items-start gap-1">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-sm font-semibold truncate">
+              BC #{poNumber}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              <SupplierLink supplierId={vendorId} name={vendor} className="text-muted-foreground hover:text-primary hover:underline transition-colors text-xs" />
+            </p>
           </div>
+          <StatusBadge status={status} />
         </div>
-      )}
+      </CardHeader>
+      <CardContent className="pb-3 px-3 pt-1">
+        <div className="space-y-1">
+          {/* Amount */}
+          <div className="text-sm font-bold text-foreground">
+            {formatCurrency(amount)}
+          </div>
 
-      <div className="flex justify-between items-center pt-4 border-t border-border mt-auto">
-        {(status === 'approved' || status === 'matched' || status === 'paid') && (
-          <span className="text-xs text-muted-foreground font-medium">
-            {paymentProgress}% payé
-          </span>
-        )}
-        {!(status === 'approved' || status === 'matched' || status === 'paid') && (
-          <span />
-        )}
-        <Link 
-          to={`/purchase-orders/${id}`} 
-          className="text-sm font-medium text-foreground hover:text-accent group-hover:translate-x-1 transition-all flex items-center gap-1"
-        >
-          Détails
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-    </div>
+          {/* Date */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <FileText className="h-3 w-3" />
+            <span>{date}</span>
+          </div>
+
+          {/* Payment progress */}
+          {(status === 'approved' || status === 'matched' || status === 'paid') && (
+            <div className="space-y-0.5">
+              <div className="w-full bg-secondary rounded-full h-1.5">
+                <div
+                  className="bg-primary rounded-full h-1.5 transition-all"
+                  style={{ width: `${paymentProgress}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{paymentProgress}% payé</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
