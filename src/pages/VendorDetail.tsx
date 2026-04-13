@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -21,6 +21,7 @@ import VendorKPITab from '@/components/vendors/VendorKPITab';
 import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
+import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
