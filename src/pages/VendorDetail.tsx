@@ -291,11 +291,82 @@ const VendorDetail = () => {
           {/* Contacts */}
           <SupplierContactsSection supplierId={id!} />
 
-          {/* Timeline / Gantt */}
-          <SupplierTimeline
-            purchaseOrders={supplierPOs}
-            invoices={supplierInvoices}
-          />
+          {/* BdC section */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Bons de commande</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {supplierPOs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Aucun bon de commande.</p>
+              ) : (
+                <div className="space-y-2">
+                  {supplierPOs.slice(0, 5).map(po => (
+                    <div
+                      key={po.id}
+                      className="flex items-center justify-between p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                    >
+                      <div>
+                        <span className="text-sm font-medium">{po.po_number}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{new Date(po.created_at).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">{po.status}</Badge>
+                        <span className="text-sm font-semibold">{formatCurrency(Number(po.total_amount), po.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {supplierPOs.length > 5 && (
+                    <p className="text-xs text-muted-foreground text-center">+ {supplierPOs.length - 5} autres</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Factures section */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Factures</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {supplierInvoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Aucune facture.</p>
+              ) : (
+                <div className="space-y-2">
+                  {supplierInvoices.slice(0, 5).map(inv => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center justify-between p-2 rounded-md border"
+                    >
+                      <div>
+                        <span className="text-sm font-medium">{inv.invoice_number}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-xs',
+                            inv.payment_status === 'paid' && 'border-emerald-300 text-emerald-700',
+                            inv.payment_status === 'overdue' && 'border-red-300 text-red-700',
+                            inv.payment_status === 'due_soon' && 'border-amber-300 text-amber-700',
+                          )}
+                        >
+                          {inv.payment_status === 'paid' ? 'Payée' : inv.payment_status === 'overdue' ? 'Échue' : inv.payment_status === 'due_soon' ? 'Bientôt due' : 'À venir'}
+                        </Badge>
+                        <span className="text-sm font-semibold">{formatCurrency(Number(inv.amount), inv.currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {supplierInvoices.length > 5 && (
+                    <p className="text-xs text-muted-foreground text-center">+ {supplierInvoices.length - 5} autres</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-4">
