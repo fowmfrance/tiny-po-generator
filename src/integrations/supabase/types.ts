@@ -1321,6 +1321,59 @@ export type Database = {
           },
         ]
       }
+      supplier_contacts: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          is_primary: boolean | null
+          last_name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          supplier_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          supplier_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          supplier_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_invoices: {
         Row: {
           amount: number
@@ -1558,12 +1611,14 @@ export type Database = {
           kyc_status: string
           name: string
           phone: string | null
+          siren: string | null
           specialty: string | null
           supplier_type_id: string | null
           tax_id: string | null
           updated_at: string
           url: string | null
           user_id: string
+          vat_number: string | null
         }
         Insert: {
           address?: string | null
@@ -1583,12 +1638,14 @@ export type Database = {
           kyc_status?: string
           name: string
           phone?: string | null
+          siren?: string | null
           specialty?: string | null
           supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
           url?: string | null
           user_id: string
+          vat_number?: string | null
         }
         Update: {
           address?: string | null
@@ -1608,12 +1665,14 @@ export type Database = {
           kyc_status?: string
           name?: string
           phone?: string | null
+          siren?: string | null
           specialty?: string | null
           supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
           url?: string | null
           user_id?: string
+          vat_number?: string | null
         }
         Relationships: [
           {
