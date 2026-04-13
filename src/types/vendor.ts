@@ -21,6 +21,8 @@ export interface Vendor {
   isPOExempt?: boolean;
   paymentMethodName?: string;
   paymentModalityName?: string;
+  ytdAmount?: number;
+  prevYearAmount?: number;
 }
 
 export interface SupplierType {

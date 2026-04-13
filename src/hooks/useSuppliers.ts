@@ -31,6 +31,8 @@ export interface Supplier {
   average_rating?: number;
   total_ratings?: number;
   po_count?: number;
+  ytd_amount?: number;
+  prev_year_amount?: number;
 }
 
 export function useSuppliers() {
@@ -61,10 +63,10 @@ export function useSuppliers() {
         .from('supplier_ratings')
         .select('supplier_id, rating');
 
-      // Get PO counts
+      // Get PO counts and amounts
       const { data: pos } = await supabase
         .from('purchase_orders')
-        .select('supplier_id');
+        .select('supplier_id, total_amount, created_at');
 
       const ratingMap = new Map<string, { sum: number; count: number }>();
       (ratings || []).forEach((r: any) => {
@@ -75,8 +77,20 @@ export function useSuppliers() {
       });
 
       const poCountMap = new Map<string, number>();
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+      const ytdMap = new Map<string, number>();
+      const prevYearMap = new Map<string, number>();
+
       (pos || []).forEach((p: any) => {
         poCountMap.set(p.supplier_id, (poCountMap.get(p.supplier_id) || 0) + 1);
+        const poYear = new Date(p.created_at).getFullYear();
+        const amount = Number(p.total_amount) || 0;
+        if (poYear === currentYear) {
+          ytdMap.set(p.supplier_id, (ytdMap.get(p.supplier_id) || 0) + amount);
+        } else if (poYear === prevYear) {
+          prevYearMap.set(p.supplier_id, (prevYearMap.get(p.supplier_id) || 0) + amount);
+        }
       });
 
       return (suppliers || []).map((s: any) => ({
@@ -88,6 +102,8 @@ export function useSuppliers() {
           : 0,
         total_ratings: ratingMap.get(s.id)?.count || 0,
         po_count: poCountMap.get(s.id) || 0,
+        ytd_amount: ytdMap.get(s.id) || 0,
+        prev_year_amount: prevYearMap.get(s.id) || 0,
       }));
     },
   });
