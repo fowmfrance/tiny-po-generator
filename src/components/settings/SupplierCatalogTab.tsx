@@ -63,6 +63,7 @@ interface SupplierType {
   id: string;
   name: string;
   description: string | null;
+  icon: string | null;
   is_active: boolean;
 }
 
@@ -87,7 +88,7 @@ const SupplierCatalogTab = () => {
 
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<SupplierType | null>(null);
-  const [typeForm, setTypeForm] = useState({ name: '', description: '' });
+  const [typeForm, setTypeForm] = useState({ name: '', description: '', icon: '' });
 
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const [articleDialogTypeId, setArticleDialogTypeId] = useState<string | null>(null);
@@ -107,7 +108,7 @@ const SupplierCatalogTab = () => {
 
   const fetchAll = async () => {
     const [typesRes, articlesRes] = await Promise.all([
-      supabase.from('supplier_types').select('id, name, description, is_active').order('name'),
+      supabase.from('supplier_types').select('id, name, description, icon, is_active').order('name'),
       supabase.from('article_types').select('id, supplier_type_id, name, description, unit, default_unit_price, is_active, is_price_cap').order('name'),
     ]);
 
