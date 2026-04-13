@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/utils/paymentUtils';
 import { cn } from '@/lib/utils';
+import { SendHorizonal, PackageCheck } from 'lucide-react';
 
 interface PO {
   id: string;
@@ -156,11 +157,11 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
               Période BdC (envoi → livraison)
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 border border-indigo-600" />
+              <SendHorizonal className="w-3 h-3 text-indigo-500" />
               Envoi BdC
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 border-2 border-indigo-500 rounded-full bg-background" />
+              <PackageCheck className="w-3 h-3 text-indigo-500" />
               Livraison prévue
             </div>
             <div className="flex items-center gap-1.5">
@@ -255,7 +256,7 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
                               className="absolute top-1.5 w-5 h-5 rounded-full bg-indigo-500 border-2 border-background z-20 cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
                               style={{ left: `${toPercent(sentDate)}%`, transform: 'translateX(-50%)' }}
                             >
-                              <span className="text-[8px] text-white font-bold">E</span>
+                              <SendHorizonal className="w-3 h-3 text-white" />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -272,7 +273,7 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
                               className="absolute top-1.5 w-5 h-5 rounded-full bg-background border-2 border-indigo-500 z-20 cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
                               style={{ left: `${toPercent(deliveryDate)}%`, transform: 'translateX(-50%)' }}
                             >
-                              <span className="text-[8px] text-indigo-600 font-bold">L</span>
+                              <PackageCheck className="w-3 h-3 text-indigo-600" />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
