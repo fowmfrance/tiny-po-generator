@@ -1,54 +1,85 @@
 
 
-## Plan: Fix vendor card, PDF viewer, and invoice references
+## Plan: Split tax_id into VAT + SIREN, and create a supplier_contacts table
 
-### Issues identified
+### Context
+Currently, the `suppliers` table has a single `tax_id` field used for both VAT numbers and SIRET/SIREN. Some existing values are VAT numbers (e.g. `IE6364992H`, `FR75 823383260`), others look like SIRET. We need to split this into two dedicated fields and also create a proper contacts management system instead of storing a single email/phone on the supplier record.
 
-1. **PDF viewer broken** — The `<object>` / `<iframe>` approach for signed URLs often fails due to browser CORS/CSP restrictions on Supabase signed URLs. Replace with Google Docs viewer as fallback or use `embed` with proper headers.
+### 1. Database migration
 
-2. **Invoice "Réf. BC" column always empty** — All 411 invoices have `po_number = NULL` in the database, but 383 have `purchase_order_id` populated. The overview tab and invoices tab display `inv.po_number` which is always null. Fix: join `purchase_order_id` to `purchase_orders` to retrieve the actual `po_number`.
-
-3. **Icon next to name instead of category** — On VendorCard, the `SupplierTypeIcon` is rendered in the same row as the name (line 49-51). Move it next to the category text (line 53).
-
-4. **YTD and N-1 amounts on vendor card** — Add two computed values: total PO amount for current year and previous year. Requires fetching `purchase_orders.total_amount` and `created_at` per supplier.
-
----
-
-### Changes
-
-**File: `src/components/vendors/VendorCard.tsx`**
-- Move `SupplierTypeIcon` from the name row to next to `vendor.category`
-- Add YTD amount and N-1 amount display (two compact lines with `TrendingUp` icon)
-- Remove `businessVolume` display (replaced by computed YTD)
-
-**File: `src/types/vendor.ts`**
-- Add `ytdAmount` and `prevYearAmount` to `Vendor` interface
-
-**File: `src/pages/Vendors.tsx`** (supplierToVendor mapping)
-- Map new `ytdAmount` / `prevYearAmount` from supplier data
-
-**File: `src/hooks/useSuppliers.ts`**
-- Enhance PO query to fetch `total_amount` and `created_at` per supplier
-- Compute YTD (current year) and N-1 (previous year) sums per supplier
-- Add `ytd_amount` and `prev_year_amount` to returned Supplier type
-
-**File: `src/pages/VendorDetail.tsx`** (overview tab invoices section)
-- Replace `inv.po_number` with a lookup from `purchase_order_id` → PO number using the already-loaded `supplierPOs`
-
-**File: `src/components/vendors/VendorInvoicesTab.tsx`**
-- Already handles PO linking via `invoicePOLinks` and `poMap` — verify the Réf BC display uses `linkedPOs` instead of `inv.po_number`
-
-**File: PDF viewer fix** (VendorInvoicesTab.tsx + POInvoiceSection.tsx)
-- Replace `<object>` + `<iframe>` with an `<iframe>` using Google Docs viewer URL for PDFs (`https://docs.google.com/gview?url=ENCODED_URL&embedded=true`) as primary, with direct URL as fallback for images
-- Add a download button always visible
-
-### Data fix (SQL)
-- Backfill `po_number` on `supplier_invoices` from `purchase_orders`:
 ```sql
-UPDATE supplier_invoices si
-SET po_number = po.po_number
-FROM purchase_orders po
-WHERE si.purchase_order_id = po.id
-AND si.po_number IS NULL;
+-- Add dedicated columns
+ALTER TABLE suppliers
+  ADD COLUMN IF NOT EXISTS vat_number text,
+  ADD COLUMN IF NOT EXISTS siren text;
+
+-- Migrate existing data: FR-prefixed → vat_number, others → vat_number too (manual cleanup later)
+UPDATE suppliers SET vat_number = tax_id WHERE tax_id IS NOT NULL AND tax_id != '';
+
+-- Create contacts table
+CREATE TABLE supplier_contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  first_name text,
+  last_name text NOT NULL,
+  role text,            -- e.g. 'Comptabilité', 'Commercial', 'Direction'
+  email text,
+  phone text,
+  is_primary boolean DEFAULT false,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE supplier_contacts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their supplier contacts"
+  ON supplier_contacts FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their supplier contacts"
+  ON supplier_contacts FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their supplier contacts"
+  ON supplier_contacts FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their supplier contacts"
+  ON supplier_contacts FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
 ```
+
+### 2. Data migration (via insert tool)
+- Copy `tax_id` values into `vat_number` for all existing suppliers (done in the migration above).
+
+### 3. Update `useSuppliers` hook
+- Add `vat_number` and `siren` to the `Supplier` interface.
+- Remove `tax_id` references (or keep as legacy read).
+- No change needed for the main query since `SELECT *` already fetches new columns.
+
+### 4. Create `useSupplierContacts` hook
+- New hook with CRUD operations for the `supplier_contacts` table.
+- Query by `supplier_id`, ordered by `is_primary DESC, last_name`.
+
+### 5. Update `EditSupplierContactDialog`
+- Replace the single "N° TVA / SIRET" field with two fields: **N° TVA** (`vat_number`) and **SIREN** (`siren`).
+- Remove `tax_id` from the form state.
+
+### 6. Create `SupplierContactsSection` component
+- Displayed on the VendorDetail page (overview tab).
+- Lists all contacts for the supplier with name, role, email, phone.
+- Inline add/edit/delete with a small dialog or expandable row.
+- "Primary contact" toggle.
+
+### 7. Update `VendorDetail` page
+- Show `vat_number` and `siren` in the header card (where `tax_id` was).
+- Add the contacts section below the supplier info card.
+
+### Files to create
+- `src/hooks/useSupplierContacts.ts`
+- `src/components/vendors/SupplierContactsSection.tsx`
+
+### Files to modify
+- `src/hooks/useSuppliers.ts` — update interface
+- `src/components/vendors/EditSupplierContactDialog.tsx` — split tax_id field
+- `src/pages/VendorDetail.tsx` — display new fields + contacts section
 
