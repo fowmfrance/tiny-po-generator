@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Search, LayoutDashboard, BookOpen, FileText } from 'lucide-react';
+import { UserPlus, Search, LayoutDashboard, BookOpen, FileText, LayoutGrid, List } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
@@ -55,6 +55,7 @@ const Vendors = () => {
   const [volumeFilter, setVolumeFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const vendors = useMemo(() => suppliers.map(supplierToVendor), [suppliers]);
 
@@ -164,7 +165,7 @@ const Vendors = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -174,33 +175,53 @@ const Vendors = () => {
                     className="pl-10"
                   />
                 </div>
-                <VendorFilters 
-                  showFilters={showFilters}
-                  toggleFilters={toggleFilters}
-                  categoryFilter={categoryFilter}
-                  setCategoryFilter={setCategoryFilter}
-                  statusFilter={statusFilter}
-                  setStatusFilter={setStatusFilter}
-                  cityFilter={cityFilter}
-                  setCityFilter={setCityFilter}
-                  countryFilter={countryFilter}
-                  setCountryFilter={setCountryFilter}
-                  specialtyFilter={specialtyFilter}
-                  setSpecialtyFilter={setSpecialtyFilter}
-                  negotiatedRatesFilter={negotiatedRatesFilter}
-                  setNegotiatedRatesFilter={setNegotiatedRatesFilter}
-                  volumeFilter={volumeFilter}
-                  setVolumeFilter={setVolumeFilter}
-                  ratingFilter={ratingFilter}
-                  setRatingFilter={setRatingFilter}
-                  resetFilters={resetFilters}
-                  categories={categories}
-                  cities={cities}
-                  countries={countries}
-                  specialties={specialties}
-                />
+                <div className="flex items-center gap-2">
+                  <VendorFilters 
+                    showFilters={showFilters}
+                    toggleFilters={toggleFilters}
+                    categoryFilter={categoryFilter}
+                    setCategoryFilter={setCategoryFilter}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    cityFilter={cityFilter}
+                    setCityFilter={setCityFilter}
+                    countryFilter={countryFilter}
+                    setCountryFilter={setCountryFilter}
+                    specialtyFilter={specialtyFilter}
+                    setSpecialtyFilter={setSpecialtyFilter}
+                    negotiatedRatesFilter={negotiatedRatesFilter}
+                    setNegotiatedRatesFilter={setNegotiatedRatesFilter}
+                    volumeFilter={volumeFilter}
+                    setVolumeFilter={setVolumeFilter}
+                    ratingFilter={ratingFilter}
+                    setRatingFilter={setRatingFilter}
+                    resetFilters={resetFilters}
+                    categories={categories}
+                    cities={cities}
+                    countries={countries}
+                    specialties={specialties}
+                  />
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="rounded-none h-8 px-2"
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="rounded-none h-8 px-2"
+                      onClick={() => setViewMode('list')}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <VendorsList vendors={filteredVendors} />
+              <VendorsList vendors={filteredVendors} viewMode={viewMode} />
             </div>
           )}
         </TabsContent>
