@@ -86,9 +86,10 @@ function App() {
           <Route path="payment-methods" element={<BackofficePaymentMethods />} />
         </Route>
         <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </Router>
+        </Routes>
+        <Toaster />
+      </Router>
+    </TooltipProvider>
   );
 }
 
