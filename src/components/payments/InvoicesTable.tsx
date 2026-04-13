@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, ExternalLink, X, Download } from 'lucide-react';
+import { SupplierLink } from '@/components/ui/supplier-link';
 import {
   Table,
   TableBody,
@@ -126,7 +127,11 @@ export function InvoicesTable({
                       {invoice.invoice_number}
                     </div>
                   </TableCell>
-                  <TableCell>{invoice.supplier?.name || '-'}</TableCell>
+                  <TableCell>
+                    {invoice.supplier ? (
+                      <SupplierLink supplierId={invoice.supplier_id} name={invoice.supplier.name} />
+                    ) : '-'}
+                  </TableCell>
                   <TableCell>{invoice.project_code || '-'}</TableCell>
                   <TableCell>{invoice.po_number || '-'}</TableCell>
                   <TableCell className="text-right font-medium">

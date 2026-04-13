@@ -219,7 +219,9 @@ const BudgetDetails = () => {
                     >
                       <TableCell className="font-medium">{po.po_number}</TableCell>
                       <TableCell>
-                        <span>{po.supplier?.name || 'Fournisseur inconnu'}</span>
+                        <Link to={`/vendors/${po.supplier_id}`} className="hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                          {po.supplier?.name || 'Fournisseur inconnu'}
+                        </Link>
                         {po.supplier?.is_active === false && (
                           <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0">
                             KYC en attente

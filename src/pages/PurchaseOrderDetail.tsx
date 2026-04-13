@@ -164,7 +164,7 @@ const PurchaseOrderDetail = () => {
           <CardContent>
             <div className="flex justify-between items-start">
               <div>
-                <p className="font-medium text-lg">{po.supplier?.name || 'Inconnu'}</p>
+                <Link to={`/vendors/${po.supplier_id}`} className="font-medium text-lg hover:text-primary hover:underline transition-colors">{po.supplier?.name || 'Inconnu'}</Link>
                 <p className="text-sm text-muted-foreground">{po.supplier?.email}</p>
               </div>
               <Link to={`/vendors/${po.supplier_id}`} className="text-primary flex items-center gap-1 text-sm">
