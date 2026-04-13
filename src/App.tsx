@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import { Toaster } from './components/ui/toaster';
+import { TooltipProvider } from './components/ui/tooltip';
 import Layout from './components/Layout';
 import Index from './pages/Index';
 import MentionsLegales from './pages/MentionsLegales';
@@ -41,12 +42,13 @@ import BackofficePaymentMethods from './pages/backoffice/BackofficePaymentMethod
 
 function App() {
   return (
-    <Router>
-      {/* Remove logo from here since it's now in the header */}
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/login" element={<Navigate to="/auth" replace />} />
+    <TooltipProvider>
+      <Router>
+        {/* Remove logo from here since it's now in the header */}
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
         <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
         <Route path="/banques" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
@@ -84,9 +86,10 @@ function App() {
           <Route path="payment-methods" element={<BackofficePaymentMethods />} />
         </Route>
         <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </Router>
+        </Routes>
+        <Toaster />
+      </Router>
+    </TooltipProvider>
   );
 }
 
