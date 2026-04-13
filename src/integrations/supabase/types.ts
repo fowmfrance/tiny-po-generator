@@ -1031,7 +1031,8 @@ export type Database = {
           po_number: string
           sent_at: string | null
           status: string
-          supplier_id: string
+          supplier_id: string | null
+          supplier_name: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -1048,7 +1049,8 @@ export type Database = {
           po_number: string
           sent_at?: string | null
           status?: string
-          supplier_id: string
+          supplier_id?: string | null
+          supplier_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id: string
@@ -1065,7 +1067,8 @@ export type Database = {
           po_number?: string
           sent_at?: string | null
           status?: string
-          supplier_id?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
@@ -1332,7 +1335,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           role: string | null
-          supplier_id: string
+          supplier_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1346,7 +1349,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           role?: string | null
-          supplier_id: string
+          supplier_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1360,7 +1363,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           role?: string | null
-          supplier_id?: string
+          supplier_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1391,7 +1394,8 @@ export type Database = {
           purchase_order_id: string | null
           received_date: string
           status: string
-          supplier_id: string
+          supplier_id: string | null
+          supplier_name: string | null
           updated_at: string
           user_id: string
           vat_amount: number | null
@@ -1413,7 +1417,8 @@ export type Database = {
           purchase_order_id?: string | null
           received_date?: string
           status?: string
-          supplier_id: string
+          supplier_id?: string | null
+          supplier_name?: string | null
           updated_at?: string
           user_id: string
           vat_amount?: number | null
@@ -1435,7 +1440,8 @@ export type Database = {
           purchase_order_id?: string | null
           received_date?: string
           status?: string
-          supplier_id?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
           updated_at?: string
           user_id?: string
           vat_amount?: number | null
