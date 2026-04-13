@@ -33,11 +33,37 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2, ShieldAlert, Info } from 'lucide-react';
+import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
+
+// Common Lucide icon options for supplier types
+const ICON_OPTIONS = [
+  { value: 'camera', label: 'Appareil photo' },
+  { value: 'video', label: 'Vidéo' },
+  { value: 'film', label: 'Film / Post-prod' },
+  { value: 'pen-tool', label: 'Création' },
+  { value: 'palette', label: 'Design' },
+  { value: 'scissors', label: 'Stylisme' },
+  { value: 'sparkles', label: 'Beauté' },
+  { value: 'user', label: 'Mannequin' },
+  { value: 'briefcase', label: 'Conseil' },
+  { value: 'scale', label: 'Juridique' },
+  { value: 'monitor', label: 'IT' },
+  { value: 'utensils', label: 'Restauration' },
+  { value: 'plane', label: 'Voyage' },
+  { value: 'truck', label: 'Logistique' },
+  { value: 'lamp-desk', label: 'Studio' },
+  { value: 'building-2', label: 'Services généraux' },
+  { value: 'music', label: 'Musique' },
+  { value: 'mic', label: 'Audio' },
+  { value: 'megaphone', label: 'Communication' },
+  { value: 'image', label: 'Image' },
+];
 
 interface SupplierType {
   id: string;
   name: string;
   description: string | null;
+  icon: string | null;
   is_active: boolean;
 }
 
@@ -62,7 +88,7 @@ const SupplierCatalogTab = () => {
 
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<SupplierType | null>(null);
-  const [typeForm, setTypeForm] = useState({ name: '', description: '' });
+  const [typeForm, setTypeForm] = useState({ name: '', description: '', icon: '' });
 
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const [articleDialogTypeId, setArticleDialogTypeId] = useState<string | null>(null);
@@ -82,7 +108,7 @@ const SupplierCatalogTab = () => {
 
   const fetchAll = async () => {
     const [typesRes, articlesRes] = await Promise.all([
-      supabase.from('supplier_types').select('id, name, description, is_active').order('name'),
+      supabase.from('supplier_types').select('id, name, description, icon, is_active').order('name'),
       supabase.from('article_types').select('id, supplier_type_id, name, description, unit, default_unit_price, is_active, is_price_cap').order('name'),
     ]);
 
@@ -134,10 +160,10 @@ const SupplierCatalogTab = () => {
   const openTypeDialog = (type?: SupplierType) => {
     if (type) {
       setEditingType(type);
-      setTypeForm({ name: type.name, description: type.description || '' });
+      setTypeForm({ name: type.name, description: type.description || '', icon: type.icon || '' });
     } else {
       setEditingType(null);
-      setTypeForm({ name: '', description: '' });
+      setTypeForm({ name: '', description: '', icon: '' });
     }
     setTypeDialogOpen(true);
   };
@@ -182,7 +208,7 @@ const SupplierCatalogTab = () => {
       if (editingType) {
         const { error } = await supabase
           .from('supplier_types')
-          .update({ name: typeForm.name.trim(), description: typeForm.description.trim() || null })
+          .update({ name: typeForm.name.trim(), description: typeForm.description.trim() || null, icon: typeForm.icon || null })
           .eq('id', editingType.id);
         if (error) throw error;
         toast({ title: 'Type fournisseur mis à jour' });
@@ -191,6 +217,7 @@ const SupplierCatalogTab = () => {
           user_id: user.id,
           name: typeForm.name.trim(),
           description: typeForm.description.trim() || null,
+          icon: typeForm.icon || null,
           is_active: true,
         });
         if (error) throw error;
@@ -327,11 +354,14 @@ const SupplierCatalogTab = () => {
                 <Card key={type.id} className="border shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <CardTitle className="text-base">{type.name}</CardTitle>
-                        {type.description && (
-                          <CardDescription className="text-xs mt-0.5">{type.description}</CardDescription>
-                        )}
+                      <div className="min-w-0 flex items-center gap-2">
+                        <SupplierTypeIcon iconName={type.icon} className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <CardTitle className="text-base">{type.name}</CardTitle>
+                          {type.description && (
+                            <CardDescription className="text-xs mt-0.5">{type.description}</CardDescription>
+                          )}
+                        </div>
                       </div>
                       {isSuperAdmin && (
                         <div className="flex items-center gap-1 shrink-0">
@@ -447,6 +477,26 @@ const SupplierCatalogTab = () => {
                 rows={3}
                 placeholder="Description métier"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Icône</Label>
+              <div className="flex flex-wrap gap-2">
+                {ICON_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTypeForm((prev) => ({ ...prev, icon: opt.value }))}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs transition-colors ${
+                      typeForm.icon === opt.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <SupplierTypeIcon iconName={opt.value} className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
