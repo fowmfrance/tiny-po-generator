@@ -124,7 +124,12 @@ const VendorDetail = () => {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-2xl">{supplier.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl">{supplier.name}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-muted-foreground">{supplier.supplier_type?.name || 'Non classé'}</p>
               {supplier.specialty && <Badge variant="secondary" className="mt-1">{supplier.specialty}</Badge>}
             </div>
@@ -361,6 +366,20 @@ const VendorDetail = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      {supplier && (
+        <EditSupplierContactDialog
+          supplier={supplier}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSave={(updates) => {
+            updateSupplier.mutate(updates, {
+              onSuccess: () => setEditOpen(false),
+            });
+          }}
+          isPending={updateSupplier.isPending}
+        />
+      )}
     </div>
   );
 };
