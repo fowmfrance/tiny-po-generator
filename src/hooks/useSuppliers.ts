@@ -21,7 +21,7 @@ export interface Supplier {
   created_at: string;
   updated_at: string;
   // Joined
-  supplier_type?: { id: string; name: string; color: string | null } | null;
+  supplier_type?: { id: string; name: string; color: string | null; icon: string | null } | null;
   // Computed
   average_rating?: number;
   total_ratings?: number;
@@ -43,7 +43,7 @@ export function useSuppliers() {
         .from('suppliers')
         .select(`
           *,
-          supplier_type:supplier_types(id, name, color)
+          supplier_type:supplier_types(id, name, color, icon)
         `)
         .order('name');
 
