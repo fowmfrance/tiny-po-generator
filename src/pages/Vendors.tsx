@@ -122,24 +122,14 @@ const Vendors = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Fournisseurs</h1>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => navigate('/das2')}
-          >
-            <FileText className="w-4 h-4" />
-            DAS2
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
-            onClick={() => setIsInviteDialogOpen(true)}
-          >
-            <UserPlus className="w-4 h-4" />
-            Inviter un Fournisseur
-          </Button>
-        </div>
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2"
+          onClick={() => setIsInviteDialogOpen(true)}
+        >
+          <UserPlus className="w-4 h-4" />
+          Inviter un Fournisseur
+        </Button>
       </div>
 
       <Tabs defaultValue="dashboard">
@@ -176,6 +166,15 @@ const Vendors = () => {
                   />
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={() => navigate('/das2')}
+                  >
+                    <FileText className="w-4 h-4" />
+                    DAS2
+                  </Button>
                   <VendorFilters 
                     showFilters={showFilters}
                     toggleFilters={toggleFilters}
