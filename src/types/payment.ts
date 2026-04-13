@@ -4,6 +4,7 @@ export interface SupplierInvoice {
   supplier_id: string;
   invoice_number: string;
   po_number: string | null;
+  purchase_order_id: string | null;
   project_code: string | null;
   amount: number;
   currency: string;
