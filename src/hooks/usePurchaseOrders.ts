@@ -256,6 +256,81 @@ export function usePurchaseOrders() {
         .single();
 
       if (error) throw error;
+
+      // Send transactional email when PO is sent to vendor
+      if (status === 'sent') {
+        try {
+          // Fetch full PO data with supplier, budget, items, and primary contact
+          const [poFull, itemsRes, contactRes, tokenRes] = await Promise.all([
+            supabase
+              .from('purchase_orders')
+              .select('*, supplier:suppliers(id, name, email), budget:budgets(id, name, code)')
+              .eq('id', id)
+              .single(),
+            supabase
+              .from('purchase_order_items')
+              .select('description')
+              .eq('purchase_order_id', id),
+            supabase
+              .from('supplier_contacts')
+              .select('first_name, last_name, email')
+              .eq('supplier_id', poRef.supplier_id)
+              .eq('is_primary', true)
+              .maybeSingle(),
+            supabase
+              .from('supplier_access_tokens')
+              .select('token')
+              .eq('supplier_id', poRef.supplier_id)
+              .eq('is_active', true)
+              .maybeSingle(),
+          ]);
+
+          const po = poFull.data as any;
+          const supplierData = po?.supplier;
+          const budgetData = po?.budget;
+          const items = (itemsRes.data || []).map((i: any) => i.description);
+          const contact = contactRes.data;
+          const accessToken = tokenRes.data;
+
+          const contactName = contact
+            ? [contact.first_name, contact.last_name].filter(Boolean).join(' ')
+            : supplierData?.name || '';
+
+          const recipientEmail = contact?.email || supplierData?.email;
+
+          const deliveryDate = po?.expected_delivery_date
+            ? new Date(po.expected_delivery_date).toLocaleDateString('fr-FR')
+            : undefined;
+
+          const portalUrl = accessToken?.token
+            ? `${window.location.origin}/supplier/portal/${accessToken.token}`
+            : undefined;
+
+          const finalPoNumber = updates.po_number || poRef.po_number;
+
+          if (recipientEmail) {
+            await supabase.functions.invoke('send-transactional-email', {
+              body: {
+                templateName: 'po-sent-to-vendor',
+                recipientEmail,
+                idempotencyKey: `po-sent-${id}`,
+                templateData: {
+                  contactName,
+                  projectName: budgetData?.name || '—',
+                  poNumber: finalPoNumber,
+                  items,
+                  expectedDeliveryDate: deliveryDate,
+                  portalUrl,
+                },
+              },
+            });
+          }
+        } catch (emailError) {
+          console.error('Failed to send PO email notification:', emailError);
+          // Don't throw — PO status update succeeded, email is best-effort
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
