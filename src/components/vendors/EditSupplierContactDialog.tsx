@@ -29,7 +29,8 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
     address: '',
     city: '',
     country: '',
-    tax_id: '',
+    vat_number: '',
+    siren: '',
     specialty: '',
     is_po_exempt: false,
     default_payment_method_id: '' as string,
@@ -45,7 +46,8 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
         address: supplier.address || '',
         city: supplier.city || '',
         country: supplier.country || '',
-        tax_id: supplier.tax_id || '',
+        vat_number: (supplier as any).vat_number || '',
+        siren: (supplier as any).siren || '',
         specialty: supplier.specialty || '',
         is_po_exempt: supplier.is_po_exempt || false,
         default_payment_method_id: supplier.default_payment_method_id || '',
@@ -67,7 +69,8 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
       address: form.address || null,
       city: form.city || null,
       country: form.country || null,
-      tax_id: form.tax_id || null,
+      vat_number: form.vat_number || null,
+      siren: form.siren || null,
       specialty: form.specialty || null,
       is_po_exempt: form.is_po_exempt,
       default_payment_method_id: form.default_payment_method_id || null,
@@ -98,8 +101,14 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
               <Input id="phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tax_id">N° TVA / SIRET</Label>
-              <Input id="tax_id" value={form.tax_id} onChange={e => setForm(f => ({ ...f, tax_id: e.target.value }))} />
+              <Label htmlFor="vat_number">N° TVA</Label>
+              <Input id="vat_number" placeholder="ex: FR75 823383260" value={form.vat_number} onChange={e => setForm(f => ({ ...f, vat_number: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="siren">SIREN</Label>
+              <Input id="siren" placeholder="ex: 823383260" value={form.siren} onChange={e => setForm(f => ({ ...f, siren: e.target.value }))} />
             </div>
           </div>
           <div className="space-y-2">

@@ -11,6 +11,8 @@ export interface Supplier {
   city: string | null;
   country: string | null;
   tax_id: string | null;
+  vat_number: string | null;
+  siren: string | null;
   specialty: string | null;
   supplier_type_id: string | null;
   has_negotiated_rates: boolean;
