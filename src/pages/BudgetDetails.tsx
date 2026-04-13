@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BudgetWaterfallChart } from '@/components/budget/BudgetWaterfallChart';
 import { BudgetRecognitionSection } from '@/components/budget/BudgetRecognitionSection';
 import { useQueryClient } from '@tanstack/react-query';
