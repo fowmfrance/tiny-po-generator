@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Plus, Search } from 'lucide-react';
+import { UserPlus, Search, LayoutDashboard, BookOpen } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
+import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
 import { useSuppliers, Supplier } from '@/hooks/useSuppliers';
 import { Vendor } from '@/types/vendor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Map Supplier from DB to the Vendor interface used by components
 function supplierToVendor(s: Supplier): Vendor {
@@ -54,13 +56,11 @@ const Vendors = () => {
 
   const vendors = useMemo(() => suppliers.map(supplierToVendor), [suppliers]);
 
-  // Get unique values for filter options
   const categories = useMemo(() => ['all', ...new Set(vendors.map(v => v.category))], [vendors]);
   const cities = useMemo(() => ['all', ...new Set(vendors.map(v => v.city).filter(Boolean) as string[])], [vendors]);
   const countries = useMemo(() => ['all', ...new Set(vendors.map(v => v.country).filter(Boolean) as string[])], [vendors]);
   const specialties = useMemo(() => ['all', ...new Set(vendors.map(v => v.specialty).filter(Boolean) as string[])], [vendors]);
 
-  // Filter vendors
   const filteredVendors = useMemo(() => vendors.filter(vendor => {
     const matchesSearch = 
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,19 +115,6 @@ const Vendors = () => {
     setRatingFilter('all');
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Fournisseurs</h1>
-        </div>
-        <div className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">Chargement des fournisseurs...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -144,46 +131,70 @@ const Vendors = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par nom, spécialité, catégorie..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <VendorFilters 
-            showFilters={showFilters}
-            toggleFilters={toggleFilters}
-            categoryFilter={categoryFilter}
-            setCategoryFilter={setCategoryFilter}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            cityFilter={cityFilter}
-            setCityFilter={setCityFilter}
-            countryFilter={countryFilter}
-            setCountryFilter={setCountryFilter}
-            specialtyFilter={specialtyFilter}
-            setSpecialtyFilter={setSpecialtyFilter}
-            negotiatedRatesFilter={negotiatedRatesFilter}
-            setNegotiatedRatesFilter={setNegotiatedRatesFilter}
-            volumeFilter={volumeFilter}
-            setVolumeFilter={setVolumeFilter}
-            ratingFilter={ratingFilter}
-            setRatingFilter={setRatingFilter}
-            resetFilters={resetFilters}
-            categories={categories}
-            cities={cities}
-            countries={countries}
-            specialties={specialties}
-          />
-        </div>
-      </div>
+      <Tabs defaultValue="dashboard">
+        <TabsList>
+          <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="repertoire" className="flex items-center gap-1.5">
+            <BookOpen className="h-4 w-4" />
+            Répertoire
+          </TabsTrigger>
+        </TabsList>
 
-      <VendorsList vendors={filteredVendors} />
+        <TabsContent value="dashboard">
+          <SupplierDashboardTab />
+        </TabsContent>
+
+        <TabsContent value="repertoire">
+          {isLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <p className="text-muted-foreground">Chargement des fournisseurs...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par nom, spécialité, catégorie..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <VendorFilters 
+                  showFilters={showFilters}
+                  toggleFilters={toggleFilters}
+                  categoryFilter={categoryFilter}
+                  setCategoryFilter={setCategoryFilter}
+                  statusFilter={statusFilter}
+                  setStatusFilter={setStatusFilter}
+                  cityFilter={cityFilter}
+                  setCityFilter={setCityFilter}
+                  countryFilter={countryFilter}
+                  setCountryFilter={setCountryFilter}
+                  specialtyFilter={specialtyFilter}
+                  setSpecialtyFilter={setSpecialtyFilter}
+                  negotiatedRatesFilter={negotiatedRatesFilter}
+                  setNegotiatedRatesFilter={setNegotiatedRatesFilter}
+                  volumeFilter={volumeFilter}
+                  setVolumeFilter={setVolumeFilter}
+                  ratingFilter={ratingFilter}
+                  setRatingFilter={setRatingFilter}
+                  resetFilters={resetFilters}
+                  categories={categories}
+                  cities={cities}
+                  countries={countries}
+                  specialties={specialties}
+                />
+              </div>
+              <VendorsList vendors={filteredVendors} />
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <InviteVendorDialog 
         isOpen={isInviteDialogOpen} 
