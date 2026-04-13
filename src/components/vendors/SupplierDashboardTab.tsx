@@ -194,11 +194,11 @@ const SupplierDashboardTab: React.FC = () => {
   const variation = data.hasComparison && data.totalPrev > 0 ? ((data.totalN - data.totalPrev) / data.totalPrev) * 100 : null;
   const poVariation = data.hasComparison && data.poCountPrev > 0 ? ((data.poCountN - data.poCountPrev) / data.poCountPrev) * 100 : null;
 
-  const hasBudgetVentes = data.monthlyData.some(m => m.budgetVentes > 0);
+  const hasCA = data.monthlyData.some(m => m.caLinearise > 0);
 
   const barData = showByTrade
-    ? data.monthlyData.map(m => ({ month: m.month, ...m.byTrade, 'Budget ventes': m.budgetVentes }))
-    : data.monthlyData.map(m => ({ month: m.month, Projet: m.projet, 'Hors projet': m.horsProjet, 'Budget ventes': m.budgetVentes }));
+    ? data.monthlyData.map(m => ({ month: m.month, ...m.byTrade, 'CA linéarisé': m.caLinearise }))
+    : data.monthlyData.map(m => ({ month: m.month, Projet: m.projet, 'Hors projet': m.horsProjet, 'CA linéarisé': m.caLinearise }));
 
   const barKeys = showByTrade
     ? data.trades.map(t => t.name)
@@ -207,6 +207,8 @@ const SupplierDashboardTab: React.FC = () => {
   const barColors = showByTrade
     ? data.trades.reduce((acc, t) => ({ ...acc, [t.name]: t.color }), {} as Record<string, string>)
     : { Projet: '#3B82F6', 'Hors projet': '#94A3B8' };
+
+  const hasCumulative = data.cumulativeData.some(m => m.ca > 0 || m.chargesInternes > 0 || m.chargesExternes > 0);
 
   return (
     <div className="space-y-6">
@@ -254,10 +256,10 @@ const SupplierDashboardTab: React.FC = () => {
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold">Dépenses mensuelles</CardTitle>
           <div className="flex items-center gap-4">
-            {hasBudgetVentes && (
+            {hasCA && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-4 h-0.5 bg-amber-500 rounded" />
-                Budget ventes
+                <span className="w-4 h-0.5 bg-emerald-500 rounded" />
+                CA linéarisé
               </div>
             )}
             <div className="flex items-center gap-2">
@@ -283,13 +285,13 @@ const SupplierDashboardTab: React.FC = () => {
                     radius={i === barKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
                   />
                 ))}
-                {hasBudgetVentes && (
+                {hasCA && (
                   <ReLine
                     type="monotone"
-                    dataKey="Budget ventes"
-                    stroke="#F59E0B"
+                    dataKey="CA linéarisé"
+                    stroke="#10B981"
                     strokeWidth={2}
-                    dot={{ r: 3, fill: '#F59E0B' }}
+                    dot={{ r: 3, fill: '#10B981' }}
                     activeDot={{ r: 5 }}
                   />
                 )}
@@ -298,6 +300,39 @@ const SupplierDashboardTab: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {hasCumulative && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Marge cumulée (CA − Charges)</CardTitle>
+            <p className="text-xs text-muted-foreground">CA linéarisé des projets externes − Charges internes (linéarisées) − Charges externes (date BC)</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[350px]">
+              <ReResponsiveContainer width="100%" height="100%">
+                <ReComposedChart data={data.cumulativeData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <ReCartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <ReXAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                  <ReTooltip content={<DarkTooltip />} />
+                  <ReBar dataKey="ca" name="CA" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <ReBar dataKey="chargesInternes" name="Charges internes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                  <ReBar dataKey="chargesExternes" name="Charges externes" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                  <ReLine
+                    type="monotone"
+                    dataKey="cumul"
+                    name="Cumul"
+                    stroke="#8B5CF6"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: '#8B5CF6' }}
+                    activeDot={{ r: 5 }}
+                  />
+                </ReComposedChart>
+              </ReResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
