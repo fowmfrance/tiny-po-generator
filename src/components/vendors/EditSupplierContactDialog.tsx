@@ -3,7 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Supplier } from '@/hooks/useSuppliers';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { ShieldOff } from 'lucide-react';
 
 interface EditSupplierContactDialogProps {
   supplier: Supplier;
@@ -11,9 +16,12 @@ interface EditSupplierContactDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (updates: Partial<Supplier> & { id: string }) => void;
   isPending?: boolean;
+  isAdmin?: boolean;
 }
 
-export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave, isPending }: EditSupplierContactDialogProps) {
+export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave, isPending, isAdmin }: EditSupplierContactDialogProps) {
+  const { methods, getModalitiesForMethod } = usePaymentMethods();
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -23,6 +31,9 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
     country: '',
     tax_id: '',
     specialty: '',
+    is_po_exempt: false,
+    default_payment_method_id: '' as string,
+    default_payment_modality_id: '' as string,
   });
 
   useEffect(() => {
@@ -36,9 +47,16 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
         country: supplier.country || '',
         tax_id: supplier.tax_id || '',
         specialty: supplier.specialty || '',
+        is_po_exempt: supplier.is_po_exempt || false,
+        default_payment_method_id: supplier.default_payment_method_id || '',
+        default_payment_modality_id: supplier.default_payment_modality_id || '',
       });
     }
   }, [open, supplier]);
+
+  const availableModalities = form.default_payment_method_id
+    ? getModalitiesForMethod(form.default_payment_method_id)
+    : [];
 
   const handleSave = () => {
     onSave({
@@ -51,12 +69,15 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
       country: form.country || null,
       tax_id: form.tax_id || null,
       specialty: form.specialty || null,
-    });
+      is_po_exempt: form.is_po_exempt,
+      default_payment_method_id: form.default_payment_method_id || null,
+      default_payment_modality_id: form.default_payment_modality_id || null,
+    } as any);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier les informations de contact</DialogTitle>
         </DialogHeader>
@@ -98,6 +119,70 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
           <div className="space-y-2">
             <Label htmlFor="specialty">Spécialité</Label>
             <Input id="specialty" value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} />
+          </div>
+
+          <Separator />
+
+          {/* PO Exempt toggle - admin only */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldOff className="h-4 w-4 text-amber-600" />
+                <div>
+                  <Label htmlFor="po-exempt">Dispensé de BdC</Label>
+                  <p className="text-xs text-muted-foreground">Ce fournisseur est payé sans bon de commande</p>
+                </div>
+              </div>
+              <Switch
+                id="po-exempt"
+                checked={form.is_po_exempt}
+                onCheckedChange={(checked) => setForm(f => ({ ...f, is_po_exempt: checked }))}
+                disabled={!isAdmin}
+              />
+            </div>
+
+            {/* Payment method */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Moyen de paiement</Label>
+                <Select
+                  value={form.default_payment_method_id}
+                  onValueChange={(val) => setForm(f => ({
+                    ...f,
+                    default_payment_method_id: val === 'none' ? '' : val,
+                    default_payment_modality_id: '',
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {methods.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Modalité</Label>
+                <Select
+                  value={form.default_payment_modality_id}
+                  onValueChange={(val) => setForm(f => ({ ...f, default_payment_modality_id: val === 'none' ? '' : val }))}
+                  disabled={!form.default_payment_method_id || availableModalities.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={availableModalities.length === 0 ? 'Aucune modalité' : 'Sélectionner'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune</SelectItem>
+                    {availableModalities.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
