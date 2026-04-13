@@ -325,10 +325,12 @@ const VendorDetail = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {supplierInvoices.map(inv => (
+                      {supplierInvoices.map(inv => {
+                        const poRef = inv.po_number || supplierPOs.find(po => po.id === inv.purchase_order_id)?.po_number || '—';
+                        return (
                         <tr key={inv.id}>
                           <td className="px-4 py-3 font-medium">{inv.invoice_number}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{inv.po_number || '—'}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{poRef}</td>
                           <td className="px-4 py-3">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</td>
                           <td className="px-4 py-3">{new Date(inv.due_date).toLocaleDateString('fr-FR')}</td>
                           <td className="px-4 py-3 text-right font-medium">{formatCurrency(Number(inv.amount), inv.currency)}</td>
@@ -355,7 +357,8 @@ const VendorDetail = () => {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
