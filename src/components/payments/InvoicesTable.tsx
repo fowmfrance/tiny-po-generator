@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -163,6 +164,7 @@ export function InvoicesTable({
               <FileText className="h-5 w-5" />
               Facture {previewInvoice?.invoice_number}
             </DialogTitle>
+            <DialogDescription>Détails et aperçu de la facture</DialogDescription>
           </DialogHeader>
           
           {previewInvoice && (
