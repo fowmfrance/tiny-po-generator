@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Search, LayoutDashboard, BookOpen } from 'lucide-react';
+import { UserPlus, Search, LayoutDashboard, BookOpen, FileText } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
@@ -39,6 +40,7 @@ function supplierToVendor(s: Supplier): Vendor {
 }
 
 const Vendors = () => {
+  const navigate = useNavigate();
   const { suppliers, isLoading } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
