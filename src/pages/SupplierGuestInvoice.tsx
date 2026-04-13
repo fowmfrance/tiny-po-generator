@@ -222,7 +222,7 @@ const SupplierGuestInvoice = () => {
                   
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-1">Montant</h3>
-                    <p className="text-lg font-medium">{poDetails.currency} {poDetails.amount.toLocaleString()}</p>
+                    <p className="text-lg font-medium">{poDetails.currency} {poDetails.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   
                   <div>

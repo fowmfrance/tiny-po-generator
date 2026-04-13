@@ -171,7 +171,7 @@ const SupplierPOView = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">
-                    {vendorPOs.reduce((total, po) => total + po.amount, 0).toLocaleString()} €
+                    {vendorPOs.reduce((total, po) => total + po.amount, 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                   </div>
                   <p className="text-sm text-muted-foreground">Tous les bons de commande</p>
                 </CardContent>
