@@ -1544,6 +1544,7 @@ export type Database = {
           address: string | null
           business_volume: number | null
           city: string | null
+          code_auxiliaire: string | null
           country: string | null
           created_at: string
           default_payment_method_id: string | null
@@ -1561,12 +1562,14 @@ export type Database = {
           supplier_type_id: string | null
           tax_id: string | null
           updated_at: string
+          url: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
           business_volume?: number | null
           city?: string | null
+          code_auxiliaire?: string | null
           country?: string | null
           created_at?: string
           default_payment_method_id?: string | null
@@ -1584,12 +1587,14 @@ export type Database = {
           supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
+          url?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
           business_volume?: number | null
           city?: string | null
+          code_auxiliaire?: string | null
           country?: string | null
           created_at?: string
           default_payment_method_id?: string | null
@@ -1607,6 +1612,7 @@ export type Database = {
           supplier_type_id?: string | null
           tax_id?: string | null
           updated_at?: string
+          url?: string | null
           user_id?: string
         }
         Relationships: [
