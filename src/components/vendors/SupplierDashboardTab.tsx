@@ -3,18 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSupplierDashboard, PeriodKey } from '@/hooks/useSupplierDashboard';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  ResponsiveContainer, Tooltip,
+  ResponsiveContainer, Tooltip, Line, ComposedChart,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Users, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, FileText, Calendar } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const RePieChart = PieChart as unknown as React.ComponentType<any>;
 const RePie = Pie as unknown as React.ComponentType<any>;
 const ReCell = Cell as unknown as React.ComponentType<any>;
-const ReBarChart = BarChart as unknown as React.ComponentType<any>;
+const ReComposedChart = ComposedChart as unknown as React.ComponentType<any>;
 const ReBar = Bar as unknown as React.ComponentType<any>;
+const ReLine = Line as unknown as React.ComponentType<any>;
 const ReXAxis = XAxis as unknown as React.ComponentType<any>;
 const ReYAxis = YAxis as unknown as React.ComponentType<any>;
 const ReCartesianGrid = CartesianGrid as unknown as React.ComponentType<any>;
@@ -29,6 +33,7 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: 'LTM', label: 'LTM' },
   { key: 'YTD', label: 'YTD' },
   { key: 'Tout', label: 'Tout' },
+  { key: 'Custom', label: 'Custom' },
 ];
 
 const fmtE = (v: number) =>
@@ -45,9 +50,9 @@ const DarkTooltip = ({ active, payload, label }: any) => {
       <p className="text-xs font-semibold mb-1 opacity-70">{label}</p>
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 text-sm">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.fill }} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.fill || p.stroke }} />
           <span className="opacity-80">{p.name}</span>
-          <span className="ml-auto font-mono font-semibold">{fmtE(p.value)}</span>
+          <span className="ml-auto font-mono font-semibold whitespace-nowrap">{fmtE(p.value)}</span>
         </div>
       ))}
     </div>
@@ -68,8 +73,9 @@ const DonutTooltip = ({ active, payload }: any) => {
   );
 };
 
-const KPICard = ({ title, value, subtitle, icon: Icon, trend }: {
-  title: string; value: string; subtitle?: string; icon: any; trend?: { value: number; label: string };
+const KPICard = ({ title, value, subtitle, icon: Icon, trend, hasComparison }: {
+  title: string; value: string; subtitle?: string; icon: any;
+  trend?: { value: number; label: string }; hasComparison?: boolean;
 }) => (
   <Card>
     <CardContent className="pt-5 pb-4 px-5">
@@ -83,7 +89,7 @@ const KPICard = ({ title, value, subtitle, icon: Icon, trend }: {
           <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
       </div>
-      {trend && (
+      {hasComparison && trend && (
         <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trend.value >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
           {trend.value >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
           {trend.value >= 0 ? '+' : ''}{trend.value.toFixed(1)}% {trend.label}
@@ -127,42 +133,72 @@ const DonutCard = ({ title, data, total }: { title: string; data: { name: string
   </Card>
 );
 
-const PeriodFilter = ({ selected, onChange }: { selected: PeriodKey; onChange: (p: PeriodKey) => void }) => (
-  <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-    <span className="text-xs text-muted-foreground px-2">Période</span>
-    {PERIODS.map(({ key, label }) => (
-      <button
-        key={key}
-        onClick={() => onChange(key)}
-        className={cn(
-          'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-          selected === key
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-background'
-        )}
-      >
-        {label}
-      </button>
-    ))}
+const PeriodFilter = ({ selected, onChange, customFrom, customTo, onCustomFromChange, onCustomToChange }: {
+  selected: PeriodKey; onChange: (p: PeriodKey) => void;
+  customFrom: string; customTo: string;
+  onCustomFromChange: (v: string) => void; onCustomToChange: (v: string) => void;
+}) => (
+  <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+      <span className="text-xs text-muted-foreground px-2">Période</span>
+      {PERIODS.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          className={cn(
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+            selected === key
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background'
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+    {selected === 'Custom' && (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <Calendar className="h-3.5 w-3.5" />
+            {customFrom && customTo ? `${customFrom} → ${customTo}` : 'Choisir dates'}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-3 space-y-2" align="start">
+          <div className="space-y-1">
+            <Label className="text-xs">Du</Label>
+            <Input type="date" value={customFrom} onChange={e => onCustomFromChange(e.target.value)} className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Au</Label>
+            <Input type="date" value={customTo} onChange={e => onCustomToChange(e.target.value)} className="h-8 text-xs" />
+          </div>
+        </PopoverContent>
+      </Popover>
+    )}
   </div>
 );
 
 const SupplierDashboardTab: React.FC = () => {
   const [period, setPeriod] = useState<PeriodKey>('YTD');
-  const { data, isLoading } = useSupplierDashboard(period);
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const { data, isLoading } = useSupplierDashboard(period, customFrom, customTo);
   const [showByTrade, setShowByTrade] = useState(false);
 
   if (isLoading || !data) {
     return <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Chargement du dashboard…</p></div>;
   }
 
-  const periodLabel = period === 'Tout' ? 'Total' : period;
-  const variation = data.totalPrev > 0 ? ((data.totalN - data.totalPrev) / data.totalPrev) * 100 : null;
-  const poVariation = data.poCountPrev > 0 ? ((data.poCountN - data.poCountPrev) / data.poCountPrev) * 100 : null;
+  const periodLabel = period === 'Tout' ? 'Total' : period === 'Custom' ? 'Custom' : period;
+  const variation = data.hasComparison && data.totalPrev > 0 ? ((data.totalN - data.totalPrev) / data.totalPrev) * 100 : null;
+  const poVariation = data.hasComparison && data.poCountPrev > 0 ? ((data.poCountN - data.poCountPrev) / data.poCountPrev) * 100 : null;
+
+  const hasBudgetVentes = data.monthlyData.some(m => m.budgetVentes > 0);
 
   const barData = showByTrade
-    ? data.monthlyData.map(m => ({ month: m.month, ...m.byTrade }))
-    : data.monthlyData.map(m => ({ month: m.month, Projet: m.projet, 'Hors projet': m.horsProjet }));
+    ? data.monthlyData.map(m => ({ month: m.month, ...m.byTrade, 'Budget ventes': m.budgetVentes }))
+    : data.monthlyData.map(m => ({ month: m.month, Projet: m.projet, 'Hors projet': m.horsProjet, 'Budget ventes': m.budgetVentes }));
 
   const barKeys = showByTrade
     ? data.trades.map(t => t.name)
@@ -174,55 +210,66 @@ const SupplierDashboardTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Period filter bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <PeriodFilter selected={period} onChange={setPeriod} />
+        <PeriodFilter
+          selected={period} onChange={setPeriod}
+          customFrom={customFrom} customTo={customTo}
+          onCustomFromChange={setCustomFrom} onCustomToChange={setCustomTo}
+        />
       </div>
 
-      {/* KPI row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard
           title={`Dépenses ${periodLabel}`}
           value={fmtE(data.totalN)}
-          subtitle={`Période préc. : ${fmtE(data.totalPrev)}`}
+          subtitle={data.hasComparison ? `N-1 : ${fmtE(data.totalPrev)}` : undefined}
           icon={TrendingUp}
-          trend={variation !== null ? { value: variation, label: 'vs préc.' } : undefined}
+          hasComparison={data.hasComparison}
+          trend={variation !== null ? { value: variation, label: 'vs N-1' } : undefined}
         />
         <KPICard
           title="Bons de commande"
           value={String(data.poCountN)}
-          subtitle={`Période préc. : ${data.poCountPrev}`}
+          subtitle={data.hasComparison ? `N-1 : ${data.poCountPrev}` : undefined}
           icon={FileText}
-          trend={poVariation !== null ? { value: poVariation, label: 'vs préc.' } : undefined}
+          hasComparison={data.hasComparison}
+          trend={poVariation !== null ? { value: poVariation, label: 'vs N-1' } : undefined}
         />
         <KPICard
           title="Fournisseurs actifs"
           value={String(data.supplierCountN)}
-          subtitle={`Période préc. : ${data.supplierCountPrev}`}
+          subtitle={data.hasComparison ? `N-1 : ${data.supplierCountPrev}` : undefined}
           icon={Users}
+          hasComparison={data.hasComparison}
         />
       </div>
 
-      {/* Donut charts */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <DonutCard title="Projet vs Hors projet" data={data.projectSplit} total={data.totalN} />
         <DonutCard title="Par métier fournisseur" data={data.byTrade} total={data.totalN} />
         <DonutCard title="Par moyen de paiement" data={data.byPaymentMethod} total={data.totalN} />
       </div>
 
-      {/* Monthly bar chart */}
       <Card>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold">Dépenses mensuelles</CardTitle>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="trade-toggle" className="text-xs text-muted-foreground">Détail par métier</Label>
-            <Switch id="trade-toggle" checked={showByTrade} onCheckedChange={setShowByTrade} />
+          <div className="flex items-center gap-4">
+            {hasBudgetVentes && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-4 h-0.5 bg-amber-500 rounded" />
+                Budget ventes
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="trade-toggle" className="text-xs text-muted-foreground">Détail par métier</Label>
+              <Switch id="trade-toggle" checked={showByTrade} onCheckedChange={setShowByTrade} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="h-[350px]">
             <ReResponsiveContainer width="100%" height="100%">
-              <ReBarChart data={barData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <ReComposedChart data={barData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                 <ReCartesianGrid strokeDasharray="3 3" vertical={false} />
                 <ReXAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
@@ -236,7 +283,17 @@ const SupplierDashboardTab: React.FC = () => {
                     radius={i === barKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
                   />
                 ))}
-              </ReBarChart>
+                {hasBudgetVentes && (
+                  <ReLine
+                    type="monotone"
+                    dataKey="Budget ventes"
+                    stroke="#F59E0B"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#F59E0B' }}
+                    activeDot={{ r: 5 }}
+                  />
+                )}
+              </ReComposedChart>
             </ReResponsiveContainer>
           </div>
         </CardContent>
