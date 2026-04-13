@@ -26,6 +26,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface VendorsListProps {
   vendors: Vendor[];
+  viewMode?: 'grid' | 'list';
 }
 
 type ViewMode = 'grid' | 'list';
@@ -58,8 +59,9 @@ function groupVendors(vendors: Vendor[]): Record<VendorGroup, Vendor[]> {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
 
-const VendorsList = ({ vendors }: VendorsListProps) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) => {
+  const [internalViewMode, setViewMode] = useState<ViewMode>('grid');
+  const viewMode = externalViewMode ?? internalViewMode;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ projets: true, services: true, mixte: true });
   const navigate = useNavigate();
 
@@ -85,27 +87,29 @@ const VendorsList = ({ vendors }: VendorsListProps) => {
 
   return (
     <div className="space-y-2">
-      {/* View toggle */}
-      <div className="flex justify-end">
-        <div className="flex border rounded-md overflow-hidden">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'ghost'}
-            size="sm"
-            className="rounded-none h-8 px-2"
-            onClick={() => setViewMode('grid')}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="sm"
-            className="rounded-none h-8 px-2"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
+      {/* View toggle - only show if no external viewMode provided */}
+      {!externalViewMode && (
+        <div className="flex justify-end">
+          <div className="flex border rounded-md overflow-hidden">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-none h-8 px-2"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-none h-8 px-2"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {GROUP_ORDER.map(groupKey => {
         const groupVendors = grouped[groupKey];
@@ -116,7 +120,7 @@ const VendorsList = ({ vendors }: VendorsListProps) => {
           <Collapsible key={groupKey} open={isOpen} onOpenChange={() => toggleGroup(groupKey)}>
             <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 px-1 hover:bg-muted/50 rounded-md transition-colors">
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <span className="font-semibold text-sm">{GROUP_LABELS[groupKey]}</span>
+              <span className="font-semibold text-base">{GROUP_LABELS[groupKey]}</span>
               <Badge variant="secondary" className="text-xs ml-1">{groupVendors.length}</Badge>
             </CollapsibleTrigger>
             <CollapsibleContent>
