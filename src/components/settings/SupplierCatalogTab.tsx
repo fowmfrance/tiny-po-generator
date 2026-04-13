@@ -160,10 +160,10 @@ const SupplierCatalogTab = () => {
   const openTypeDialog = (type?: SupplierType) => {
     if (type) {
       setEditingType(type);
-      setTypeForm({ name: type.name, description: type.description || '' });
+      setTypeForm({ name: type.name, description: type.description || '', icon: type.icon || '' });
     } else {
       setEditingType(null);
-      setTypeForm({ name: '', description: '' });
+      setTypeForm({ name: '', description: '', icon: '' });
     }
     setTypeDialogOpen(true);
   };
