@@ -212,7 +212,7 @@ const SupplierPOView = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{po.amount.toLocaleString()} {po.currency}</div>
+                            <div className="font-medium">{po.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {po.currency}</div>
                           </TableCell>
                           <TableCell>
                             {po.status === 'draft' && (
