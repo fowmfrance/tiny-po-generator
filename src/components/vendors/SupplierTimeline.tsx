@@ -157,11 +157,11 @@ export default function SupplierTimeline({ purchaseOrders, invoices }: Props) {
               Période BdC (envoi → livraison)
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 border border-indigo-600" />
+              <SendHorizonal className="w-3 h-3 text-indigo-500" />
               Envoi BdC
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 border-2 border-indigo-500 rounded-full bg-background" />
+              <PackageCheck className="w-3 h-3 text-indigo-500" />
               Livraison prévue
             </div>
             <div className="flex items-center gap-1.5">
