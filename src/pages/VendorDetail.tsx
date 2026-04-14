@@ -26,6 +26,7 @@ import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
 import { DeleteSupplierDialog } from '@/components/vendors/DeleteSupplierDialog';
 import { useSupplierContacts } from '@/hooks/useSupplierContacts';
+import { SupplierEnrichment } from '@/components/vendors/SupplierEnrichment';
 import { subMonths, startOfYear, isAfter, parseISO } from 'date-fns';
 
 type PeriodFilter = '1M' | '3M' | '6M' | '12M' | 'YTD' | 'ALL';
@@ -193,6 +194,9 @@ const VendorDetail = () => {
               </div>
               <p className="text-muted-foreground">{supplier.supplier_type?.name || 'Non classé'}</p>
               {supplier.specialty && <Badge variant="secondary" className="mt-1">{supplier.specialty}</Badge>}
+              <div className="mt-2">
+                <SupplierEnrichment supplier={supplier} />
+              </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <Badge variant={supplier.is_active ? 'default' : 'secondary'}>
