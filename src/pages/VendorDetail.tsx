@@ -501,6 +501,13 @@ const VendorDetail = () => {
           }}
         />
       )}
+
+      <AttachmentPreviewDialog
+        open={!!previewUrl}
+        onOpenChange={(open) => !open && setPreviewUrl(null)}
+        attachmentUrl={previewUrl}
+        title={previewTitle}
+      />
     </div>
   );
 };
