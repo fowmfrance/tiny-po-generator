@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.supplier-portal-data]
 verify_jwt = false
+
+[functions.supplier-upload-invoice]
+verify_jwt = false

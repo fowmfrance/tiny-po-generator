@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
         token,
         supplier_id,
         email_verified,
+        created_by,
         supplier:suppliers (
           id,
           name,
@@ -58,6 +59,7 @@ Deno.serve(async (req) => {
           token,
           supplier_id,
           email_verified,
+          created_by,
           supplier:suppliers (
             id,
             name,
@@ -95,6 +97,7 @@ Deno.serve(async (req) => {
         .eq('id', accessToken.id);
     }
 
+    // Fetch purchase orders
     const { data: purchaseOrders, error: purchaseOrdersError } = await supabase
       .from('purchase_orders')
       .select('id, po_number, total_amount, currency, status, created_at, expected_delivery_date')
@@ -108,10 +111,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch invoices for this supplier
+    const { data: invoices, error: invoicesError } = await supabase
+      .from('supplier_invoices')
+      .select('id, invoice_number, amount, currency, invoice_date, due_date, paid_date, status, purchase_order_id, attachment_url, po_number')
+      .eq('supplier_id', accessToken.supplier_id)
+      .order('invoice_date', { ascending: false });
+
+    if (invoicesError) {
+      console.error('Error fetching invoices:', invoicesError);
+    }
+
     return new Response(
       JSON.stringify({
         supplier: accessToken.supplier,
         purchaseOrders: purchaseOrders ?? [],
+        invoices: invoices ?? [],
+        ownerId: accessToken.created_by,
         canonicalToken: accessToken.token,
       }),
       {
