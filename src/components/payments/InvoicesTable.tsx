@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
 import { InvoiceAttachmentPreview } from './InvoiceAttachmentPreview';
+import { AttachmentPreviewDialog } from './AttachmentPreviewDialog';
 import { formatCurrency } from '@/utils/paymentUtils';
 import { downloadSingleAttachment, downloadMultipleAsZip, type DownloadableItem } from '@/lib/bulk-download';
 import { useToast } from '@/hooks/use-toast';
