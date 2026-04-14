@@ -383,7 +383,7 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                       {doc ? (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => handleViewFile(doc.file_url)}>
+                          <Button size="sm" variant="outline" onClick={() => handleViewFile(doc.file_url, docType?.name || 'Document')}>
                             <Eye className="h-4 w-4 mr-1" /> Voir
                           </Button>
                           {status !== 'approved' && (
