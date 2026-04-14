@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure worker
+// Configure worker — use the exact version matching the installed package
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface PdfAttachmentPreviewProps {
@@ -14,22 +14,36 @@ export function PdfAttachmentPreview({ fileUrl, title }: PdfAttachmentPreviewPro
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const canvases: HTMLCanvasElement[] = [];
 
     async function render() {
       setIsLoading(true);
       setError(null);
+      setUseFallback(false);
 
       try {
-        // Fetch blob and convert to ArrayBuffer for pdf.js
+        // Fetch blob via the blob URL and convert to ArrayBuffer
         const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error('Fetch failed');
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
 
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error('Empty file');
+        }
+
+        // Attempt pdf.js rendering
+        let pdf;
+        try {
+          pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        } catch (pdfError: any) {
+          console.warn('pdf.js failed, falling back to iframe:', pdfError?.message);
+          if (!cancelled) setUseFallback(true);
+          return;
+        }
+
         if (cancelled) return;
 
         const container = containerRef.current;
@@ -40,10 +54,9 @@ export function PdfAttachmentPreview({ fileUrl, title }: PdfAttachmentPreviewPro
           const page = await pdf.getPage(i);
           if (cancelled) return;
 
-          const scale = Math.min(
-            (container.clientWidth || 800) / page.getViewport({ scale: 1 }).width,
-            2,
-          );
+          const baseViewport = page.getViewport({ scale: 1 });
+          const containerWidth = container.clientWidth || 800;
+          const scale = Math.min(containerWidth / baseViewport.width, 2);
           const viewport = page.getViewport({ scale });
 
           const canvas = document.createElement('canvas');
@@ -55,14 +68,13 @@ export function PdfAttachmentPreview({ fileUrl, title }: PdfAttachmentPreviewPro
           if (i > 1) canvas.style.marginTop = '8px';
 
           container.appendChild(canvas);
-          canvases.push(canvas);
 
           const ctx = canvas.getContext('2d');
           if (ctx) {
             await page.render({ canvasContext: ctx, viewport }).promise;
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         if (!cancelled) {
           console.error('PDF render error:', err);
           setError('Impossible de rendre ce PDF. Essayez de le télécharger.');
@@ -78,6 +90,17 @@ export function PdfAttachmentPreview({ fileUrl, title }: PdfAttachmentPreviewPro
       cancelled = true;
     };
   }, [fileUrl]);
+
+  // Fallback: use iframe with the blob URL
+  if (useFallback) {
+    return (
+      <iframe
+        src={fileUrl}
+        className="w-full flex-1 min-h-[500px] rounded-md border"
+        title={title}
+      />
+    );
+  }
 
   if (error) {
     return (
