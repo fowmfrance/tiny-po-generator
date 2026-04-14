@@ -57,28 +57,27 @@ function inferMimeType(path: string, blob: Blob, bytes: Uint8Array) {
   return normalizedType || 'application/octet-stream';
 }
 
-async function getInvoiceAttachmentSourceUrl(path: string) {
+async function downloadInvoiceBlob(path: string): Promise<Blob | null> {
   if (!path) return null;
-  if (path.startsWith('http')) return path;
+
+  if (path.startsWith('http')) {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`Impossible de charger le document (${res.status})`);
+    return res.blob();
+  }
 
   const { data, error } = await supabase.storage
     .from('invoice-attachments')
-    .createSignedUrl(path, 3600);
+    .download(path);
 
   if (error) throw error;
-  return data?.signedUrl || null;
+  return data;
 }
 
 export async function loadInvoiceAttachmentAsset(path: string): Promise<InvoiceAttachmentAsset | null> {
-  const sourceUrl = await getInvoiceAttachmentSourceUrl(path);
-  if (!sourceUrl) return null;
+  const blob = await downloadInvoiceBlob(path);
+  if (!blob) return null;
 
-  const response = await fetch(sourceUrl);
-  if (!response.ok) {
-    throw new Error(`Impossible de charger le document (${response.status})`);
-  }
-
-  const blob = await response.blob();
   const signatureBytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
   const mimeType = inferMimeType(path, blob, signatureBytes);
   const normalizedBlob = blob.type === mimeType ? blob : new Blob([blob], { type: mimeType });
@@ -86,9 +85,7 @@ export async function loadInvoiceAttachmentAsset(path: string): Promise<InvoiceA
   return {
     url: URL.createObjectURL(normalizedBlob),
     mimeType,
-    filename:
-      extractFilenameFromDisposition(response.headers.get('content-disposition')) ||
-      extractFilenameFromPath(path),
+    filename: extractFilenameFromPath(path),
   };
 }
 
