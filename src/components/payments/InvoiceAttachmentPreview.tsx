@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PdfAttachmentPreview } from './PdfAttachmentPreview';
 import {
   InvoiceAttachmentAsset,
   isImageAttachment,
@@ -139,14 +140,7 @@ export function InvoiceAttachmentPreview({
           <img src={asset.url} alt={title} className="mx-auto h-auto max-w-full rounded-md" />
         </div>
       ) : isPdf ? (
-        <object
-          data={asset.url}
-          type="application/pdf"
-          className="w-full flex-1 min-h-[400px] rounded-md border"
-          aria-label={title}
-        >
-          <iframe src={asset.url} className="w-full h-full min-h-[400px]" title={title} />
-        </object>
+        <PdfAttachmentPreview fileUrl={asset.url} title={title} />
       ) : (
         <iframe src={asset.url} className="w-full flex-1 min-h-[400px] rounded-md border" title={title} />
       )}
