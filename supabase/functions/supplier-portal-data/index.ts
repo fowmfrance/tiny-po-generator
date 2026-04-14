@@ -5,6 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,8 +14,9 @@ Deno.serve(async (req) => {
 
   try {
     const { token } = await req.json();
+    const normalizedToken = typeof token === 'string' ? token.trim() : '';
 
-    if (!token) {
+    if (!normalizedToken) {
       return new Response(JSON.stringify({ error: 'Token requis' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -24,7 +27,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: accessToken, error: accessTokenError } = await supabase
+    let { data: accessToken, error: accessTokenError } = await supabase
       .from('supplier_access_tokens')
       .select(`
         id,
@@ -41,15 +44,55 @@ Deno.serve(async (req) => {
           kyc_status
         )
       `)
-      .eq('token', token)
+      .eq('token', normalizedToken)
       .eq('is_active', true)
       .maybeSingle();
+
+    const looksLikeLegacySupplierId = !accessToken && UUID_PATTERN.test(normalizedToken);
+
+    if (!accessToken && looksLikeLegacySupplierId) {
+      const legacyLookup = await supabase
+        .from('supplier_access_tokens')
+        .select(`
+          id,
+          token,
+          supplier_id,
+          email_verified,
+          supplier:suppliers (
+            id,
+            name,
+            email,
+            city,
+            country,
+            kyc_level_id,
+            kyc_status
+          )
+        `)
+        .eq('supplier_id', normalizedToken)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      accessToken = legacyLookup.data;
+      accessTokenError = legacyLookup.error;
+    }
 
     if (accessTokenError || !accessToken?.supplier) {
       return new Response(JSON.stringify({ error: 'Lien invalide ou expiré' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    if (!accessToken.email_verified) {
+      await supabase
+        .from('supplier_access_tokens')
+        .update({
+          email_verified: true,
+          verified_at: new Date().toISOString(),
+        })
+        .eq('id', accessToken.id);
     }
 
     const { data: purchaseOrders, error: purchaseOrdersError } = await supabase
@@ -69,6 +112,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         supplier: accessToken.supplier,
         purchaseOrders: purchaseOrders ?? [],
+        canonicalToken: accessToken.token,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

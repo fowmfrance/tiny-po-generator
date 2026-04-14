@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 type Step = 'loading' | 'verified' | 'error';
 
@@ -17,33 +16,13 @@ const SupplierPortalAccess: React.FC = () => {
   }, [token]);
 
   const validateAndRedirect = async () => {
-    // Look up the token
-    const { data, error: fetchError } = await supabase
-      .from('supplier_access_tokens' as any)
-      .select('id, token, email_verified')
-      .eq('token', token!)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (fetchError || !data) {
+    if (!token) {
       setStep('error');
       setError('Lien invalide ou expiré.');
       return;
     }
 
-    const tokenData = data as any;
-
-    if (!tokenData.email_verified) {
-      await supabase
-        .from('supplier_access_tokens' as any)
-        .update({
-          email_verified: true,
-          verified_at: new Date().toISOString(),
-        } as any)
-        .eq('id', tokenData.id);
-    }
-
-    navigate(`/supplier/purchaseorders/${tokenData.token}`, { replace: true });
+    navigate(`/supplier/purchaseorders/${token}`, { replace: true });
   };
 
   if (step === 'loading') {

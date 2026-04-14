@@ -80,7 +80,7 @@ export function useSupplierAccessToken(supplierId?: string) {
 
   const getPortalUrl = (token: string) => {
     const base = window.location.origin;
-    return `${base}/supplier/portal/${token}`;
+    return `${base}/supplier/purchaseorders/${token}`;
   };
 
   const copyPortalLink = async () => {
