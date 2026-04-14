@@ -20,49 +20,53 @@ Deno.serve(async (req) => {
 
     // Action 1: Find the supplier website URL via DuckDuckGo
     if (action === 'find_url') {
-      // Use Lovable AI to suggest the URL
-      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-      if (!lovableApiKey) {
-        return new Response(JSON.stringify({ success: false, error: 'AI API key not configured' }), {
-          status: 500,
-          headers: { ...CORS, 'Content-Type': 'application/json' },
-        });
-      }
+      // Real web search via DuckDuckGo HTML
+      const query = encodeURIComponent(`${supplierName} site officiel`);
+      const ddgUrl = `https://html.duckduckgo.com/html/?q=${query}`;
 
-      const prompt = `Tu es un assistant qui connaît les sites web d'entreprises françaises et internationales. 
-Pour l'entreprise/prestataire "${supplierName}", donne-moi les 3 URLs les plus probables de leur site officiel.
-Réponds UNIQUEMENT avec un JSON array de strings, sans markdown. Exemple: ["https://example.com", "https://example.fr"]
-Si tu ne connais pas l'entreprise, retourne un tableau vide [].`;
-
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${lovableApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        console.error('AI API error:', await aiResponse.text());
-        return new Response(JSON.stringify({ success: false, urls: [] }), {
-          headers: { ...CORS, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const aiData = await aiResponse.json();
-      const content = aiData.choices?.[0]?.message?.content || '[]';
       let urls: string[] = [];
       try {
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-          urls = JSON.parse(match[0]).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+        const res = await fetch(ddgUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SapajooBot/1.0)' },
+        });
+        const html = await res.text();
+
+        // Extract result URLs from DuckDuckGo HTML results
+        // Links are in <a class="result__a" href="...">
+        const linkRegex = /class="result__a"[^>]*href="([^"]+)"/g;
+        let match: RegExpExecArray | null;
+        const seen = new Set<string>();
+        while ((match = linkRegex.exec(html)) !== null && urls.length < 5) {
+          let href = match[1];
+          // DuckDuckGo wraps URLs in a redirect; extract the actual URL
+          const uddgMatch = href.match(/uddg=([^&]+)/);
+          if (uddgMatch) {
+            href = decodeURIComponent(uddgMatch[1]);
+          }
+          if (href.startsWith('http') && !seen.has(href)) {
+            seen.add(href);
+            urls.push(href);
+          }
         }
-      } catch { /* fallback empty */ }
+
+        // Fallback: also try extracting from <a class="result__url" href="...">
+        if (urls.length === 0) {
+          const snippetRegex = /class="result__url"[^>]*href="([^"]+)"/g;
+          while ((match = snippetRegex.exec(html)) !== null && urls.length < 5) {
+            let href = match[1];
+            const uddgMatch2 = href.match(/uddg=([^&]+)/);
+            if (uddgMatch2) {
+              href = decodeURIComponent(uddgMatch2[1]);
+            }
+            if (href.startsWith('http') && !seen.has(href)) {
+              seen.add(href);
+              urls.push(href);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('DuckDuckGo search failed:', e);
+      }
 
       return new Response(JSON.stringify({ success: true, urls }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
