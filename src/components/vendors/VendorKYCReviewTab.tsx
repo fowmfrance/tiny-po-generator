@@ -10,7 +10,7 @@ import {
   CheckCircle2, XCircle, Clock, FileText, Eye,
   AlertCircle, ShieldCheck, Loader2, AlertTriangle, CreditCard
 } from 'lucide-react';
-import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle
@@ -32,6 +32,10 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
   const queryClient = useQueryClient();
   const [rejectDialog, setRejectDialog] = useState<{ docId: string; docName: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [kycPreviewUrl, setKycPreviewUrl] = useState<string | null>(null);
+  const [kycPreviewTitle, setKycPreviewTitle] = useState('');
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [invoicePreviewTitle, setInvoicePreviewTitle] = useState('');
 
   // Fetch supplier KYC info
   const { data: supplier } = useQuery({
