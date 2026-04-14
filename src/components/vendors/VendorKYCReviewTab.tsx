@@ -191,10 +191,11 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
     return uploadedDocs.find((d: any) => d.document_type_id === docTypeId);
   };
 
-  const handleViewFile = async (fileUrl: string) => {
+  const handleViewFile = async (fileUrl: string, docName: string) => {
     const { data } = await supabase.storage.from('kyc-documents').createSignedUrl(fileUrl, 300);
     if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank');
+      setKycPreviewUrl(data.signedUrl);
+      setKycPreviewTitle(docName);
     }
   };
 
