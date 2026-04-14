@@ -273,24 +273,9 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
                             variant="outline"
                             size="sm"
                             className="text-xs h-7"
-                            onClick={async () => {
-                              try {
-                                const opened = await openInvoiceAttachmentInNewTab(inv.attachment_url);
-                                if (!opened) {
-                                  toast({
-                                    title: 'Erreur',
-                                    description: 'Impossible d’ouvrir la facture.',
-                                    variant: 'destructive',
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('Error opening invoice attachment:', error);
-                                toast({
-                                  title: 'Erreur',
-                                  description: 'Impossible d’ouvrir la facture.',
-                                  variant: 'destructive',
-                                });
-                              }
+                            onClick={() => {
+                              setInvoicePreviewUrl(inv.attachment_url);
+                              setInvoicePreviewTitle(`Facture ${inv.invoice_number}`);
                             }}
                           >
                             <Eye className="h-3 w-3 mr-1" />
