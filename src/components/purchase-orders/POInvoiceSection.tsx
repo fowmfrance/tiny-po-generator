@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, ExternalLink, Download } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/paymentUtils';
-import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
 import { downloadSingleAttachment } from '@/lib/bulk-download';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 
 interface POInvoiceSectionProps {
   poId: string;
