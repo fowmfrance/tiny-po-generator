@@ -160,7 +160,7 @@ export function POInvoiceSection({
   if (isDraft) return null;
 
   return (
-    <Card>
+    <>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -272,5 +272,13 @@ export function POInvoiceSection({
         </div>
       </CardContent>
     </Card>
+
+      <AttachmentPreviewDialog
+        open={!!previewUrl}
+        onOpenChange={(open) => !open && setPreviewUrl(null)}
+        attachmentUrl={previewUrl}
+        title={previewTitle}
+      />
+    </>
   );
 }
