@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Download, FileText, Loader2, PackageOpen } from 'lucide-react';
 import { SupplierLink } from '@/components/ui/supplier-link';
 import {
   Table,
@@ -22,6 +23,8 @@ import {
 import { PaymentStatusBadge } from './PaymentStatusBadge';
 import { InvoiceAttachmentPreview } from './InvoiceAttachmentPreview';
 import { formatCurrency } from '@/utils/paymentUtils';
+import { downloadSingleAttachment, downloadMultipleAsZip, type DownloadableItem } from '@/lib/bulk-download';
+import { useToast } from '@/hooks/use-toast';
 import type { InvoiceWithPaymentStatus } from '@/types/payment';
 
 interface InvoicesTableProps {
@@ -39,16 +42,56 @@ export function InvoicesTable({
   onSelectAll,
   showCheckboxes = true,
 }: InvoicesTableProps) {
+  const { toast } = useToast();
   const allSelected = invoices.length > 0 && invoices.every(inv => selectedIds.has(inv.id));
   const someSelected = invoices.some(inv => selectedIds.has(inv.id));
   const [previewInvoice, setPreviewInvoice] = useState<InvoiceWithPaymentStatus | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
-  const handleOpenPreview = (invoice: InvoiceWithPaymentStatus) => {
-    setPreviewInvoice(invoice);
+  const invoicesWithAttachments = invoices.filter(inv => inv.attachment_url);
+
+  const handleDownload = async (invoice: InvoiceWithPaymentStatus, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!invoice.attachment_url) return;
+    setDownloadingId(invoice.id);
+    try {
+      const ext = invoice.attachment_url.split('.').pop()?.split('?')[0] || 'pdf';
+      await downloadSingleAttachment(invoice.attachment_url, `${invoice.invoice_number}.${ext}`);
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de télécharger le fichier.', variant: 'destructive' });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    setIsBulkDownloading(true);
+    try {
+      const items: DownloadableItem[] = invoicesWithAttachments.map(inv => {
+        const ext = inv.attachment_url!.split('.').pop()?.split('?')[0] || 'pdf';
+        return { path: inv.attachment_url!, filename: `${inv.invoice_number}.${ext}` };
+      });
+      const count = await downloadMultipleAsZip(items, `factures-${format(new Date(), 'yyyy-MM-dd')}.zip`);
+      toast({ title: 'Téléchargement terminé', description: `${count} facture(s) téléchargée(s).` });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsBulkDownloading(false);
+    }
   };
 
   return (
     <>
+      {invoicesWithAttachments.length > 1 && (
+        <div className="flex justify-end mb-2">
+          <Button variant="outline" size="sm" onClick={handleBulkDownload} disabled={isBulkDownloading}>
+            {isBulkDownloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PackageOpen className="h-4 w-4 mr-2" />}
+            Télécharger toutes les pièces jointes ({invoicesWithAttachments.length})
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -87,7 +130,7 @@ export function InvoicesTable({
                 <TableRow 
                   key={invoice.id}
                   className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(invoice.id) ? 'bg-primary/5' : ''}`}
-                  onClick={() => handleOpenPreview(invoice)}
+                  onClick={() => setPreviewInvoice(invoice)}
                 >
                   {showCheckboxes && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -128,7 +171,20 @@ export function InvoicesTable({
                   </TableCell>
                   <TableCell>
                     {invoice.attachment_url && (
-                      <FileText className="h-4 w-4 text-primary" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => handleDownload(invoice, e)}
+                        disabled={downloadingId === invoice.id}
+                        title="Télécharger"
+                      >
+                        {downloadingId === invoice.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 text-primary" />
+                        )}
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -151,7 +207,6 @@ export function InvoicesTable({
           
           {previewInvoice && (
             <div className="flex flex-col gap-4 flex-1 min-h-0">
-              {/* Invoice metadata */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>

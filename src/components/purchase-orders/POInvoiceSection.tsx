@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, ExternalLink, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/paymentUtils';
 import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
+import { downloadSingleAttachment } from '@/lib/bulk-download';
 
 interface POInvoiceSectionProps {
   poId: string;
@@ -29,36 +30,58 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   paid: { label: 'Payée', color: 'bg-blue-100 text-blue-700 border-blue-200' },
 };
 
-function AttachmentLink({ attachmentUrl }: { attachmentUrl: string }) {
+function AttachmentLink({ attachmentUrl, invoiceNumber }: { attachmentUrl: string; invoiceNumber: string }) {
   const { toast } = useToast();
   const [isOpening, setIsOpening] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleOpen = async () => {
     try {
       setIsOpening(true);
       const opened = await openInvoiceAttachmentInNewTab(attachmentUrl);
       if (!opened) {
-        toast({ title: 'Erreur', description: 'Impossible d’ouvrir le document.', variant: 'destructive' });
+        toast({ title: 'Erreur', description: 'Impossible d\'ouvrir le document.', variant: 'destructive' });
       }
-    } catch (error) {
-      console.error('Error opening invoice attachment:', error);
-      toast({ title: 'Erreur', description: 'Impossible d’ouvrir le document.', variant: 'destructive' });
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible d\'ouvrir le document.', variant: 'destructive' });
     } finally {
       setIsOpening(false);
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const ext = attachmentUrl.split('.').pop()?.split('?')[0] || 'pdf';
+      await downloadSingleAttachment(attachmentUrl, `${invoiceNumber}.${ext}`);
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de télécharger le fichier.', variant: 'destructive' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      onClick={handleOpen}
-      disabled={isOpening}
-      className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
-    >
-      {isOpening ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-      <ExternalLink className="h-3 w-3" />
-      Fichier joint
-    </button>
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={handleOpen}
+        disabled={isOpening}
+        className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
+      >
+        {isOpening ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+        <ExternalLink className="h-3 w-3" />
+        Voir
+      </button>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={isDownloading}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/20 transition-colors"
+      >
+        {isDownloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+      </button>
+    </div>
   );
 }
 
@@ -78,7 +101,7 @@ export function POInvoiceSection({
 
   const isDeliveryPassed = expectedDeliveryDate
     ? new Date(expectedDeliveryDate) <= new Date()
-    : true; // If no delivery date set, allow upload
+    : true;
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['po-invoices', poId],
@@ -98,14 +121,12 @@ export function POInvoiceSection({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
-      // Upload file
       const filePath = `${user.id}/${poId}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('invoice-attachments')
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // Create invoice record
       const invoiceNumber = `FAC-${poNumber}-${(invoices.length + 1).toString().padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
       const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -150,7 +171,6 @@ export function POInvoiceSection({
   };
 
   const isDraft = poStatus === 'draft';
-
   if (isDraft) return null;
 
   return (
@@ -208,7 +228,7 @@ export function POInvoiceSection({
                       </td>
                       <td className="px-4 py-3 text-center">
                         {invoice.attachment_url && invoice.attachment_url.trim() !== '' ? (
-                          <AttachmentLink attachmentUrl={invoice.attachment_url} />
+                          <AttachmentLink attachmentUrl={invoice.attachment_url} invoiceNumber={invoice.invoice_number} />
                         ) : (
                           <Badge variant="outline">
                             <AlertCircle className="h-3 w-3 mr-1" />
@@ -229,7 +249,6 @@ export function POInvoiceSection({
           </div>
         )}
 
-        {/* Upload section */}
         <div className="pt-2">
           {isDeliveryPassed ? (
             <div>
