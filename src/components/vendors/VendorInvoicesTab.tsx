@@ -13,7 +13,6 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
 import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
-import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
 
 interface VendorInvoicesTabProps {
   supplierInvoices: InvoiceWithPaymentStatus[];
