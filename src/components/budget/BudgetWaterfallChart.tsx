@@ -6,6 +6,7 @@ interface BudgetWaterfallChartProps {
   sentAmount: number;
   receivedAmount: number;
   availableAmount: number;
+  resalePrice?: number;
 }
 
 const fmt = (currency: string, amount: number) =>
@@ -17,9 +18,11 @@ const fmt = (currency: string, amount: number) =>
   }).format(amount);
 
 const COLORS = {
-  total: 'hsl(221, 83%, 53%)',
+  revenue: 'hsl(221, 83%, 53%)',
   invoiced: 'hsl(0, 72%, 51%)',
   committed: 'hsl(25, 95%, 53%)',
+  remaining: 'hsl(45, 93%, 47%)',
+  margin: 'hsl(142, 71%, 45%)',
 };
 
 interface WaterfallStep {
@@ -38,54 +41,120 @@ export function BudgetWaterfallChart({
   sentAmount,
   receivedAmount,
   availableAmount,
+  resalePrice,
 }: BudgetWaterfallChartProps) {
   const invoicedAmount = Math.max(0, receivedAmount);
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
+  const unallocated = Math.max(0, initialAmount - sentAmount);
 
-  const levelAfterInvoiced = initialAmount - invoicedAmount;
-  const levelAfterCommitted = levelAfterInvoiced - committedAmount;
+  // If resalePrice is set, waterfall: Vente → -Facturé → -Engagé → -Restant → Marge
+  // Otherwise fallback to cost-only view: Budget → -Facturé → -Engagé → Restant
+  const hasResale = typeof resalePrice === 'number' && resalePrice > 0;
 
-  const steps: WaterfallStep[] = useMemo(() => [
-    {
-      name: 'Budget',
-      type: 'total',
-      from: 0,
-      to: initialAmount,
-      delta: initialAmount,
-      color: COLORS.total,
-      label: fmt(currency, initialAmount),
-    },
-    {
-      name: 'Facturé',
-      type: invoicedAmount === 0 ? 'zero-change' : 'change',
-      from: initialAmount,
-      to: levelAfterInvoiced,
-      delta: -invoicedAmount,
-      color: COLORS.invoiced,
-      label: invoicedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, invoicedAmount)}`,
-    },
-    {
-      name: 'Engagé',
-      type: committedAmount === 0 ? 'zero-change' : 'change',
-      from: levelAfterInvoiced,
-      to: levelAfterCommitted,
-      delta: -committedAmount,
-      color: COLORS.committed,
-      label: committedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, committedAmount)}`,
-    },
-    {
-      name: 'Restant',
-      type: 'total',
-      from: 0,
-      to: levelAfterCommitted,
-      delta: levelAfterCommitted,
-      color: COLORS.total,
-      label: fmt(currency, levelAfterCommitted),
-    },
-  ], [currency, initialAmount, invoicedAmount, committedAmount, levelAfterInvoiced, levelAfterCommitted]);
+  const steps: WaterfallStep[] = useMemo(() => {
+    if (hasResale) {
+      const sale = resalePrice!;
+      const margin = sale - initialAmount;
+
+      const lvl1 = sale - invoicedAmount;
+      const lvl2 = lvl1 - committedAmount;
+      const lvl3 = lvl2 - unallocated; // = margin
+
+      return [
+        {
+          name: 'Prix de vente',
+          type: 'total',
+          from: 0,
+          to: sale,
+          delta: sale,
+          color: COLORS.revenue,
+          label: fmt(currency, sale),
+        },
+        {
+          name: 'Factures reçues',
+          type: invoicedAmount === 0 ? 'zero-change' : 'change',
+          from: sale,
+          to: lvl1,
+          delta: -invoicedAmount,
+          color: COLORS.invoiced,
+          label: invoicedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, invoicedAmount)}`,
+        },
+        {
+          name: 'BdC en attente',
+          type: committedAmount === 0 ? 'zero-change' : 'change',
+          from: lvl1,
+          to: lvl2,
+          delta: -committedAmount,
+          color: COLORS.committed,
+          label: committedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, committedAmount)}`,
+        },
+        {
+          name: 'Budget non alloué',
+          type: unallocated === 0 ? 'zero-change' : 'change',
+          from: lvl2,
+          to: lvl3,
+          delta: -unallocated,
+          color: COLORS.remaining,
+          label: unallocated === 0 ? fmt(currency, 0) : `−${fmt(currency, unallocated)}`,
+        },
+        {
+          name: 'Marge brute',
+          type: 'total',
+          from: 0,
+          to: Math.max(0, margin),
+          delta: margin,
+          color: margin >= 0 ? COLORS.margin : COLORS.invoiced,
+          label: fmt(currency, margin),
+        },
+      ];
+    }
+
+    // Fallback: cost-only waterfall
+    const levelAfterInvoiced = initialAmount - invoicedAmount;
+    const levelAfterCommitted = levelAfterInvoiced - committedAmount;
+
+    return [
+      {
+        name: 'Budget',
+        type: 'total',
+        from: 0,
+        to: initialAmount,
+        delta: initialAmount,
+        color: COLORS.revenue,
+        label: fmt(currency, initialAmount),
+      },
+      {
+        name: 'Factures reçues',
+        type: invoicedAmount === 0 ? 'zero-change' : 'change',
+        from: initialAmount,
+        to: levelAfterInvoiced,
+        delta: -invoicedAmount,
+        color: COLORS.invoiced,
+        label: invoicedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, invoicedAmount)}`,
+      },
+      {
+        name: 'BdC en attente',
+        type: committedAmount === 0 ? 'zero-change' : 'change',
+        from: levelAfterInvoiced,
+        to: levelAfterCommitted,
+        delta: -committedAmount,
+        color: COLORS.committed,
+        label: committedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, committedAmount)}`,
+      },
+      {
+        name: 'Restant',
+        type: 'total',
+        from: 0,
+        to: levelAfterCommitted,
+        delta: levelAfterCommitted,
+        color: COLORS.margin,
+        label: fmt(currency, levelAfterCommitted),
+      },
+    ];
+  }, [currency, initialAmount, invoicedAmount, committedAmount, unallocated, hasResale, resalePrice]);
 
   // SVG layout
-  const svgWidth = 600;
+  const svgWidth = 700;
   const svgHeight = 220;
   const marginTop = 28;
   const marginBottom = 28;
@@ -94,7 +163,7 @@ export function BudgetWaterfallChart({
   const chartWidth = svgWidth - marginLeft - marginRight;
   const chartHeight = svgHeight - marginTop - marginBottom;
 
-  const maxValue = initialAmount || 1;
+  const maxValue = hasResale ? Math.max(resalePrice!, initialAmount) : (initialAmount || 1);
   const barCount = steps.length;
   const barGroupWidth = chartWidth / barCount;
   const barWidth = barGroupWidth * 0.55;
@@ -109,120 +178,62 @@ export function BudgetWaterfallChart({
           const x = marginLeft + i * barGroupWidth + barGap;
           const centerX = x + barWidth / 2;
 
-          // Connector from previous step
           if (i > 0) {
-            const prev = steps[i - 1];
-            const connectorLevel = step.type === 'total'
-              ? step.to // for final total, connect at its top
-              : step.from; // for changes, connect at the level they start from
+            const connectorLevel = step.type === 'total' ? step.to : step.from;
             const connectorY = yScale(connectorLevel);
             const prevX = marginLeft + (i - 1) * barGroupWidth + barGap + barWidth;
             return (
               <React.Fragment key={`step-${i}`}>
-                {/* Connector line */}
                 <line
-                  x1={prevX}
-                  x2={x}
-                  y1={connectorY}
-                  y2={connectorY}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  opacity={0.6}
+                  x1={prevX} x2={x} y1={connectorY} y2={connectorY}
+                  stroke="hsl(var(--muted-foreground))" strokeWidth={1.5}
+                  strokeDasharray="4 4" opacity={0.6}
                 />
-                {/* Bar or zero-change marker */}
                 {step.type === 'zero-change' ? (
                   <>
-                    {/* Flat cap at current level */}
-                    <rect
-                      x={x}
-                      y={connectorY - 2}
-                      width={barWidth}
-                      height={4}
-                      fill="transparent"
-                      stroke={step.color}
-                      strokeWidth={1.5}
-                      strokeDasharray="4 3"
-                      rx={2}
+                    <rect x={x} y={connectorY - 2} width={barWidth} height={4}
+                      fill="transparent" stroke={step.color} strokeWidth={1.5}
+                      strokeDasharray="4 3" rx={2}
                     />
-                    {/* Label */}
-                    <text
-                      x={centerX}
-                      y={connectorY - 8}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fontWeight={600}
-                      fill="hsl(var(--foreground))"
-                    >
+                    <text x={centerX} y={connectorY - 8} textAnchor="middle"
+                      fontSize={11} fontWeight={600} fill="hsl(var(--foreground))">
                       {step.label}
                     </text>
                   </>
                 ) : (
                   <>
-                    {/* Bar */}
                     <rect
-                      x={x}
-                      y={yScale(Math.max(step.from, step.to))}
+                      x={x} y={yScale(Math.max(step.from, step.to))}
                       width={barWidth}
                       height={Math.abs(yScale(step.from) - yScale(step.to))}
-                      fill={step.color}
-                      rx={4}
+                      fill={step.color} rx={4}
                     />
-                    {/* Label */}
-                    <text
-                      x={centerX}
-                      y={yScale(Math.max(step.from, step.to)) - 6}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fontWeight={600}
-                      fill="hsl(var(--foreground))"
-                    >
+                    <text x={centerX} y={yScale(Math.max(step.from, step.to)) - 6}
+                      textAnchor="middle" fontSize={11} fontWeight={600}
+                      fill="hsl(var(--foreground))">
                       {step.label}
                     </text>
                   </>
                 )}
-                {/* X-axis label */}
-                <text
-                  x={centerX}
-                  y={svgHeight - 6}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fill="hsl(var(--muted-foreground))"
-                >
+                <text x={centerX} y={svgHeight - 6} textAnchor="middle"
+                  fontSize={10} fill="hsl(var(--muted-foreground))">
                   {step.name}
                 </text>
               </React.Fragment>
             );
           }
 
-          // First bar (Budget)
           return (
             <React.Fragment key={`step-${i}`}>
-              <rect
-                x={x}
-                y={yScale(step.to)}
-                width={barWidth}
-                height={yScale(0) - yScale(step.to)}
-                fill={step.color}
-                rx={4}
+              <rect x={x} y={yScale(step.to)} width={barWidth}
+                height={yScale(0) - yScale(step.to)} fill={step.color} rx={4}
               />
-              <text
-                x={centerX}
-                y={yScale(step.to) - 6}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={600}
-                fill="hsl(var(--foreground))"
-              >
+              <text x={centerX} y={yScale(step.to) - 6} textAnchor="middle"
+                fontSize={11} fontWeight={600} fill="hsl(var(--foreground))">
                 {step.label}
               </text>
-              <text
-                x={centerX}
-                y={svgHeight - 6}
-                textAnchor="middle"
-                fontSize={11}
-                fill="hsl(var(--muted-foreground))"
-              >
+              <text x={centerX} y={svgHeight - 6} textAnchor="middle"
+                fontSize={10} fill="hsl(var(--muted-foreground))">
                 {step.name}
               </text>
             </React.Fragment>
@@ -230,18 +241,28 @@ export function BudgetWaterfallChart({
         })}
       </svg>
 
-      <div className="mt-1 flex justify-center gap-5 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.total }} />
-          Début / Fin
-        </span>
+      <div className="mt-1 flex justify-center gap-4 text-xs text-muted-foreground flex-wrap">
+        {hasResale && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.revenue }} />
+            Prix de vente
+          </span>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
-          Facturé
+          Factures reçues
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.committed }} />
-          Engagé
+          BdC en attente
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.remaining }} />
+          Non alloué
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.margin }} />
+          Marge brute
         </span>
       </div>
     </div>
