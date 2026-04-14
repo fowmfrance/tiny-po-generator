@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,9 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -18,103 +17,188 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  FileText,
-  Download,
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Clock,
-  Calendar,
-  DollarSign,
-  Package,
-  FileCheck
-} from 'lucide-react';
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockVendors } from '@/types/vendor';
-import { mockPurchaseOrders } from './PurchaseOrders';
-import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import SupplierKYCTab from '@/components/supplier/SupplierKYCTab';
+import { formatCurrency } from '@/utils/paymentUtils';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  FileCheck,
+  FileText,
+  Loader2,
+  MapPin,
+  Package,
+  XCircle,
+} from 'lucide-react';
+
+type PortalSupplier = {
+  id: string;
+  name: string;
+  email: string;
+  city: string | null;
+  country: string | null;
+  kyc_level_id: string | null;
+  kyc_status: string;
+};
+
+type PortalPurchaseOrder = {
+  id: string;
+  po_number: string;
+  total_amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  expected_delivery_date: string | null;
+};
+
+type SupplierPortalData = {
+  supplier: PortalSupplier;
+  purchaseOrders: PortalPurchaseOrder[];
+};
+
+const statusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
+  draft: {
+    label: 'Brouillon',
+    icon: Clock,
+    className: 'bg-muted text-muted-foreground border-transparent',
+  },
+  pending: {
+    label: 'En attente',
+    icon: Clock,
+    className: 'bg-secondary text-secondary-foreground border-transparent',
+  },
+  approved: {
+    label: 'Approuvé',
+    icon: CheckCircle2,
+    className: 'bg-primary/10 text-primary border-primary/20',
+  },
+  rejected: {
+    label: 'Rejeté',
+    icon: XCircle,
+    className: 'bg-destructive/10 text-destructive border-destructive/20',
+  },
+  matched: {
+    label: 'Facture associée',
+    icon: CheckCircle2,
+    className: 'bg-accent text-accent-foreground border-transparent',
+  },
+  paid: {
+    label: 'Payé',
+    icon: CheckCircle2,
+    className: 'bg-primary text-primary-foreground border-transparent',
+  },
+};
+
+const formatDate = (value: string | null) => {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('fr-FR');
+};
 
 const SupplierPOView = () => {
-  const { vendorId: id } = useParams<{ vendorId: string }>();
+  const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
-  // Check if this supplier has KYC requirements
-  const { data: supplierData } = useQuery({
-    queryKey: ['supplier-portal-kyc', id],
-    enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('kyc_level_id, kyc_status')
-        .eq('id', id!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['supplier-portal-data', token],
+    enabled: !!token,
+    queryFn: async (): Promise<SupplierPortalData> => {
+      const { data, error } = await supabase.functions.invoke('supplier-portal-data', {
+        body: { token },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Impossible de charger le portail fournisseur.');
+      }
+
+      if (!data?.supplier) {
+        throw new Error('Fournisseur introuvable.');
+      }
+
+      return data as SupplierPortalData;
     },
   });
 
-  const hasKyc = !!supplierData?.kyc_level_id;
-  
-  // Get vendor details
-  const vendor = mockVendors.find(v => v.id === id);
-  
-  // Get POs for this vendor
-  const vendorPOs = mockPurchaseOrders.filter(po => po.vendorId === id);
-  
-  if (!vendor) {
+  if (isLoading) {
     return (
-      <div className="p-8 max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Fournisseur non trouvé</h2>
-          <p className="text-gray-500 mb-6">Impossible de trouver les détails du fournisseur.</p>
-          <Button onClick={() => navigate('/supplier')} className="bg-po-blue hover:bg-blue-600">
-            Retour à l'accueil
-          </Button>
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Chargement du portail fournisseur…</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Header with vendor info */}
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/supplier')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" /> Retour
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="w-full max-w-4xl">
+          <CardContent className="py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-3xl font-semibold mb-3">Fournisseur non trouvé</h2>
+            <p className="text-muted-foreground mb-6">
+              {error instanceof Error ? error.message : 'Impossible de trouver les détails du fournisseur.'}
+            </p>
+            <Button variant="outline" onClick={() => navigate('/supplier')}>
+              Retour à l’accueil
             </Button>
-            <div className="text-sm text-gray-500">
-              Portail Fournisseur • {new Date().toLocaleDateString('fr-FR')}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { supplier, purchaseOrders } = data;
+  const hasKyc = Boolean(supplier.kyc_level_id);
+  const pendingOrders = purchaseOrders.filter((po) => ['pending', 'approved'].includes(po.status)).length;
+  const totalAmount = purchaseOrders.reduce((sum, po) => sum + Number(po.total_amount || 0), 0);
+
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <div className="border-b bg-background">
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-4">
+              <Button variant="outline" onClick={() => navigate('/supplier')} className="w-fit">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
+              </Button>
+
+              <div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                  <Package className="h-4 w-4" />
+                  Portail fournisseur
+                </div>
+                <h1 className="text-3xl font-semibold tracking-tight">{supplier.name}</h1>
+                {(supplier.city || supplier.country) && (
+                  <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {[supplier.city, supplier.country].filter(Boolean).join(', ')}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-          
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold">{vendor.name}</h1>
-              <p className="text-gray-500">{vendor.category}</p>
-              <p className="text-gray-500">{vendor.city}, {vendor.country}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">N° de fournisseur</div>
-              <div className="text-xl font-semibold">VEND-{vendor.id.padStart(5, '0')}</div>
-            </div>
+
+            <Card className="min-w-[220px]">
+              <CardContent className="pt-6">
+                <div className="text-sm text-muted-foreground">Accès sécurisé</div>
+                <div className="text-lg font-medium mt-1">{supplier.email || 'Email non renseigné'}</div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {new Date().toLocaleDateString('fr-FR')}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-      
-      {/* Tabbed content */}
-      <div className="max-w-6xl mx-auto p-6">
-        <Tabs defaultValue={hasKyc && supplierData?.kyc_status === 'pending' ? 'kyc' : 'orders'}>
+
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6">
+        <Tabs defaultValue={hasKyc && supplier.kyc_status === 'pending' ? 'kyc' : 'orders'}>
           <TabsList className="mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -124,205 +208,113 @@ const SupplierPOView = () => {
               <TabsTrigger value="kyc" className="flex items-center gap-2">
                 <FileCheck className="h-4 w-4" />
                 Documents KYC
-                {supplierData?.kyc_status === 'pending' && (
-                  <span className="ml-1 h-2 w-2 rounded-full bg-amber-500" />
-                )}
+                {supplier.kyc_status === 'pending' && <span className="ml-1 h-2 w-2 rounded-full bg-primary" />}
               </TabsTrigger>
             )}
           </TabsList>
 
-          <TabsContent value="orders">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <TabsContent value="orders" className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground flex items-center text-base font-medium">
-                    <FileText className="h-4 w-4 mr-2 text-primary" />
-                    Bons de commande
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium text-muted-foreground">Bons de commande</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{vendorPOs.length}</div>
+                  <div className="text-3xl font-semibold">{purchaseOrders.length}</div>
                   <p className="text-sm text-muted-foreground">Total reçus</p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground flex items-center text-base font-medium">
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                    En attente de livraison
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium text-muted-foreground">À traiter</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {vendorPOs.filter(po => po.status === 'approved').length}
-                  </div>
-                  <p className="text-sm text-muted-foreground">À traiter</p>
+                  <div className="text-3xl font-semibold">{pendingOrders}</div>
+                  <p className="text-sm text-muted-foreground">Commandes en cours</p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground flex items-center text-base font-medium">
-                    <DollarSign className="h-4 w-4 mr-2 text-amber-500" />
-                    Valeur totale
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium text-muted-foreground">Valeur totale</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {vendorPOs.reduce((total, po) => total + po.amount, 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-                  </div>
-                  <p className="text-sm text-muted-foreground">Tous les bons de commande</p>
+                  <div className="text-3xl font-semibold">{formatCurrency(totalAmount, purchaseOrders[0]?.currency || 'EUR')}</div>
+                  <p className="text-sm text-muted-foreground">Montant cumulé</p>
                 </CardContent>
               </Card>
             </div>
-            
-            {/* Purchase Orders Table */}
-            <Card className="mb-8">
+
+            <Card>
               <CardHeader>
                 <CardTitle>Bons de commande reçus</CardTitle>
                 <CardDescription>
-                  Liste de tous les bons de commande que vous avez reçus
+                  Retrouvez ici les bons de commande qui vous sont adressés.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {vendorPOs.length > 0 ? (
+                {purchaseOrders.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>N° Bon de commande</TableHead>
+                        <TableHead>N° bon de commande</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Livraison prévue</TableHead>
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
-                        <TableHead>Traitement</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {vendorPOs.map((po) => (
-                        <TableRow key={po.id}>
-                          <TableCell className="font-medium">
-                            {po.poNumber}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                              {po.date}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{po.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {po.currency}</div>
-                          </TableCell>
-                          <TableCell>
-                            {po.status === 'draft' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Brouillon
-                              </span>
-                            )}
-                            {po.status === 'pending' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <Clock className="h-3 w-3 mr-1" />
-                                En attente
-                              </span>
-                            )}
-                            {po.status === 'approved' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Approuvé
-                              </span>
-                            )}
-                            {po.status === 'rejected' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Rejeté
-                              </span>
-                            )}
-                            {po.status === 'matched' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Facture associée
-                              </span>
-                            )}
-                            {po.status === 'paid' && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Payé
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {po.paymentProgress !== undefined ? (
-                              <div>
-                                <div className="flex justify-between text-xs mb-1">
-                                  <span>Progression</span>
-                                  <span>{po.paymentProgress}%</span>
-                                </div>
-                                <Progress value={po.paymentProgress} className="h-2" />
+                      {purchaseOrders.map((po) => {
+                        const config = statusConfig[po.status] || statusConfig.pending;
+                        const StatusIcon = config.icon;
+
+                        return (
+                          <TableRow key={po.id}>
+                            <TableCell className="font-medium">{po.po_number}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                {formatDate(po.created_at)}
                               </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="h-8">
-                                <Download className="h-4 w-4 mr-1" />
-                                PDF
-                              </Button>
-                              <Button variant="outline" size="sm" className="h-8">
-                                <Package className="h-4 w-4 mr-1" />
-                                Livrer
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell>{formatDate(po.expected_delivery_date)}</TableCell>
+                            <TableCell>{formatCurrency(Number(po.total_amount || 0), po.currency || 'EUR')}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={config.className}>
+                                <StatusIcon className="h-3.5 w-3.5 mr-1" />
+                                {config.label}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <div className="text-center py-10">
+                    <FileText className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-1">Aucun bon de commande</h3>
                     <p className="text-muted-foreground">
-                      Vous n'avez reçu aucun bon de commande pour le moment.
+                      Aucun bon de commande n’est disponible pour le moment.
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-            
-            {/* Actions Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions rapides</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="h-16 justify-start px-4">
-                    <Package className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Confirmer une livraison</div>
-                      <div className="text-xs text-muted-foreground">Mettre à jour l'état d'une commande</div>
-                    </div>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-16 justify-start px-4">
-                    <FileText className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Créer une facture</div>
-                      <div className="text-xs text-muted-foreground">Soumettre une facture pour paiement</div>
-                    </div>
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {hasKyc && (
             <TabsContent value="kyc">
-              <SupplierKYCTab supplierId={id!} />
+              <SupplierKYCTab
+                supplierId={supplier.id}
+                initialSupplier={{
+                  kyc_level_id: supplier.kyc_level_id,
+                  kyc_status: supplier.kyc_status,
+                  name: supplier.name,
+                }}
+              />
             </TabsContent>
           )}
         </Tabs>
