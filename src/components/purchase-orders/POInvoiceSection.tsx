@@ -82,6 +82,8 @@ export function POInvoiceSection({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
 
   const isDeliveryPassed = expectedDeliveryDate
     ? new Date(expectedDeliveryDate) <= new Date()
@@ -212,7 +214,7 @@ export function POInvoiceSection({
                       </td>
                       <td className="px-4 py-3 text-center">
                         {invoice.attachment_url && invoice.attachment_url.trim() !== '' ? (
-                          <AttachmentLink attachmentUrl={invoice.attachment_url} invoiceNumber={invoice.invoice_number} />
+                          <AttachmentLink attachmentUrl={invoice.attachment_url} invoiceNumber={invoice.invoice_number} onPreview={() => { setPreviewUrl(invoice.attachment_url); setPreviewTitle(`Facture ${invoice.invoice_number}`); }} />
                         ) : (
                           <Badge variant="outline">
                             <AlertCircle className="h-3 w-3 mr-1" />
