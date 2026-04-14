@@ -34,7 +34,7 @@ Pour l'entreprise/prestataire "${supplierName}", donne-moi les 3 URLs les plus p
 Réponds UNIQUEMENT avec un JSON array de strings, sans markdown. Exemple: ["https://example.com", "https://example.fr"]
 Si tu ne connais pas l'entreprise, retourne un tableau vide [].`;
 
-      const aiResponse = await fetch('https://ai.lovable.dev/chat/completions', {
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ ${legalContent}` : ''}
 
 Réponds UNIQUEMENT avec le JSON, sans markdown ni commentaire.`;
 
-      const aiResponse = await fetch('https://ai.lovable.dev/chat/completions', {
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
