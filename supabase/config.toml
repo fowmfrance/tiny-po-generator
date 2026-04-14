@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-supplier-magic-link]
 verify_jwt = true
+
+[functions.supplier-portal-data]
+verify_jwt = false
