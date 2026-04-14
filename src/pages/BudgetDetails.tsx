@@ -179,6 +179,7 @@ const BudgetDetails = () => {
               sentAmount={metrics.sentAmount}
               receivedAmount={metrics.receivedAmount}
               availableAmount={metrics.availableAmount}
+              resalePrice={budget.resale_price ?? undefined}
             />
           </div>
         </CardHeader>
