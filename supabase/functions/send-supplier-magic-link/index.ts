@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
 
     // Build portal URL
     const origin = req.headers.get('origin') || 'https://sapajoo.lovable.app'
-    const portalUrl = `${origin}/supplier/portal/${newToken.token}`
+    const portalUrl = `${origin}/supplier/purchaseorders/${newToken.token}`
 
     // Send welcome email with magic link + KYC docs
     const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
