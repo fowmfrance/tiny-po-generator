@@ -75,15 +75,9 @@ async function downloadInvoiceBlob(path: string): Promise<Blob | null> {
 }
 
 export async function loadInvoiceAttachmentAsset(path: string): Promise<InvoiceAttachmentAsset | null> {
-  const sourceUrl = await getInvoiceAttachmentSourceUrl(path);
-  if (!sourceUrl) return null;
+  const blob = await downloadInvoiceBlob(path);
+  if (!blob) return null;
 
-  const response = await fetch(sourceUrl);
-  if (!response.ok) {
-    throw new Error(`Impossible de charger le document (${response.status})`);
-  }
-
-  const blob = await response.blob();
   const signatureBytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
   const mimeType = inferMimeType(path, blob, signatureBytes);
   const normalizedBlob = blob.type === mimeType ? blob : new Blob([blob], { type: mimeType });
@@ -91,9 +85,7 @@ export async function loadInvoiceAttachmentAsset(path: string): Promise<InvoiceA
   return {
     url: URL.createObjectURL(normalizedBlob),
     mimeType,
-    filename:
-      extractFilenameFromDisposition(response.headers.get('content-disposition')) ||
-      extractFilenameFromPath(path),
+    filename: extractFilenameFromPath(path),
   };
 }
 
