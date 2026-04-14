@@ -57,16 +57,21 @@ function inferMimeType(path: string, blob: Blob, bytes: Uint8Array) {
   return normalizedType || 'application/octet-stream';
 }
 
-async function getInvoiceAttachmentSourceUrl(path: string) {
+async function downloadInvoiceBlob(path: string): Promise<Blob | null> {
   if (!path) return null;
-  if (path.startsWith('http')) return path;
+
+  if (path.startsWith('http')) {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`Impossible de charger le document (${res.status})`);
+    return res.blob();
+  }
 
   const { data, error } = await supabase.storage
     .from('invoice-attachments')
-    .createSignedUrl(path, 3600);
+    .download(path);
 
   if (error) throw error;
-  return data?.signedUrl || null;
+  return data;
 }
 
 export async function loadInvoiceAttachmentAsset(path: string): Promise<InvoiceAttachmentAsset | null> {
