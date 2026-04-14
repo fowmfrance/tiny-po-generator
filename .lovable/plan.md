@@ -1,85 +1,79 @@
 
+Objectif: corriger durablement l’ouverture des PDF, remplacer les ouvertures en nouvel onglet par une vraie modale, et rendre chaque facture cliquable dans l’onglet Aperçu de la fiche fournisseur.
 
-## Plan: Split tax_id into VAT + SIREN, and create a supplier_contacts table
+1. Diagnostic et cause probable
+- Aujourd’hui, les PDF sont affichés via un simple `<iframe>` sur un blob local (`PdfAttachmentPreview.tsx`).
+- Ce mode dépend entièrement du viewer PDF natif du navigateur, qui peut échouer sur certains PDF “compressés” ou générés par des scanners/outils tiers.
+- En plus, certaines zones utilisent encore `openInvoiceAttachmentInNewTab()` (`POInvoiceSection`, `VendorKYCReviewTab`), ce qui va à l’encontre du comportement demandé.
 
-### Context
-Currently, the `suppliers` table has a single `tax_id` field used for both VAT numbers and SIRET/SIREN. Some existing values are VAT numbers (e.g. `IE6364992H`, `FR75 823383260`), others look like SIRET. We need to split this into two dedicated fields and also create a proper contacts management system instead of storing a single email/phone on the supplier record.
+2. Correctif de fond pour les PDF
+- Remplacer le rendu PDF natif par un rendu applicatif plus robuste basé sur le binaire téléchargé (pdf.js / rendu contrôlé côté app), au lieu d’un `<iframe>` brut.
+- Conserver le téléchargement authentifié via storage `download()` déjà en place.
+- Faire évoluer le helper d’attachment pour exposer ce qu’il faut au renderer PDF:
+  - blob / arrayBuffer
+  - mime réel détecté
+  - nom de fichier propre
+- Prévoir une gestion d’erreur explicite:
+  - si le PDF est réellement illisible/corrompu, la modale doit l’indiquer clairement
+  - garder un bouton “Télécharger” dans la modale comme fallback
 
-### 1. Database migration
+3. Modale centralisée de preview
+- Créer un composant réutilisable de preview modale unique pour les pièces jointes de facture.
+- Cette modale servira partout:
+  - liste des factures
+  - onglet factures fournisseur
+  - section factures des bons de commande
+  - section KYC qui ouvre aujourd’hui en nouvel onglet
+  - section Aperçu de la fiche fournisseur
+- La modale affichera:
+  - métadonnées facture
+  - preview du document
+  - bouton Télécharger
+  - éventuellement bouton Ouvrir dans un nouvel onglet seulement en secours, plus comme flux principal
 
-```sql
--- Add dedicated columns
-ALTER TABLE suppliers
-  ADD COLUMN IF NOT EXISTS vat_number text,
-  ADD COLUMN IF NOT EXISTS siren text;
+4. Rendre les factures cliquables dans l’overview fournisseur
+- Dans `src/pages/VendorDetail.tsx`, transformer chaque ligne de la section “Factures” en item cliquable.
+- Au clic:
+  - ouverture de la modale
+  - si pièce jointe absente, garder un état non cliquable ou afficher un message clair
+- Ajouter un indicateur visuel de document joint pour éviter l’ambiguïté.
 
--- Migrate existing data: FR-prefixed → vat_number, others → vat_number too (manual cleanup later)
-UPDATE suppliers SET vat_number = tax_id WHERE tax_id IS NOT NULL AND tax_id != '';
+5. Harmoniser les autres points d’entrée
+- `src/components/purchase-orders/POInvoiceSection.tsx`
+  - remplacer “Voir” en nouvel onglet par ouverture de la même modale
+  - conserver le bouton téléchargement
+- `src/components/vendors/VendorKYCReviewTab.tsx`
+  - remplacer l’ouverture nouvel onglet par la même modale
+- `src/components/payments/InvoicesTable.tsx` et `src/components/vendors/VendorInvoicesTab.tsx`
+  - réutiliser la modale centralisée au lieu d’avoir une logique de preview dispersée
 
--- Create contacts table
-CREATE TABLE supplier_contacts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL,
-  first_name text,
-  last_name text NOT NULL,
-  role text,            -- e.g. 'Comptabilité', 'Commercial', 'Direction'
-  email text,
-  phone text,
-  is_primary boolean DEFAULT false,
-  notes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+6. Fichiers concernés
+- `src/lib/invoice-attachments.ts`
+- `src/components/payments/PdfAttachmentPreview.tsx`
+- nouveau composant du type `src/components/payments/InvoiceAttachmentDialog.tsx`
+- `src/components/purchase-orders/POInvoiceSection.tsx`
+- `src/components/vendors/VendorKYCReviewTab.tsx`
+- `src/components/vendors/VendorInvoicesTab.tsx`
+- `src/components/payments/InvoicesTable.tsx`
+- `src/pages/VendorDetail.tsx`
 
-ALTER TABLE supplier_contacts ENABLE ROW LEVEL SECURITY;
+7. Résultat attendu
+- Les PDF ne dépendent plus du viewer natif du navigateur.
+- Plus d’ouverture par défaut dans un nouvel onglet.
+- Une seule expérience de preview cohérente dans toute l’app.
+- Depuis la fiche fournisseur > Aperçu, chaque facture devient consultable en un clic.
 
-CREATE POLICY "Users can view their supplier contacts"
-  ON supplier_contacts FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can create their supplier contacts"
-  ON supplier_contacts FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their supplier contacts"
-  ON supplier_contacts FOR UPDATE TO authenticated
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their supplier contacts"
-  ON supplier_contacts FOR DELETE TO authenticated
-  USING (auth.uid() = user_id);
-```
+8. Détails techniques
+- Pas de migration backend nécessaire.
+- Le bucket privé et le téléchargement authentifié restent inchangés.
+- Le vrai changement est côté front: abandon du `<iframe>` PDF natif au profit d’un renderer piloté par le fichier binaire.
+- Je prévois aussi de centraliser l’état de preview pour éviter les comportements divergents entre pages.
 
-### 2. Data migration (via insert tool)
-- Copy `tax_id` values into `vat_number` for all existing suppliers (done in the migration above).
-
-### 3. Update `useSuppliers` hook
-- Add `vat_number` and `siren` to the `Supplier` interface.
-- Remove `tax_id` references (or keep as legacy read).
-- No change needed for the main query since `SELECT *` already fetches new columns.
-
-### 4. Create `useSupplierContacts` hook
-- New hook with CRUD operations for the `supplier_contacts` table.
-- Query by `supplier_id`, ordered by `is_primary DESC, last_name`.
-
-### 5. Update `EditSupplierContactDialog`
-- Replace the single "N° TVA / SIRET" field with two fields: **N° TVA** (`vat_number`) and **SIREN** (`siren`).
-- Remove `tax_id` from the form state.
-
-### 6. Create `SupplierContactsSection` component
-- Displayed on the VendorDetail page (overview tab).
-- Lists all contacts for the supplier with name, role, email, phone.
-- Inline add/edit/delete with a small dialog or expandable row.
-- "Primary contact" toggle.
-
-### 7. Update `VendorDetail` page
-- Show `vat_number` and `siren` in the header card (where `tax_id` was).
-- Add the contacts section below the supplier info card.
-
-### Files to create
-- `src/hooks/useSupplierContacts.ts`
-- `src/components/vendors/SupplierContactsSection.tsx`
-
-### Files to modify
-- `src/hooks/useSuppliers.ts` — update interface
-- `src/components/vendors/EditSupplierContactDialog.tsx` — split tax_id field
-- `src/pages/VendorDetail.tsx` — display new fields + contacts section
-
+9. Validation à faire après implémentation
+- Tester plusieurs PDF “problématiques” déjà présents en base.
+- Vérifier la preview depuis:
+  - overview fournisseur
+  - onglet factures fournisseur
+  - détail de PO
+  - encart KYC
+- Vérifier téléchargement individuel + fermeture/réouverture de modale + affichage mobile.
