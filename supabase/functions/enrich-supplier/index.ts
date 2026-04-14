@@ -20,50 +20,31 @@ Deno.serve(async (req) => {
 
     // Action 1: Find the supplier website URL via DuckDuckGo
     if (action === 'find_url') {
-      // Real web search via DuckDuckGo HTML
       const query = encodeURIComponent(`${supplierName} site officiel`);
       const ddgUrl = `https://html.duckduckgo.com/html/?q=${query}`;
 
       let urls: string[] = [];
       try {
         const res = await fetch(ddgUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SapajooBot/1.0)' },
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
         });
         const html = await res.text();
 
-        // Extract result URLs from DuckDuckGo HTML results
-        // Links are in <a class="result__a" href="...">
-        const linkRegex = /class="result__a"[^>]*href="([^"]+)"/g;
+        // Extract uddg= parameters from all href attributes
+        const hrefRegex = /href="[^"]*uddg=([^&"]+)[^"]*"/g;
         let match: RegExpExecArray | null;
         const seen = new Set<string>();
-        while ((match = linkRegex.exec(html)) !== null && urls.length < 5) {
-          let href = match[1];
-          // DuckDuckGo wraps URLs in a redirect; extract the actual URL
-          const uddgMatch = href.match(/uddg=([^&]+)/);
-          if (uddgMatch) {
-            href = decodeURIComponent(uddgMatch[1]);
-          }
-          if (href.startsWith('http') && !seen.has(href)) {
-            seen.add(href);
-            urls.push(href);
+        while ((match = hrefRegex.exec(html)) !== null && urls.length < 5) {
+          const decoded = decodeURIComponent(match[1]);
+          // Skip DuckDuckGo ad redirects (contain duckduckgo.com/y.js)
+          if (decoded.includes('duckduckgo.com/y.js')) continue;
+          if (decoded.startsWith('http') && !seen.has(decoded)) {
+            seen.add(decoded);
+            urls.push(decoded);
           }
         }
 
-        // Fallback: also try extracting from <a class="result__url" href="...">
-        if (urls.length === 0) {
-          const snippetRegex = /class="result__url"[^>]*href="([^"]+)"/g;
-          while ((match = snippetRegex.exec(html)) !== null && urls.length < 5) {
-            let href = match[1];
-            const uddgMatch2 = href.match(/uddg=([^&]+)/);
-            if (uddgMatch2) {
-              href = decodeURIComponent(uddgMatch2[1]);
-            }
-            if (href.startsWith('http') && !seen.has(href)) {
-              seen.add(href);
-              urls.push(href);
-            }
-          }
-        }
+        console.log(`DuckDuckGo search for "${supplierName}": found ${urls.length} URLs`);
       } catch (e) {
         console.error('DuckDuckGo search failed:', e);
       }
