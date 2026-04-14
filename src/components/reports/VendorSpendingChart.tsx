@@ -1,89 +1,29 @@
-
 import React from 'react';
-import { 
-  Bar, 
-  BarChart, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LabelList
-} from 'recharts';
-import { 
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@/components/ui/chart';
-
-// Mock data for top vendors by spending
-const getMockData = (timeRange: string) => {
-  // In a real application, this would be fetched from an API based on the timeRange
-  return [
-    { name: 'Accenture', value: 85000 },
-    { name: 'Microsoft', value: 68000 },
-    { name: 'Amazon Web Services', value: 62000 },
-    { name: 'Oracle', value: 54000 },
-    { name: 'Samsung', value: 48000 },
-    { name: 'Dell', value: 42000 },
-    { name: 'Google Cloud', value: 38000 },
-    { name: 'Salesforce', value: 34000 },
-    { name: 'IBM', value: 30000 },
-    { name: 'Adobe', value: 28000 },
-  ].sort((a, b) => b.value - a.value);
-};
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { useVendorSpending } from '@/hooks/useReportsData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface VendorSpendingChartProps {
   timeRange: '1m' | '3m' | '6m' | '1y';
 }
 
 const VendorSpendingChart: React.FC<VendorSpendingChartProps> = ({ timeRange }) => {
-  const data = getMockData(timeRange);
-  
-  const formatEuro = (value: number) => {
-    return `${value.toLocaleString('fr-FR')} €`;
-  };
-  
+  const { data, isLoading } = useVendorSpending(timeRange);
+
+  const formatEuro = (value: number) => `${value.toLocaleString('fr-FR')} €`;
+
+  if (isLoading) return <Skeleton className="h-80 w-full" />;
+  if (!data?.length) return <p className="text-sm text-muted-foreground text-center py-10">Aucune donnée sur cette période.</p>;
+
   return (
-    <ChartContainer 
-      config={{ 
-        spending: { 
-          theme: { 
-            light: '#3b82f6',
-            dark: '#3b82f6' 
-          } 
-        } 
-      }}
-      className="h-80"
-    >
+    <ChartContainer config={{ spending: { theme: { light: '#3b82f6', dark: '#3b82f6' } } }} className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          layout="vertical"
-          data={data}
-          margin={{
-            top: 10,
-            right: 30,
-            left: 120,
-            bottom: 20,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-          <XAxis 
-            type="number" 
-            tickFormatter={formatEuro}
-          />
-          <YAxis 
-            type="category" 
-            dataKey="name" 
-            tick={{ fontSize: 12 }}
-          />
-          <ChartTooltip 
-            content={
-              <ChartTooltipContent 
-                formatter={(value) => formatEuro(Number(value))}
-              />
-            } 
-          />
+        <BarChart layout="vertical" data={data} margin={{ top: 10, right: 30, left: 120, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
+          <XAxis type="number" tickFormatter={formatEuro} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} />
+          <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatEuro(Number(value))} />} />
           <Bar dataKey="value" fill="var(--color-spending)">
             <LabelList dataKey="value" position="right" formatter={formatEuro} />
           </Bar>
