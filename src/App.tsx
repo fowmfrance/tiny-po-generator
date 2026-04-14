@@ -73,7 +73,7 @@ function App() {
         <Route path="/supplier/dashboard/:vendorId" element={<SupplierDashboard />} />
         <Route path="/supplier/invoice/guest" element={<SupplierGuestInvoice />} />
         <Route path="/supplier/invoice/create/:vendorId" element={<SupplierInvoiceCreate />} />
-        <Route path="/supplier/purchaseorders/:vendorId" element={<SupplierPOView />} />
+        <Route path="/supplier/purchaseorders/:token" element={<SupplierPOView />} />
         <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />

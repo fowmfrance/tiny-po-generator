@@ -20,7 +20,7 @@ const SupplierPortalAccess: React.FC = () => {
     // Look up the token
     const { data, error: fetchError } = await supabase
       .from('supplier_access_tokens' as any)
-      .select('*, supplier:suppliers(id, name)')
+      .select('id, token, email_verified')
       .eq('token', token!)
       .eq('is_active', true)
       .maybeSingle();
@@ -33,7 +33,6 @@ const SupplierPortalAccess: React.FC = () => {
 
     const tokenData = data as any;
 
-    // Auto-mark as verified if not already
     if (!tokenData.email_verified) {
       await supabase
         .from('supplier_access_tokens' as any)
@@ -44,8 +43,7 @@ const SupplierPortalAccess: React.FC = () => {
         .eq('id', tokenData.id);
     }
 
-    // Redirect to supplier dashboard
-    navigate(`/supplier/purchaseorders/${tokenData.supplier_id}`);
+    navigate(`/supplier/purchaseorders/${tokenData.token}`, { replace: true });
   };
 
   if (step === 'loading') {

@@ -11,6 +11,11 @@ import {
 
 interface SupplierKYCTabProps {
   supplierId: string;
+  initialSupplier?: {
+    kyc_level_id: string | null;
+    kyc_status: string;
+    name: string;
+  } | null;
 }
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -19,15 +24,15 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; var
   rejected: { label: 'Refusé', icon: XCircle, variant: 'destructive' },
 };
 
-const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId }) => {
+const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupplier = null }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
 
-  // Fetch supplier's KYC level requirements
-  const { data: supplier } = useQuery({
+  const { data: queriedSupplier } = useQuery({
     queryKey: ['supplier-kyc-level', supplierId],
+    enabled: !!supplierId && !initialSupplier,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('suppliers')
@@ -38,6 +43,8 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId }) => {
       return data;
     },
   });
+
+  const supplier = initialSupplier ?? queriedSupplier ?? null;
 
   const { data: requirements = [] } = useQuery({
     queryKey: ['kyc-requirements', supplier?.kyc_level_id],
