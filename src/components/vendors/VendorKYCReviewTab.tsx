@@ -450,6 +450,20 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AttachmentPreviewDialog
+        open={!!kycPreviewUrl}
+        onOpenChange={(open) => !open && setKycPreviewUrl(null)}
+        attachmentUrl={kycPreviewUrl}
+        title={kycPreviewTitle}
+      />
+
+      <AttachmentPreviewDialog
+        open={!!invoicePreviewUrl}
+        onOpenChange={(open) => !open && setInvoicePreviewUrl(null)}
+        attachmentUrl={invoicePreviewUrl}
+        title={invoicePreviewTitle}
+      />
     </div>
   );
 };
