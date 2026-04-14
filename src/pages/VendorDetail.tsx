@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, Mail, Phone, Building, FileText, Share2, Send, Pencil,
-  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History, Users, Trash2
+  AlertTriangle, CheckCircle, Clock as ClockIcon, MapPin, Star, Handshake, TrendingUp, BarChart3, Receipt, ShieldOff, CreditCard, History, Users, Trash2, Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -27,6 +27,7 @@ import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSe
 import { DeleteSupplierDialog } from '@/components/vendors/DeleteSupplierDialog';
 import { useSupplierContacts } from '@/hooks/useSupplierContacts';
 import { SupplierEnrichment } from '@/components/vendors/SupplierEnrichment';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 import { subMonths, startOfYear, isAfter, parseISO } from 'date-fns';
 
 type PeriodFilter = '1M' | '3M' | '6M' | '12M' | 'YTD' | 'ALL';
@@ -51,6 +52,8 @@ const VendorDetail = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [period, setPeriod] = useState<PeriodFilter>('ALL');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
 
   // Check admin role
   React.useEffect(() => {
@@ -400,11 +403,21 @@ const VendorDetail = () => {
                   {supplierInvoices.slice(0, 5).map(inv => (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between p-2 rounded-md border"
+                      className={cn(
+                        'flex items-center justify-between p-2 rounded-md border transition-colors',
+                        inv.attachment_url ? 'cursor-pointer hover:bg-muted/50' : ''
+                      )}
+                      onClick={() => {
+                        if (inv.attachment_url) {
+                          setPreviewUrl(inv.attachment_url);
+                          setPreviewTitle(`Facture ${inv.invoice_number}`);
+                        }
+                      }}
                     >
-                      <div>
+                      <div className="flex items-center gap-2">
+                        {inv.attachment_url && <Eye className="h-3.5 w-3.5 text-muted-foreground" />}
                         <span className="text-sm font-medium">{inv.invoice_number}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge
@@ -488,6 +501,13 @@ const VendorDetail = () => {
           }}
         />
       )}
+
+      <AttachmentPreviewDialog
+        open={!!previewUrl}
+        onOpenChange={(open) => !open && setPreviewUrl(null)}
+        attachmentUrl={previewUrl}
+        title={previewTitle}
+      />
     </div>
   );
 };

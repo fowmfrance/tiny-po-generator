@@ -10,7 +10,7 @@ import {
   CheckCircle2, XCircle, Clock, FileText, Eye,
   AlertCircle, ShieldCheck, Loader2, AlertTriangle, CreditCard
 } from 'lucide-react';
-import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle
@@ -32,6 +32,10 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
   const queryClient = useQueryClient();
   const [rejectDialog, setRejectDialog] = useState<{ docId: string; docName: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [kycPreviewUrl, setKycPreviewUrl] = useState<string | null>(null);
+  const [kycPreviewTitle, setKycPreviewTitle] = useState('');
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [invoicePreviewTitle, setInvoicePreviewTitle] = useState('');
 
   // Fetch supplier KYC info
   const { data: supplier } = useQuery({
@@ -187,10 +191,11 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
     return uploadedDocs.find((d: any) => d.document_type_id === docTypeId);
   };
 
-  const handleViewFile = async (fileUrl: string) => {
+  const handleViewFile = async (fileUrl: string, docName: string) => {
     const { data } = await supabase.storage.from('kyc-documents').createSignedUrl(fileUrl, 300);
     if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank');
+      setKycPreviewUrl(data.signedUrl);
+      setKycPreviewTitle(docName);
     }
   };
 
@@ -268,24 +273,9 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
                             variant="outline"
                             size="sm"
                             className="text-xs h-7"
-                            onClick={async () => {
-                              try {
-                                const opened = await openInvoiceAttachmentInNewTab(inv.attachment_url);
-                                if (!opened) {
-                                  toast({
-                                    title: 'Erreur',
-                                    description: 'Impossible d’ouvrir la facture.',
-                                    variant: 'destructive',
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('Error opening invoice attachment:', error);
-                                toast({
-                                  title: 'Erreur',
-                                  description: 'Impossible d’ouvrir la facture.',
-                                  variant: 'destructive',
-                                });
-                              }
+                            onClick={() => {
+                              setInvoicePreviewUrl(inv.attachment_url);
+                              setInvoicePreviewTitle(`Facture ${inv.invoice_number}`);
                             }}
                           >
                             <Eye className="h-3 w-3 mr-1" />
@@ -378,7 +368,7 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                       {doc ? (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => handleViewFile(doc.file_url)}>
+                          <Button size="sm" variant="outline" onClick={() => handleViewFile(doc.file_url, docType?.name || 'Document')}>
                             <Eye className="h-4 w-4 mr-1" /> Voir
                           </Button>
                           {status !== 'approved' && (
@@ -460,6 +450,20 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AttachmentPreviewDialog
+        open={!!kycPreviewUrl}
+        onOpenChange={(open) => !open && setKycPreviewUrl(null)}
+        attachmentUrl={kycPreviewUrl}
+        title={kycPreviewTitle}
+      />
+
+      <AttachmentPreviewDialog
+        open={!!invoicePreviewUrl}
+        onOpenChange={(open) => !open && setInvoicePreviewUrl(null)}
+        attachmentUrl={invoicePreviewUrl}
+        title={invoicePreviewTitle}
+      />
     </div>
   );
 };

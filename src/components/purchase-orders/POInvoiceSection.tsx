@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, ExternalLink, Download } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/paymentUtils';
-import { openInvoiceAttachmentInNewTab } from '@/lib/invoice-attachments';
 import { downloadSingleAttachment } from '@/lib/bulk-download';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 
 interface POInvoiceSectionProps {
   poId: string;
@@ -30,26 +30,12 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   paid: { label: 'Payée', color: 'bg-blue-100 text-blue-700 border-blue-200' },
 };
 
-function AttachmentLink({ attachmentUrl, invoiceNumber }: { attachmentUrl: string; invoiceNumber: string }) {
+function AttachmentLink({ attachmentUrl, invoiceNumber, onPreview }: { attachmentUrl: string; invoiceNumber: string; onPreview: () => void }) {
   const { toast } = useToast();
-  const [isOpening, setIsOpening] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleOpen = async () => {
-    try {
-      setIsOpening(true);
-      const opened = await openInvoiceAttachmentInNewTab(attachmentUrl);
-      if (!opened) {
-        toast({ title: 'Erreur', description: 'Impossible d\'ouvrir le document.', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Erreur', description: 'Impossible d\'ouvrir le document.', variant: 'destructive' });
-    } finally {
-      setIsOpening(false);
-    }
-  };
-
-  const handleDownload = async () => {
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       setIsDownloading(true);
       const ext = attachmentUrl.split('.').pop()?.split('?')[0] || 'pdf';
@@ -65,12 +51,11 @@ function AttachmentLink({ attachmentUrl, invoiceNumber }: { attachmentUrl: strin
     <div className="inline-flex items-center gap-1">
       <button
         type="button"
-        onClick={handleOpen}
-        disabled={isOpening}
+        onClick={(e) => { e.stopPropagation(); onPreview(); }}
         className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors"
       >
-        {isOpening ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-        <ExternalLink className="h-3 w-3" />
+        <CheckCircle className="h-3 w-3" />
+        <Eye className="h-3 w-3" />
         Voir
       </button>
       <button
@@ -84,7 +69,6 @@ function AttachmentLink({ attachmentUrl, invoiceNumber }: { attachmentUrl: strin
     </div>
   );
 }
-
 export function POInvoiceSection({
   poId,
   poNumber,
@@ -98,6 +82,8 @@ export function POInvoiceSection({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
 
   const isDeliveryPassed = expectedDeliveryDate
     ? new Date(expectedDeliveryDate) <= new Date()
@@ -174,6 +160,7 @@ export function POInvoiceSection({
   if (isDraft) return null;
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -228,7 +215,7 @@ export function POInvoiceSection({
                       </td>
                       <td className="px-4 py-3 text-center">
                         {invoice.attachment_url && invoice.attachment_url.trim() !== '' ? (
-                          <AttachmentLink attachmentUrl={invoice.attachment_url} invoiceNumber={invoice.invoice_number} />
+                          <AttachmentLink attachmentUrl={invoice.attachment_url} invoiceNumber={invoice.invoice_number} onPreview={() => { setPreviewUrl(invoice.attachment_url); setPreviewTitle(`Facture ${invoice.invoice_number}`); }} />
                         ) : (
                           <Badge variant="outline">
                             <AlertCircle className="h-3 w-3 mr-1" />
@@ -286,5 +273,13 @@ export function POInvoiceSection({
         </div>
       </CardContent>
     </Card>
+
+      <AttachmentPreviewDialog
+        open={!!previewUrl}
+        onOpenChange={(open) => !open && setPreviewUrl(null)}
+        attachmentUrl={previewUrl}
+        title={previewTitle}
+      />
+    </>
   );
 }

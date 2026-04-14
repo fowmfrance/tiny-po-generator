@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, AlertTriangle, Clock, FileText, Link2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { InvoiceWithPaymentStatus } from '@/types/payment';
 import { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { formatCurrency } from '@/utils/paymentUtils';
@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
-import { InvoiceAttachmentPreview } from '@/components/payments/InvoiceAttachmentPreview';
+import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 
 interface VendorInvoicesTabProps {
   supplierInvoices: InvoiceWithPaymentStatus[];
@@ -173,65 +173,37 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
         ))}
       </div>
 
-      {/* Invoice preview dialog */}
-      <Dialog open={!!previewInvoice} onOpenChange={(open) => !open && setPreviewInvoice(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Facture {previewInvoice?.invoice_number}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {previewInvoice && (
-            <div className="flex flex-col gap-4 flex-1 min-h-0">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{previewInvoice.supplier?.name || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Montant</p>
-                  <p className="font-medium">{formatCurrency(Number(previewInvoice.amount), previewInvoice.currency)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Date facture</p>
-                  <p className="font-medium">{format(parseISO(previewInvoice.invoice_date), 'dd MMM yyyy', { locale: fr })}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Reçue le</p>
-                  <p className="font-medium">{format(parseISO(previewInvoice.received_date), 'dd MMM yyyy', { locale: fr })}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Échéance</p>
-                  <p className="font-medium">{format(parseISO(previewInvoice.due_date), 'dd MMM yyyy', { locale: fr })}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Statut</p>
-                  <PaymentStatusBadge status={previewInvoice.payment_status} />
-                </div>
-                {previewInvoice.po_number && (
-                  <div>
-                    <p className="text-muted-foreground">N° BC</p>
-                    <p className="font-medium">{previewInvoice.po_number}</p>
-                  </div>
-                )}
-                {previewInvoice.project_code && (
-                  <div>
-                    <p className="text-muted-foreground">Projet</p>
-                    <p className="font-medium">{previewInvoice.project_code}</p>
-                  </div>
-                )}
-              </div>
-
-              <InvoiceAttachmentPreview
-                attachmentUrl={previewInvoice.attachment_url}
-                title={`Facture ${previewInvoice.invoice_number}`}
-              />
+      {previewInvoice && (
+        <AttachmentPreviewDialog
+          open={!!previewInvoice}
+          onOpenChange={(open) => !open && setPreviewInvoice(null)}
+          attachmentUrl={previewInvoice.attachment_url}
+          title={`Facture ${previewInvoice.invoice_number}`}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Fournisseur</p>
+              <p className="font-medium">{previewInvoice.supplier?.name || '-'}</p>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <div>
+              <p className="text-muted-foreground">Montant</p>
+              <p className="font-medium">{formatCurrency(Number(previewInvoice.amount), previewInvoice.currency)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Date facture</p>
+              <p className="font-medium">{new Date(previewInvoice.invoice_date).toLocaleDateString('fr-FR')}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Échéance</p>
+              <p className="font-medium">{new Date(previewInvoice.due_date).toLocaleDateString('fr-FR')}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Statut</p>
+              <PaymentStatusBadge status={previewInvoice.payment_status} />
+            </div>
+          </div>
+        </AttachmentPreviewDialog>
+      )}
     </>
   );
 }
