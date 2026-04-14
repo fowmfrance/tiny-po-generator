@@ -52,6 +52,8 @@ const VendorDetail = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [period, setPeriod] = useState<PeriodFilter>('ALL');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
 
   // Check admin role
   React.useEffect(() => {
@@ -401,11 +403,21 @@ const VendorDetail = () => {
                   {supplierInvoices.slice(0, 5).map(inv => (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between p-2 rounded-md border"
+                      className={cn(
+                        'flex items-center justify-between p-2 rounded-md border transition-colors',
+                        inv.attachment_url ? 'cursor-pointer hover:bg-muted/50' : ''
+                      )}
+                      onClick={() => {
+                        if (inv.attachment_url) {
+                          setPreviewUrl(inv.attachment_url);
+                          setPreviewTitle(`Facture ${inv.invoice_number}`);
+                        }
+                      }}
                     >
-                      <div>
+                      <div className="flex items-center gap-2">
+                        {inv.attachment_url && <Eye className="h-3.5 w-3.5 text-muted-foreground" />}
                         <span className="text-sm font-medium">{inv.invoice_number}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(inv.invoice_date).toLocaleDateString('fr-FR')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge
