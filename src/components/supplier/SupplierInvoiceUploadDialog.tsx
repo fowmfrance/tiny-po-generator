@@ -7,13 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/paymentUtils';
-import { FileUp, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import { FileUp, Loader2, Sparkles, AlertTriangle, CheckCircle2, XCircle, AlertCircle, Brain } from 'lucide-react';
+import { InvoiceConformityReport, ConformityResult } from './InvoiceConformityReport';
 
 interface SupplierInvoiceUploadDialogProps {
   open: boolean;
@@ -29,48 +25,6 @@ interface SupplierInvoiceUploadDialogProps {
   onSuccess: () => void;
 }
 
-// Regex patterns to detect HT amount in French invoices
-const HT_PATTERNS = [
-  /total\s*h\.?t\.?\s*[:\s]*([0-9\s]+[.,]\d{2})/i,
-  /montant\s*h\.?t\.?\s*[:\s]*([0-9\s]+[.,]\d{2})/i,
-  /net\s*h\.?t\.?\s*[:\s]*([0-9\s]+[.,]\d{2})/i,
-  /h\.?t\.?\s*[:\s]*([0-9\s]+[.,]\d{2})\s*€?/i,
-  /sous[- ]total\s*[:\s]*([0-9\s]+[.,]\d{2})/i,
-  /total\s+hors\s+tax\w*\s*[:\s]*([0-9\s]+[.,]\d{2})/i,
-];
-
-function parseAmount(raw: string): number {
-  return parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
-}
-
-async function extractHTFromPdf(file: File): Promise<number | null> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
-    }
-
-    for (const pattern of HT_PATTERNS) {
-      const match = fullText.match(pattern);
-      if (match) {
-        const amount = parseAmount(match[1]);
-        if (amount > 0 && amount < 100_000_000) {
-          return amount;
-        }
-      }
-    }
-    return null;
-  } catch (e) {
-    console.warn('OCR extraction failed:', e);
-    return null;
-  }
-}
-
 const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = ({
   open, onOpenChange, purchaseOrder, invoicedAmount, token, onSuccess,
 }) => {
@@ -82,7 +36,8 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ocrDetected, setOcrDetected] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [conformityResult, setConformityResult] = useState<ConformityResult | null>(null);
 
   const poTotal = Number(purchaseOrder.total_amount);
   const remaining = poTotal - invoicedAmount;
@@ -93,18 +48,65 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
-    setOcrDetected(false);
+    setConformityResult(null);
 
-    if (f.type === 'application/pdf') {
-      const detected = await extractHTFromPdf(f);
-      if (detected !== null) {
-        setAmount(detected.toFixed(2));
-        setOcrDetected(true);
+    // Launch AI analysis
+    setIsAnalyzing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', f);
+      formData.append('token', token);
+      formData.append('purchase_order_id', purchaseOrder.id);
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/analyze-invoice`, {
+        method: 'POST',
+        headers: { 'apikey': anonKey },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const extracted = result.extracted;
+
+        // Auto-fill form fields from AI extraction
+        if (extracted.amount_ht) {
+          setAmount(extracted.amount_ht.toFixed(2));
+        }
+        if (extracted.invoice_number) {
+          setInvoiceNumber(extracted.invoice_number);
+        }
+        if (extracted.invoice_date) {
+          setInvoiceDate(extracted.invoice_date);
+        }
+        if (extracted.due_date) {
+          setDueDate(extracted.due_date);
+        }
+
+        setConformityResult({
+          extracted,
+          conformity: result.conformity,
+        });
+
         toast({
-          title: 'Montant détecté',
-          description: `Montant HT détecté par OCR : ${detected.toFixed(2)} €. Vérifiez et ajustez si nécessaire.`,
+          title: 'Analyse AI terminée',
+          description: 'Les champs ont été pré-remplis. Vérifiez et ajustez si nécessaire.',
+        });
+      } else {
+        const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+        console.warn('AI analysis failed:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Analyse AI échouée',
+          description: err.error || 'Vérifiez manuellement les informations.',
         });
       }
+    } catch (err) {
+      console.warn('AI analysis error:', err);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -158,7 +160,7 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Déposer une facture</DialogTitle>
           <DialogDescription>
@@ -190,10 +192,16 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
               {file ? (
                 <div>
                   <p className="text-sm font-medium">{file.name}</p>
-                  {ocrDetected && (
+                  {isAnalyzing && (
+                    <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
+                      <Brain className="h-3 w-3 animate-pulse" />
+                      Analyse AI en cours…
+                    </p>
+                  )}
+                  {conformityResult && !isAnalyzing && (
                     <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
                       <Sparkles className="h-3 w-3" />
-                      Montant HT détecté automatiquement
+                      Données extraites par AI
                     </p>
                   )}
                 </div>
@@ -203,6 +211,11 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
               <input ref={fileRef} type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
             </div>
           </div>
+
+          {/* AI Conformity Report */}
+          {conformityResult && (
+            <InvoiceConformityReport result={conformityResult} />
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -216,7 +229,7 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
                 type="number"
                 step="0.01"
                 value={amount}
-                onChange={(e) => { setAmount(e.target.value); setOcrDetected(false); }}
+                onChange={(e) => setAmount(e.target.value)}
                 onFocus={(e) => e.target.select()}
                 placeholder="0.00"
                 required
@@ -251,7 +264,7 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || currentAmount > remaining + 0.01}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || isAnalyzing || currentAmount > remaining + 0.01}>
             {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Envoi en cours…</> : 'Déposer la facture'}
           </Button>
         </form>
