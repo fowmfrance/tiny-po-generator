@@ -44,17 +44,19 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
   const currentAmount = parseFloat(amount) || 0;
   const newPercentInvoiced = poTotal > 0 ? Math.min(100, ((invoicedAmount + currentAmount) / poTotal) * 100) : 0;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
     setConformityResult(null);
+  };
 
-    // Launch AI analysis
+  const handleAnalyze = async () => {
+    if (!file) return;
     setIsAnalyzing(true);
     try {
       const formData = new FormData();
-      formData.append('file', f);
+      formData.append('file', file);
       formData.append('token', token);
       formData.append('purchase_order_id', purchaseOrder.id);
 
@@ -71,24 +73,12 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
         const result = await response.json();
         const extracted = result.extracted;
 
-        // Auto-fill form fields from AI extraction
-        if (extracted.amount_ht) {
-          setAmount(extracted.amount_ht.toFixed(2));
-        }
-        if (extracted.invoice_number) {
-          setInvoiceNumber(extracted.invoice_number);
-        }
-        if (extracted.invoice_date) {
-          setInvoiceDate(extracted.invoice_date);
-        }
-        if (extracted.due_date) {
-          setDueDate(extracted.due_date);
-        }
+        if (extracted.amount_ht) setAmount(extracted.amount_ht.toFixed(2));
+        if (extracted.invoice_number) setInvoiceNumber(extracted.invoice_number);
+        if (extracted.invoice_date) setInvoiceDate(extracted.invoice_date);
+        if (extracted.due_date) setDueDate(extracted.due_date);
 
-        setConformityResult({
-          extracted,
-          conformity: result.conformity,
-        });
+        setConformityResult({ extracted, conformity: result.conformity });
 
         toast({
           title: 'Analyse AI terminée',
@@ -192,13 +182,7 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
               {file ? (
                 <div>
                   <p className="text-sm font-medium">{file.name}</p>
-                  {isAnalyzing && (
-                    <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
-                      <Brain className="h-3 w-3 animate-pulse" />
-                      Analyse AI en cours…
-                    </p>
-                  )}
-                  {conformityResult && !isAnalyzing && (
+                  {conformityResult && (
                     <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
                       <Sparkles className="h-3 w-3" />
                       Données extraites par AI
@@ -211,6 +195,23 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
               <input ref={fileRef} type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
             </div>
           </div>
+
+          {/* AI Analysis Button */}
+          {file && !conformityResult && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="w-full"
+            >
+              {isAnalyzing ? (
+                <><Brain className="h-4 w-4 mr-2 animate-pulse" />Analyse AI en cours…</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />Lancer l'analyse de conformité AI</>
+              )}
+            </Button>
+          )}
 
           {/* AI Conformity Report */}
           {conformityResult && (
