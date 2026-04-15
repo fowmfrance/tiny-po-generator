@@ -196,6 +196,23 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
             </div>
           </div>
 
+          {/* AI Analysis Button */}
+          {file && !conformityResult && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="w-full"
+            >
+              {isAnalyzing ? (
+                <><Brain className="h-4 w-4 mr-2 animate-pulse" />Analyse AI en cours…</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />Lancer l'analyse de conformité AI</>
+              )}
+            </Button>
+          )}
+
           {/* AI Conformity Report */}
           {conformityResult && (
             <InvoiceConformityReport result={conformityResult} />
