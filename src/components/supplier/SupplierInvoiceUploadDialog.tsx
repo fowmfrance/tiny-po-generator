@@ -182,13 +182,7 @@ const SupplierInvoiceUploadDialog: React.FC<SupplierInvoiceUploadDialogProps> = 
               {file ? (
                 <div>
                   <p className="text-sm font-medium">{file.name}</p>
-                  {isAnalyzing && (
-                    <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
-                      <Brain className="h-3 w-3 animate-pulse" />
-                      Analyse AI en cours…
-                    </p>
-                  )}
-                  {conformityResult && !isAnalyzing && (
+                  {conformityResult && (
                     <p className="text-xs text-primary flex items-center justify-center gap-1 mt-1">
                       <Sparkles className="h-3 w-3" />
                       Données extraites par AI
