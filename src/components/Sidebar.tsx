@@ -12,7 +12,8 @@ import {
   Calculator,
   Building2,
   Flag,
-  BarChart3
+  BarChart3,
+  Receipt
 } from 'lucide-react';
 
 const Sidebar = () => {
