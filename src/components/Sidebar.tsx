@@ -71,7 +71,7 @@ const Sidebar = () => {
           </li>
           <li>
             <NavLink 
-              to="/vendors" 
+              to="/payments" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
                   isActive ? 'bg-sidebar-accent font-medium' : ''
