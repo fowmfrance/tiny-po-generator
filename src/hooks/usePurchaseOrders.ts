@@ -202,6 +202,35 @@ export function usePurchaseOrders() {
         if (!supplier.is_active) {
           throw new Error('KYC fournisseur incomplet: le bon de commande doit rester en brouillon.');
         }
+
+        // Budget cap enforcement: block if total commitments exceed initial_amount
+        if (poRef.budget_id) {
+          const { data: budget, error: budgetError } = await supabase
+            .from('budgets')
+            .select('initial_amount, currency, name')
+            .eq('id', poRef.budget_id)
+            .single();
+
+          if (budgetError || !budget) throw new Error('Budget introuvable.');
+
+          const { data: allPOs, error: posError } = await supabase
+            .from('purchase_orders')
+            .select('total_amount')
+            .eq('budget_id', poRef.budget_id)
+            .neq('status', 'rejected');
+
+          if (posError) throw posError;
+
+          const totalCommitted = (allPOs || []).reduce(
+            (sum, po) => sum + Number(po.total_amount || 0), 0
+          );
+
+          if (totalCommitted > Number(budget.initial_amount)) {
+            throw new Error(
+              `Le budget "${budget.name}" est dépassé (engagé: ${totalCommitted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${budget.currency} / budget: ${Number(budget.initial_amount).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${budget.currency}). Le BdC doit rester en brouillon.`
+            );
+          }
+        }
       }
 
       const updates: any = { status };
