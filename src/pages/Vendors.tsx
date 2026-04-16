@@ -132,23 +132,7 @@ const Vendors = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="dashboard">
-        <TabsList>
-          <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="repertoire" className="flex items-center gap-1.5">
-            <BookOpen className="h-4 w-4" />
-            Répertoire
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard">
-          <SupplierDashboardTab />
-        </TabsContent>
-
-        <TabsContent value="repertoire">
+      <div>
           {isLoading ? (
             <div className="flex items-center justify-center p-12">
               <p className="text-muted-foreground">Chargement des fournisseurs...</p>
@@ -223,8 +207,7 @@ const Vendors = () => {
               <VendorsList vendors={filteredVendors} viewMode={viewMode} />
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+      </div>
 
       <InviteVendorDialog 
         isOpen={isInviteDialogOpen} 

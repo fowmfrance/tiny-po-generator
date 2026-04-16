@@ -110,19 +110,6 @@ const Sidebar = () => {
           </li>
           <li>
             <NavLink 
-              to="/reports" 
-              className={({ isActive }) => 
-                `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
-                }`
-              }
-            >
-              <PieChart className="w-5 h-5 min-w-5 group-hover:mr-3" />
-              <span className="hidden group-hover:inline whitespace-nowrap">Rapports</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
               to="/benchmark" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${

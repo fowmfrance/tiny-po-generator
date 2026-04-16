@@ -5,11 +5,14 @@ import StatsOverview from '@/components/dashboard/StatsOverview';
 import RecentPurchaseOrders from '@/components/dashboard/RecentPurchaseOrders';
 import ApprovalStatus from '@/components/dashboard/ApprovalStatus';
 import QuickActions from '@/components/dashboard/QuickActions';
+import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
 
 const Index = () => {
   return (
     <div className="space-y-6">
       <DashboardHeader />
+
+      <SupplierDashboardTab />
       
       <StatsOverview />
       
