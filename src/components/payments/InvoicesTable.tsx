@@ -111,7 +111,8 @@ export function InvoicesTable({
               <TableHead>Fournisseur</TableHead>
               <TableHead>Projet</TableHead>
               <TableHead>N° BC</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
+              <TableHead className="text-right">Montant BC (HT)</TableHead>
+              <TableHead className="text-right">Montant facture (TTC)</TableHead>
               <TableHead>Date facture</TableHead>
               <TableHead>Reçue le</TableHead>
               <TableHead>Échéance</TableHead>
@@ -122,7 +123,7 @@ export function InvoicesTable({
           <TableBody>
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showCheckboxes ? 11 : 10} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showCheckboxes ? 12 : 11} className="text-center text-muted-foreground py-8">
                   Aucune facture trouvée
                 </TableCell>
               </TableRow>
@@ -155,8 +156,18 @@ export function InvoicesTable({
                   </TableCell>
                   <TableCell>{invoice.project_code || '-'}</TableCell>
                   <TableCell>{invoice.po_number || '-'}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {invoice.po_total_ht && invoice.po_total_ht > 0
+                      ? formatCurrency(invoice.po_total_ht, invoice.currency)
+                      : '-'}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(Number(invoice.amount), invoice.currency)}
+                    {invoice.po_total_ht && invoice.po_total_ht > 0 && Number(invoice.amount) > invoice.po_total_ht && (
+                      <div className="text-[10px] text-muted-foreground font-normal">
+                        TVA ~{formatCurrency(Number(invoice.amount) - invoice.po_total_ht, invoice.currency)}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     {format(parseISO(invoice.invoice_date), 'dd MMM yyyy', { locale: fr })}

@@ -55,6 +55,11 @@ export interface PaymentBatchInvoice {
 
 export interface InvoiceWithPaymentStatus extends SupplierInvoice {
   payment_status: PaymentStatus;
+  po_total_ht?: number;
+  linked_pos?: Array<{
+    amount_allocated: number;
+    purchase_order?: { id: string; po_number: string; total_amount: number };
+  }>;
 }
 
 export interface SupplierPaymentGroup {
