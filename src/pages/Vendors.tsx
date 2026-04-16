@@ -2,14 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Search, LayoutDashboard, BookOpen, FileText, LayoutGrid, List } from 'lucide-react';
+import { UserPlus, Search, FileText, LayoutGrid, List } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
 import VendorFilters from '@/components/vendors/VendorFilters';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
-import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
 import { useSuppliers, Supplier } from '@/hooks/useSuppliers';
 import { Vendor } from '@/types/vendor';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Map Supplier from DB to the Vendor interface used by components
 function supplierToVendor(s: Supplier): Vendor {
@@ -132,23 +130,7 @@ const Vendors = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="dashboard">
-        <TabsList>
-          <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="repertoire" className="flex items-center gap-1.5">
-            <BookOpen className="h-4 w-4" />
-            Répertoire
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard">
-          <SupplierDashboardTab />
-        </TabsContent>
-
-        <TabsContent value="repertoire">
+      <div>
           {isLoading ? (
             <div className="flex items-center justify-center p-12">
               <p className="text-muted-foreground">Chargement des fournisseurs...</p>
@@ -223,8 +205,7 @@ const Vendors = () => {
               <VendorsList vendors={filteredVendors} viewMode={viewMode} />
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+      </div>
 
       <InviteVendorDialog 
         isOpen={isInviteDialogOpen} 
