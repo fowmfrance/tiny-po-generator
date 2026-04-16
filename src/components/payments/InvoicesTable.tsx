@@ -156,8 +156,18 @@ export function InvoicesTable({
                   </TableCell>
                   <TableCell>{invoice.project_code || '-'}</TableCell>
                   <TableCell>{invoice.po_number || '-'}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {invoice.po_total_ht && invoice.po_total_ht > 0
+                      ? formatCurrency(invoice.po_total_ht, invoice.currency)
+                      : '-'}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(Number(invoice.amount), invoice.currency)}
+                    {invoice.po_total_ht && invoice.po_total_ht > 0 && Number(invoice.amount) > invoice.po_total_ht && (
+                      <div className="text-[10px] text-muted-foreground font-normal">
+                        TVA ~{formatCurrency(Number(invoice.amount) - invoice.po_total_ht, invoice.currency)}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     {format(parseISO(invoice.invoice_date), 'dd MMM yyyy', { locale: fr })}
