@@ -123,7 +123,7 @@ export function InvoicesTable({
           <TableBody>
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showCheckboxes ? 11 : 10} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showCheckboxes ? 12 : 11} className="text-center text-muted-foreground py-8">
                   Aucune facture trouvée
                 </TableCell>
               </TableRow>
