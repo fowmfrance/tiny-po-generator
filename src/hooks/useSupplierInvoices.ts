@@ -15,13 +15,26 @@ export function useSupplierInvoices() {
         .from('supplier_invoices')
         .select(`
           *,
-          supplier:suppliers(id, name, email)
+          supplier:suppliers(id, name, email),
+          invoice_purchase_orders(
+            amount_allocated,
+            purchase_order:purchase_orders(id, po_number, total_amount)
+          )
         `)
         .order('due_date', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((invoice: any) => enrichInvoiceWithStatus(invoice));
+      return (data || []).map((invoice: any) => {
+        const enriched = enrichInvoiceWithStatus(invoice);
+        const links = invoice.invoice_purchase_orders || [];
+        // Sum of linked PO totals (HT)
+        const po_total_ht = links.reduce(
+          (sum: number, l: any) => sum + Number(l.purchase_order?.total_amount || 0),
+          0
+        );
+        return { ...enriched, po_total_ht, linked_pos: links };
+      });
     },
   });
 
