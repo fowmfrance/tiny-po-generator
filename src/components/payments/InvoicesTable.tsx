@@ -111,7 +111,8 @@ export function InvoicesTable({
               <TableHead>Fournisseur</TableHead>
               <TableHead>Projet</TableHead>
               <TableHead>N° BC</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
+              <TableHead className="text-right">Montant BC (HT)</TableHead>
+              <TableHead className="text-right">Montant facture (TTC)</TableHead>
               <TableHead>Date facture</TableHead>
               <TableHead>Reçue le</TableHead>
               <TableHead>Échéance</TableHead>
