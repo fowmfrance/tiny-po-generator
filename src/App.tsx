@@ -21,9 +21,6 @@ import Payments from './pages/Payments';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import SupplierPortal from './pages/SupplierPortal';
-import SupplierDashboard from './pages/SupplierDashboard';
-import SupplierGuestInvoice from './pages/SupplierGuestInvoice';
-import SupplierInvoiceCreate from './pages/SupplierInvoiceCreate';
 import SupplierPOView from './pages/SupplierPOView';
 import SupplierPortalAccess from './pages/SupplierPortalAccess';
 import NotFound from './pages/NotFound';
@@ -70,9 +67,6 @@ function App() {
         <Route path="/milestones" element={<ProtectedRoute><Layout><MilestoneReport /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="/supplier" element={<SupplierPortal />} />
-        <Route path="/supplier/dashboard/:vendorId" element={<SupplierDashboard />} />
-        <Route path="/supplier/invoice/guest" element={<SupplierGuestInvoice />} />
-        <Route path="/supplier/invoice/create/:vendorId" element={<SupplierInvoiceCreate />} />
         <Route path="/supplier/purchaseorders/:token" element={<SupplierPOView />} />
         <Route path="/supplier/portal/:token" element={<SupplierPortalAccess />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
