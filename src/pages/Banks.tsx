@@ -315,6 +315,13 @@ const Banks = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const { getCurrentOrganizationId } = await import('@/utils/organization');
+    const organizationId = await getCurrentOrganizationId();
+    if (!organizationId) {
+      toast({ title: 'Erreur', description: 'Aucune organisation associée au profil.', variant: 'destructive' });
+      return;
+    }
+
     setIsSyncing(true);
 
     try {
@@ -342,6 +349,7 @@ const Banks = () => {
       // UPSERT transactions - only update Qonto fields, preserve Sapajoo fields
       const upsertData = qontoTxns.map(tx => ({
         user_id: user.id,
+        organization_id: organizationId,
         bank_connection_id: connection.id,
         qonto_transaction_id: tx.id,
         qonto_amount: tx.amount,
