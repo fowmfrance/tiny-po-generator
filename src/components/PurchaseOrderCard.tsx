@@ -70,12 +70,12 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
             <span>{date}</span>
           </div>
 
-          {/* Payment progress */}
-          {(status === 'approved' || status === 'matched' || status === 'paid') && (
+          {/* Payment progress — only shown once payment has started */}
+          {paymentProgress > 0 && (status === 'approved' || status === 'matched' || status === 'paid') && (
             <div className="space-y-0.5">
               <div className="w-full bg-secondary rounded-full h-1.5">
                 <div
-                  className="bg-primary rounded-full h-1.5 transition-all"
+                  className="bg-brand rounded-full h-1.5 transition-all"
                   style={{ width: `${paymentProgress}%` }}
                 />
               </div>

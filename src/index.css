@@ -18,16 +18,20 @@
     
     --accent: 217 91% 60%; /* Blue-500 */
     --accent-foreground: 0 0% 100%;
-    
+
+    --brand: 15 63% 60%; /* Terracotta #D97757 - Sapajoo brand accent */
+    --brand-foreground: 0 0% 100%;
+    --brand-subtle: 18 75% 96%; /* Light terracotta tint for backgrounds */
+
     --card: 0 0% 100%;
     --card-foreground: 215 25% 17%;
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 17%;
-    
+
     --border: 214 32% 91%; /* Gray-200 */
     --input: 214 32% 91%;
-    --ring: 215 25% 17%;
+    --ring: 15 63% 60%; /* Terracotta focus ring */
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -59,7 +63,11 @@
     
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
-    
+
+    --brand: 15 63% 60%; /* Terracotta #D97757 - Sapajoo brand accent */
+    --brand-foreground: 0 0% 100%;
+    --brand-subtle: 20 25% 16%;
+
     --card: 215 25% 12%;
     --card-foreground: 210 20% 98%;
     

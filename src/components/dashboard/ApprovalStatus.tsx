@@ -26,7 +26,7 @@ const ApprovalStatus = () => {
 
   return (
     <div className="grid gap-4 grid-cols-3">
-      <Card>
+      <Card className={pendingApproval > 0 ? 'border-amber-200 bg-amber-50/40' : ''}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center">
             <Clock className="mr-2 h-4 w-4 text-amber-500" />
@@ -34,7 +34,7 @@ const ApprovalStatus = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-1">{pendingApproval}</div>
+          <div className={`text-2xl font-bold mb-1 ${pendingApproval > 0 ? 'text-amber-600' : 'text-foreground'}`}>{pendingApproval}</div>
           <div className="text-xs text-muted-foreground">
             BC en attente d'approbation
           </div>
@@ -47,7 +47,7 @@ const ApprovalStatus = () => {
           </Link>
         </CardContent>
       </Card>
-      <Card>
+      <Card className={overdueInvoices > 0 ? 'border-red-300 bg-red-50/60' : ''}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center">
             <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
@@ -55,7 +55,7 @@ const ApprovalStatus = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-1">{overdueInvoices}</div>
+          <div className={`text-2xl font-bold mb-1 ${overdueInvoices > 0 ? 'text-red-600' : 'text-foreground'}`}>{overdueInvoices}</div>
           <div className="text-xs text-muted-foreground">
             Factures en retard
           </div>
@@ -71,12 +71,12 @@ const ApprovalStatus = () => {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center">
-            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+            <CheckCircle className="mr-2 h-4 w-4 text-emerald-500" />
             Complétés
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-1">{completedThisMonth}</div>
+          <div className={`text-2xl font-bold mb-1 ${completedThisMonth > 0 ? 'text-emerald-600' : 'text-foreground'}`}>{completedThisMonth}</div>
           <div className="text-xs text-muted-foreground">
             BC exécutés ce mois-ci
           </div>

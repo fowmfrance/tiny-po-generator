@@ -38,6 +38,8 @@ const StatsOverview = () => {
       value: `${budgetUtilization}%`,
       change: `${formatCurrency(totalCommitted)} sur ${formatCurrency(totalBudget)}`,
       icon: DollarSign,
+      highlight: true,
+      progress: budgetUtilization,
     },
     {
       title: 'Factures en Attente',
@@ -56,9 +58,19 @@ const StatsOverview = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
-            <stat.icon className="h-5 w-5 text-muted-foreground" />
+            <stat.icon className={`h-5 w-5 ${stat.highlight ? 'text-brand' : 'text-muted-foreground'}`} />
           </div>
-          <div className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</div>
+          <div className={`text-3xl font-bold tracking-tight ${stat.highlight ? 'text-brand' : 'text-foreground'}`}>
+            {stat.value}
+          </div>
+          {stat.progress !== undefined && (
+            <div className="mt-3 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-full bg-brand transition-all"
+                style={{ width: `${Math.min(stat.progress, 100)}%` }}
+              />
+            </div>
+          )}
           <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
         </div>
       ))}

@@ -35,7 +35,7 @@ const Sidebar = () => {
               to="/dashboard" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -48,7 +48,7 @@ const Sidebar = () => {
               to="/budgets" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -61,7 +61,7 @@ const Sidebar = () => {
               to="/purchase-orders" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -74,7 +74,7 @@ const Sidebar = () => {
               to="/payments" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -87,7 +87,7 @@ const Sidebar = () => {
               to="/vendors" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -100,7 +100,7 @@ const Sidebar = () => {
               to="/payments" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -113,7 +113,7 @@ const Sidebar = () => {
               to="/benchmark" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -126,7 +126,7 @@ const Sidebar = () => {
               to="/milestones" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -139,7 +139,7 @@ const Sidebar = () => {
               to="/cut-off-simulator" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
@@ -152,7 +152,7 @@ const Sidebar = () => {
               to="/banques" 
               className={({ isActive }) => 
                 `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
-                  isActive ? 'bg-sidebar-accent font-medium' : ''
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
                 }`
               }
             >
