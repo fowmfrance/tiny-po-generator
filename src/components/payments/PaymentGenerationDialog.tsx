@@ -18,6 +18,7 @@ import { generateSepaXml, downloadSepaXml } from '@/utils/sepaGenerator';
 import { groupInvoicesBySupplierAndCurrency, formatCurrency, generateBatchReference } from '@/utils/paymentUtils';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentOrganizationId } from '@/utils/organization';
 import type { InvoiceWithPaymentStatus } from '@/types/payment';
 
 interface PaymentGenerationDialogProps {
