@@ -133,13 +133,14 @@ const BackofficeOrganizations: React.FC = () => {
                 <TableHead>Statut</TableHead>
                 <TableHead>Max users</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
               ) : orgs.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Aucune organisation</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Aucune organisation</TableCell></TableRow>
               ) : orgs.map(org => (
                 <TableRow key={org.id}>
                   <TableCell className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-muted-foreground" />{org.name}</TableCell>
@@ -148,12 +149,41 @@ const BackofficeOrganizations: React.FC = () => {
                   <TableCell><Badge variant={statusColor(org.status)} className="capitalize">{org.status}</Badge></TableCell>
                   <TableCell>{org.max_users}</TableCell>
                   <TableCell className="text-sm">{org.contact_email || '—'}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Inviter un utilisateur" onClick={() => { setInviteOrg(org); setInviteForm({ email: org.contact_email || '', full_name: org.contact_name || '', role: 'admin' }); }}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!inviteOrg} onOpenChange={(o) => !o && setInviteOrg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Inviter un utilisateur — {inviteOrg?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Email *</Label><Input type="email" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div><Label>Nom complet</Label><Input value={inviteForm.full_name} onChange={e => setInviteForm(f => ({ ...f, full_name: e.target.value }))} /></div>
+            <div>
+              <Label>Rôle</Label>
+              <Select value={inviteForm.role} onValueChange={v => setInviteForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleInvite} disabled={!inviteForm.email || inviting}>
+              {inviting ? 'Envoi...' : 'Envoyer l\'invitation'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
