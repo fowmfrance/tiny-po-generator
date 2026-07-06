@@ -131,16 +131,20 @@ export function PaymentGenerationDialog({
       // Save batch to database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('payment_batches').insert({
-          user_id: user.id,
-          batch_reference: batchRef,
-          currency: 'MULTI', // Multiple currencies possible
-          total_amount: validGroups.reduce((sum, g) => sum + g.total_amount, 0),
-          invoice_count: invoiceIds.length,
-          status: 'generated',
-          sepa_xml: sepaXml,
-          generated_at: new Date().toISOString(),
-        });
+        const organizationId = await getCurrentOrganizationId();
+        if (organizationId) {
+          await supabase.from('payment_batches').insert({
+            user_id: user.id,
+            organization_id: organizationId,
+            batch_reference: batchRef,
+            currency: 'MULTI',
+            total_amount: validGroups.reduce((sum, g) => sum + g.total_amount, 0),
+            invoice_count: invoiceIds.length,
+            status: 'generated',
+            sepa_xml: sepaXml,
+            generated_at: new Date().toISOString(),
+          });
+        }
       }
 
       toast({
