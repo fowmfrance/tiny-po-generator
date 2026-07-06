@@ -18,6 +18,7 @@ import { generateSepaXml, downloadSepaXml } from '@/utils/sepaGenerator';
 import { groupInvoicesBySupplierAndCurrency, formatCurrency, generateBatchReference } from '@/utils/paymentUtils';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentOrganizationId } from '@/utils/organization';
 import type { InvoiceWithPaymentStatus } from '@/types/payment';
 
 interface PaymentGenerationDialogProps {
@@ -130,16 +131,20 @@ export function PaymentGenerationDialog({
       // Save batch to database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('payment_batches').insert({
-          user_id: user.id,
-          batch_reference: batchRef,
-          currency: 'MULTI', // Multiple currencies possible
-          total_amount: validGroups.reduce((sum, g) => sum + g.total_amount, 0),
-          invoice_count: invoiceIds.length,
-          status: 'generated',
-          sepa_xml: sepaXml,
-          generated_at: new Date().toISOString(),
-        });
+        const organizationId = await getCurrentOrganizationId();
+        if (organizationId) {
+          await supabase.from('payment_batches').insert({
+            user_id: user.id,
+            organization_id: organizationId,
+            batch_reference: batchRef,
+            currency: 'MULTI',
+            total_amount: validGroups.reduce((sum, g) => sum + g.total_amount, 0),
+            invoice_count: invoiceIds.length,
+            status: 'generated',
+            sepa_xml: sepaXml,
+            generated_at: new Date().toISOString(),
+          });
+        }
       }
 
       toast({
