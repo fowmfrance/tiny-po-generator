@@ -44,11 +44,15 @@ export function useSupplierInvoices() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       const { data, error } = await supabase
         .from('supplier_invoices')
         .insert({
           ...invoice,
           user_id: user.id,
+          organization_id: organizationId,
         })
         .select()
         .single();
