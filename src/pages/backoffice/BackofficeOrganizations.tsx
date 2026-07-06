@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Building2 } from 'lucide-react';
+import { Plus, Building2, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,8 +27,29 @@ const BackofficeOrganizations: React.FC = () => {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [inviteOrg, setInviteOrg] = useState<Organization | null>(null);
+  const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', role: 'admin' });
+  const [inviting, setInviting] = useState(false);
   const [form, setForm] = useState({ name: '', siret: '', plan: 'starter', max_users: '5', contact_email: '', contact_name: '' });
   const { toast } = useToast();
+
+  const handleInvite = async () => {
+    if (!inviteOrg) return;
+    setInviting(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await supabase.functions.invoke('invite-org-user', {
+      body: { email: inviteForm.email, full_name: inviteForm.full_name, organization_id: inviteOrg.id, role: inviteForm.role },
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    });
+    setInviting(false);
+    if (res.error || res.data?.error) {
+      toast({ title: 'Erreur', description: res.error?.message || res.data?.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Invitation envoyée', description: `${inviteForm.email} a reçu un email d'invitation.` });
+      setInviteOrg(null);
+      setInviteForm({ email: '', full_name: '', role: 'admin' });
+    }
+  };
 
   const fetchOrgs = async () => {
     const { data } = await supabase.from('organizations').select('*').order('created_at', { ascending: false });
@@ -112,13 +133,14 @@ const BackofficeOrganizations: React.FC = () => {
                 <TableHead>Statut</TableHead>
                 <TableHead>Max users</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
               ) : orgs.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Aucune organisation</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Aucune organisation</TableCell></TableRow>
               ) : orgs.map(org => (
                 <TableRow key={org.id}>
                   <TableCell className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 text-muted-foreground" />{org.name}</TableCell>
@@ -127,12 +149,41 @@ const BackofficeOrganizations: React.FC = () => {
                   <TableCell><Badge variant={statusColor(org.status)} className="capitalize">{org.status}</Badge></TableCell>
                   <TableCell>{org.max_users}</TableCell>
                   <TableCell className="text-sm">{org.contact_email || '—'}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Inviter un utilisateur" onClick={() => { setInviteOrg(org); setInviteForm({ email: org.contact_email || '', full_name: org.contact_name || '', role: 'admin' }); }}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!inviteOrg} onOpenChange={(o) => !o && setInviteOrg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Inviter un utilisateur — {inviteOrg?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Email *</Label><Input type="email" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div><Label>Nom complet</Label><Input value={inviteForm.full_name} onChange={e => setInviteForm(f => ({ ...f, full_name: e.target.value }))} /></div>
+            <div>
+              <Label>Rôle</Label>
+              <Select value={inviteForm.role} onValueChange={v => setInviteForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleInvite} disabled={!inviteForm.email || inviting}>
+              {inviting ? 'Envoi...' : 'Envoyer l\'invitation'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
