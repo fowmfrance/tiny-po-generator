@@ -142,10 +142,14 @@ const ExpenseCategoriesTab = () => {
         if (error) throw error;
         toast({ title: "Catégorie mise à jour" });
       } else {
+        const { getCurrentOrganizationId } = await import('@/utils/organization');
+        const organizationId = await getCurrentOrganizationId();
+        if (!organizationId) throw new Error('Aucune organisation associée au profil.');
         const { error } = await supabase
           .from('expense_categories')
           .insert({
             user_id: user.id,
+            organization_id: organizationId,
             name: formData.name.trim(),
             description: formData.description.trim() || null,
             color: formData.color,
