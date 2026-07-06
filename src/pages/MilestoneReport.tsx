@@ -106,6 +106,10 @@ const MilestoneReport = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       if (isOnTime) {
         // Marquer comme complété
         const { error: updateError } = await supabase
@@ -123,6 +127,7 @@ const MilestoneReport = () => {
           .from('milestone_confirmations')
           .insert({
             milestone_id: milestoneId,
+            organization_id: organizationId,
             confirmed_by: user.id,
             is_on_time: true,
             notes: notes || null,
@@ -145,6 +150,7 @@ const MilestoneReport = () => {
           .from('milestone_confirmations')
           .insert({
             milestone_id: milestoneId,
+            organization_id: organizationId,
             confirmed_by: user.id,
             is_on_time: false,
             new_target_date: newDate?.toISOString().split('T')[0],
