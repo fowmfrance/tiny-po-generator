@@ -27,8 +27,29 @@ const BackofficeOrganizations: React.FC = () => {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [inviteOrg, setInviteOrg] = useState<Organization | null>(null);
+  const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', role: 'admin' });
+  const [inviting, setInviting] = useState(false);
   const [form, setForm] = useState({ name: '', siret: '', plan: 'starter', max_users: '5', contact_email: '', contact_name: '' });
   const { toast } = useToast();
+
+  const handleInvite = async () => {
+    if (!inviteOrg) return;
+    setInviting(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await supabase.functions.invoke('invite-org-user', {
+      body: { email: inviteForm.email, full_name: inviteForm.full_name, organization_id: inviteOrg.id, role: inviteForm.role },
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    });
+    setInviting(false);
+    if (res.error || res.data?.error) {
+      toast({ title: 'Erreur', description: res.error?.message || res.data?.error, variant: 'destructive' });
+    } else {
+      toast({ title: 'Invitation envoyée', description: `${inviteForm.email} a reçu un email d'invitation.` });
+      setInviteOrg(null);
+      setInviteForm({ email: '', full_name: '', role: 'admin' });
+    }
+  };
 
   const fetchOrgs = async () => {
     const { data } = await supabase.from('organizations').select('*').order('created_at', { ascending: false });
