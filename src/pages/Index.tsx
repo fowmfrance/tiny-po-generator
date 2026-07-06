@@ -9,20 +9,24 @@ import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
 
 const Index = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <DashboardHeader />
 
       <SupplierDashboardTab />
-      
+
+      {/* Chiffres clés */}
       <StatsOverview />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <ApprovalStatus />
+
+      {/* Statut & alertes */}
+      <ApprovalStatus />
+
+      {/* Bons de commande récents — pleine largeur */}
+      <RecentPurchaseOrders />
+
+      {/* Actions rapides — barre dédiée, séparée des KPIs */}
+      <div className="pt-2 border-t border-border">
+        <div className="pt-6">
           <QuickActions />
-        </div>
-        <div className="lg:col-span-2">
-          <RecentPurchaseOrders />
         </div>
       </div>
     </div>
