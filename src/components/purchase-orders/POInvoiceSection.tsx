@@ -107,6 +107,10 @@ export function POInvoiceSection({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       const filePath = `${user.id}/${poId}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('invoice-attachments')
@@ -121,6 +125,7 @@ export function POInvoiceSection({
         .from('supplier_invoices')
         .insert({
           user_id: user.id,
+          organization_id: organizationId,
           supplier_id: supplierId,
           purchase_order_id: poId,
           po_number: poNumber,
