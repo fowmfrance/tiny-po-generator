@@ -96,9 +96,12 @@ const KYCSettingsTab = () => {
     mutationFn: async ({ name, description }: { name: string; description: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
       const maxOrder = levels.length > 0 ? Math.max(...levels.map(l => l.display_order)) + 1 : 1;
       const { error } = await supabase.from('kyc_levels').insert({
-        name, description, user_id: user.id, display_order: maxOrder,
+        name, description, user_id: user.id, organization_id: organizationId, display_order: maxOrder,
       });
       if (error) throw error;
     },
