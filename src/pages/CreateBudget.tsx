@@ -89,10 +89,15 @@ const CreateBudget = () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
         .insert({
           user_id: user.id,
+          organization_id: organizationId,
           code: generatedCode,
           name: data.name,
           budget_type_id: data.budgetTypeId,
