@@ -213,8 +213,12 @@ const SupplierCatalogTab = () => {
         if (error) throw error;
         toast({ title: 'Type fournisseur mis à jour' });
       } else {
+        const { getCurrentOrganizationId } = await import('@/utils/organization');
+        const organizationId = await getCurrentOrganizationId();
+        if (!organizationId) throw new Error('Aucune organisation associée au profil.');
         const { error } = await supabase.from('supplier_types').insert({
           user_id: user.id,
+          organization_id: organizationId,
           name: typeForm.name.trim(),
           description: typeForm.description.trim() || null,
           icon: typeForm.icon || null,
