@@ -399,11 +399,15 @@ const CreatePO = () => {
         await supabase.from('purchase_order_items').delete().eq('purchase_order_id', editId);
 
         if (items.length > 0) {
+          const { getCurrentOrganizationId } = await import('@/utils/organization');
+          const organizationId = await getCurrentOrganizationId();
+          if (!organizationId) throw new Error('Aucune organisation associée au profil.');
           const { error: itemsError } = await supabase
             .from('purchase_order_items')
             .insert(
               items.map((i) => ({
                 purchase_order_id: editId,
+                organization_id: organizationId,
                 description: i.description,
                 quantity: i.quantity,
                 unit_price: i.unitPrice,
