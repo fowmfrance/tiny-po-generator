@@ -125,9 +125,12 @@ export function useSuppliers() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       const { data, error } = await supabase
         .from('suppliers')
-        .insert({ ...supplier, user_id: user.id })
+        .insert({ ...supplier, user_id: user.id, organization_id: organizationId })
         .select()
         .single();
 
