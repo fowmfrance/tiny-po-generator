@@ -71,13 +71,16 @@ export function usePurchaseOrders() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       const total_amount = params.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 
       const { data: supplier, error: supplierError } = await supabase
         .from('suppliers')
         .select('id, name, is_active')
         .eq('id', params.supplier_id)
-        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
         .single();
 
       if (supplierError || !supplier) {
@@ -91,7 +94,7 @@ export function usePurchaseOrders() {
           .from('budgets')
           .select('id, name, initial_amount, currency')
           .eq('id', params.budget_id)
-          .eq('user_id', user.id)
+          .eq('organization_id', organizationId)
           .single();
 
         if (budgetError || !budget) {
@@ -106,7 +109,7 @@ export function usePurchaseOrders() {
           .from('purchase_orders')
           .select('total_amount, status')
           .eq('budget_id', params.budget_id)
-          .eq('user_id', user.id)
+          .eq('organization_id', organizationId)
           .neq('status', 'rejected');
 
         if (committedError) throw committedError;
@@ -131,6 +134,7 @@ export function usePurchaseOrders() {
         .from('purchase_orders')
         .insert({
           user_id: user.id,
+          organization_id: organizationId,
           budget_id: params.budget_id || null,
           supplier_id: params.supplier_id,
           po_number: params.po_number,
@@ -151,6 +155,7 @@ export function usePurchaseOrders() {
           .insert(
             params.items.map(item => ({
               purchase_order_id: po.id,
+              organization_id: organizationId,
               description: item.description,
               quantity: item.quantity,
               unit_price: item.unit_price,
