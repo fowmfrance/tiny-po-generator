@@ -82,9 +82,14 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
       const user = authData.user;
       if (!user) throw new Error('Non authentifié');
 
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       // Create supplier with KYC level
       const payload = {
         user_id: user.id,
+        organization_id: organizationId,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || null,
