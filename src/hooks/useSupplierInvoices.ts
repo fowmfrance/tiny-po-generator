@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { SupplierInvoice, InvoiceWithPaymentStatus } from '@/types/payment';
 import { enrichInvoiceWithStatus } from '@/utils/paymentUtils';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentOrganizationId } from '@/utils/organization';
 
 export function useSupplierInvoices() {
   const { toast } = useToast();
