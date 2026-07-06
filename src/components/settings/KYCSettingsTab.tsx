@@ -187,8 +187,11 @@ const KYCSettingsTab = () => {
           .eq('document_type_id', docTypeId);
         if (error) throw error;
       } else {
+        const { getCurrentOrganizationId } = await import('@/utils/organization');
+        const organizationId = await getCurrentOrganizationId();
+        if (!organizationId) throw new Error('Aucune organisation associée au profil.');
         const { error } = await supabase.from('kyc_level_requirements').insert({
-          kyc_level_id: levelId, document_type_id: docTypeId, is_mandatory: true,
+          kyc_level_id: levelId, document_type_id: docTypeId, is_mandatory: true, organization_id: organizationId,
         });
         if (error) throw error;
       }
