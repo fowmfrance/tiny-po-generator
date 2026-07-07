@@ -2064,6 +2064,7 @@ export type Database = {
           qonto_vat_amount: number | null
           qonto_vat_rate: number | null
           sapajoo_category_id: string | null
+          supplier_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2094,6 +2095,7 @@ export type Database = {
           qonto_vat_amount?: number | null
           qonto_vat_rate?: number | null
           sapajoo_category_id?: string | null
+          supplier_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2124,6 +2126,7 @@ export type Database = {
           qonto_vat_amount?: number | null
           qonto_vat_rate?: number | null
           sapajoo_category_id?: string | null
+          supplier_id?: string | null
           updated_at?: string
           user_id?: string
         }

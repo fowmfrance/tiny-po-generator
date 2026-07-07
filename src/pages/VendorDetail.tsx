@@ -23,6 +23,7 @@ import VendorInvoicesTab from '@/components/vendors/VendorInvoicesTab';
 import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 import SupplierTimeline from '@/components/vendors/SupplierTimeline';
+import SupplierBankTransactions from '@/components/vendors/SupplierBankTransactions';
 import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
 import { DeleteSupplierDialog } from '@/components/vendors/DeleteSupplierDialog';
 import { useSupplierContacts } from '@/hooks/useSupplierContacts';
@@ -448,11 +449,12 @@ const VendorDetail = () => {
           <SupplierContactsSection supplierId={id!} />
         </TabsContent>
 
-        <TabsContent value="historique" className="mt-4">
+        <TabsContent value="historique" className="mt-4 space-y-6">
           <SupplierTimeline
             purchaseOrders={supplierPOs}
             invoices={supplierInvoices}
           />
+          <SupplierBankTransactions supplierId={id!} />
         </TabsContent>
 
         <TabsContent value="kpis" className="mt-4">

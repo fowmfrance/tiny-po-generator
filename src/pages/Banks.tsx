@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
 
 interface BankAccount {
   slug: string;
@@ -74,8 +76,10 @@ interface Transaction {
   qonto_emitted_at: string | null;
   qonto_status: string;
   qonto_category: string | null;
+  qonto_operation_type: string | null;
   sapajoo_category_id: string | null;
   project_code: string | null;
+  supplier_id: string | null;
 }
 
 interface ExpenseCategory {
@@ -107,6 +111,7 @@ const Banks = () => {
   });
   const navigate = useNavigate();
   const { budgets } = useBudgetsData();
+  const { suppliers } = useSuppliers();
 
   useEffect(() => {
     loadConnections();
@@ -409,7 +414,7 @@ const Banks = () => {
     }
   };
 
-  const updateTransaction = async (transactionId: string, field: 'sapajoo_category_id' | 'project_code', value: string | null) => {
+  const updateTransaction = async (transactionId: string, field: 'sapajoo_category_id' | 'project_code' | 'supplier_id', value: string | null) => {
     const { error } = await supabase
       .from('transactions')
       .update({ [field]: value })
@@ -770,6 +775,8 @@ const Banks = () => {
                             <TableHead>Libellé</TableHead>
                             <TableHead>Catégorie Qonto</TableHead>
                             <TableHead>Catégorie Sapajoo</TableHead>
+                            <TableHead>Fournisseur</TableHead>
+                            <TableHead>Mode</TableHead>
                             <TableHead>Code projet</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Montant</TableHead>
@@ -814,6 +821,34 @@ const Banks = () => {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={tx.supplier_id || 'none'}
+                                  onValueChange={(value) => updateTransaction(tx.id, 'supplier_id', value === 'none' ? null : value)}
+                                >
+                                  <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Fournisseur" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Non rattaché</SelectItem>
+                                    {suppliers.map(s => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const method = derivePaymentMethod(tx.qonto_operation_type);
+                                  return (
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${paymentMethodBadgeClass[method]}`}>
+                                      {method}
+                                    </span>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>
                                 <Select
