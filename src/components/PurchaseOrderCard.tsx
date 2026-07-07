@@ -1,15 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Truck } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { StatusBadge } from '@/components/purchase-orders/StatusBadge';
+import { Card } from "@/components/ui/card";
 import { PurchaseOrderStatus } from '@/pages/PurchaseOrders';
-import { SupplierLink } from '@/components/ui/supplier-link';
+import { getInitials, getMonogramColor } from '@/utils/monogram';
 
 interface PurchaseOrderCardProps {
   id: string;
@@ -26,64 +19,76 @@ interface PurchaseOrderCardProps {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
 
+const STATUS_META: Record<PurchaseOrderStatus, { label: string; dot: string; text: string }> = {
+  draft: { label: 'Brouillon', dot: '#94A3B8', text: 'text-slate-500' },
+  sent: { label: 'Envoyé', dot: '#378ADD', text: 'text-blue-600' },
+  pending: { label: 'En attente', dot: '#F59E0B', text: 'text-amber-600' },
+  approved: { label: 'Approuvé', dot: '#94A3B8', text: 'text-slate-500' },
+  rejected: { label: 'Rejeté', dot: '#EF4444', text: 'text-red-600' },
+  matched: { label: 'Rapproché', dot: '#378ADD', text: 'text-blue-600' },
+  paid: { label: 'Payé', dot: '#10B981', text: 'text-emerald-600' },
+};
+
 const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   id,
   poNumber,
   vendor,
-  vendorId,
   amount,
-  currency,
   date,
   status,
   paymentProgress = 0,
 }) => {
   const navigate = useNavigate();
+  const mono = getMonogramColor(vendor);
+  const meta = STATUS_META[status] ?? STATUS_META.approved;
+  const showProgress = status === 'approved' || status === 'matched' || status === 'paid';
 
   return (
     <Card
-      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      className="p-3.5 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
       onClick={() => navigate(`/purchase-orders/${id}`)}
     >
-      <CardHeader className="pb-1 pt-3 px-3">
-        <div className="flex justify-between items-start gap-1">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-sm font-semibold truncate">
-              BC #{poNumber}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
-              <SupplierLink supplierId={vendorId} name={vendor} className="text-muted-foreground hover:text-primary hover:underline transition-colors text-xs" />
-            </p>
-          </div>
-          <StatusBadge status={status} />
+      <div className="flex items-start gap-2.5">
+        <div
+          className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[13px] font-medium shrink-0"
+          style={{ backgroundColor: mono.bg, color: mono.fg }}
+        >
+          {getInitials(vendor)}
         </div>
-      </CardHeader>
-      <CardContent className="pb-3 px-3 pt-1">
-        <div className="space-y-1">
-          {/* Amount */}
-          <div className="text-sm font-bold text-foreground">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-foreground truncate">{vendor}</div>
+          <div className="text-xs text-muted-foreground truncate">{poNumber}</div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-base font-semibold text-foreground tabular-nums">
             {formatCurrency(amount)}
           </div>
-
-          {/* Date */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <FileText className="h-3 w-3" />
-            <span>{date}</span>
+          <div className={`text-[11px] flex items-center gap-1 justify-end ${meta.text}`}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.dot }} />
+            {meta.label}
           </div>
-
-          {/* Payment progress — only shown once payment has started */}
-          {paymentProgress > 0 && (status === 'approved' || status === 'matched' || status === 'paid') && (
-            <div className="space-y-0.5">
-              <div className="w-full bg-secondary rounded-full h-1.5">
-                <div
-                  className="bg-brand rounded-full h-1.5 transition-all"
-                  style={{ width: `${paymentProgress}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-muted-foreground">{paymentProgress}% payé</span>
-            </div>
-          )}
         </div>
-      </CardContent>
+      </div>
+
+      {showProgress && (
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div
+              className={`h-full rounded-full ${paymentProgress >= 100 ? 'bg-emerald-500' : 'bg-brand'}`}
+              style={{ width: `${Math.min(paymentProgress, 100)}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-muted-foreground shrink-0">{paymentProgress}% payé</span>
+        </div>
+      )}
+
+      <div className="mt-2 text-[11px] text-muted-foreground/80 flex items-center gap-1.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+        </svg>
+        {date}
+      </div>
     </Card>
   );
 };

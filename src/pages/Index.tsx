@@ -10,7 +10,11 @@ import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
 const Index = () => {
   return (
     <div className="space-y-8">
-      <DashboardHeader />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <DashboardHeader />
+        {/* Actions rapides — barre compacte, en haut */}
+        <QuickActions />
+      </div>
 
       <SupplierDashboardTab />
 
@@ -22,13 +26,6 @@ const Index = () => {
 
       {/* Bons de commande récents — pleine largeur */}
       <RecentPurchaseOrders />
-
-      {/* Actions rapides — barre dédiée, séparée des KPIs */}
-      <div className="pt-2 border-t border-border">
-        <div className="pt-6">
-          <QuickActions />
-        </div>
-      </div>
     </div>
   );
 };

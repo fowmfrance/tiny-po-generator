@@ -1,47 +1,38 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Users, Receipt, TrendingUp } from 'lucide-react';
 
 const QuickActions = () => {
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Actions Rapides</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/budgets/create">
-          <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <FileText className="h-10 w-10 text-po-blue mb-2" />
-              <span className="text-sm font-medium">Créer un Budget</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/vendors/new">
-          <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <Users className="h-10 w-10 text-po-blue mb-2" />
-              <span className="text-sm font-medium">Ajouter un Fournisseur</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/invoices">
-          <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <Receipt className="h-10 w-10 text-po-blue mb-2" />
-              <span className="text-sm font-medium">Vérifier les Factures</span>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/reports">
-          <Card className="hover:bg-gray-50 cursor-pointer transition-colors">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <TrendingUp className="h-10 w-10 text-po-blue mb-2" />
-              <span className="text-sm font-medium">Voir les Rapports</span>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        to="/budgets/create"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90 transition-colors"
+      >
+        <FileText className="h-4 w-4" />
+        Créer un Budget
+      </Link>
+      <Link
+        to="/vendors/new"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-card border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-muted/50 transition-colors"
+      >
+        <Users className="h-4 w-4 text-muted-foreground" />
+        Ajouter un Fournisseur
+      </Link>
+      <Link
+        to="/invoices"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-card border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-muted/50 transition-colors"
+      >
+        <Receipt className="h-4 w-4 text-muted-foreground" />
+        Vérifier les Factures
+      </Link>
+      <Link
+        to="/reports"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-card border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-muted/50 transition-colors"
+      >
+        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        Voir les Rapports
+      </Link>
     </div>
   );
 };
