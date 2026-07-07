@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Index from './pages/Index';
 import MentionsLegales from './pages/MentionsLegales';
 import CutOffSimulator from './pages/CutOffSimulator';
+import CutOffClosing from './pages/CutOffClosing';
 import Banks from './pages/Banks';
 import Budgets from './pages/Budgets';
 import CreateBudget from './pages/CreateBudget';
@@ -48,6 +49,7 @@ function App() {
           <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
         <Route path="/cut-off-simulator" element={<ProtectedRoute><Layout><CutOffSimulator /></Layout></ProtectedRoute>} />
+        <Route path="/cloture" element={<ProtectedRoute><Layout><CutOffClosing /></Layout></ProtectedRoute>} />
         <Route path="/banques" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
         <Route path="/banks" element={<Navigate to="/banques" replace />} />
         <Route path="/budgets" element={<ProtectedRoute><Layout><Budgets /></Layout></ProtectedRoute>} />
