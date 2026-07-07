@@ -148,7 +148,7 @@ const PeriodFilter = ({ selected, onChange, customFrom, customTo, onCustomFromCh
           className={cn(
             'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
             selected === key
-              ? 'bg-primary text-primary-foreground shadow-sm'
+              ? 'bg-brand text-brand-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-background'
           )}
         >
