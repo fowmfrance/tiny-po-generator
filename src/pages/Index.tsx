@@ -2,7 +2,6 @@
 import React from 'react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsOverview from '@/components/dashboard/StatsOverview';
-import RecentPurchaseOrders from '@/components/dashboard/RecentPurchaseOrders';
 import ApprovalStatus from '@/components/dashboard/ApprovalStatus';
 import QuickActions from '@/components/dashboard/QuickActions';
 import SupplierDashboardTab from '@/components/vendors/SupplierDashboardTab';
@@ -23,9 +22,6 @@ const Index = () => {
 
       {/* Statut & alertes */}
       <ApprovalStatus />
-
-      {/* Bons de commande récents — pleine largeur */}
-      <RecentPurchaseOrders />
     </div>
   );
 };

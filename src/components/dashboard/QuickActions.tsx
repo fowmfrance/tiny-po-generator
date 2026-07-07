@@ -13,14 +13,14 @@ const QuickActions = () => {
         Créer un Budget
       </Link>
       <Link
-        to="/vendors/new"
+        to="/vendors?add=1"
         className="inline-flex items-center gap-2 rounded-[10px] bg-card border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-muted/50 transition-colors"
       >
         <Users className="h-4 w-4 text-muted-foreground" />
         Ajouter un Fournisseur
       </Link>
       <Link
-        to="/invoices"
+        to="/payments"
         className="inline-flex items-center gap-2 rounded-[10px] bg-card border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-muted/50 transition-colors"
       >
         <Receipt className="h-4 w-4 text-muted-foreground" />

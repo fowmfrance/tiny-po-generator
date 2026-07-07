@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserPlus, Search, FileText, LayoutGrid, List } from 'lucide-react';
@@ -42,6 +42,16 @@ const Vendors = () => {
   const { suppliers, isLoading } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Ouverture directe du dialogue d'ajout via /vendors?add=1 (action rapide)
+  useEffect(() => {
+    if (searchParams.get('add') === '1') {
+      setIsInviteDialogOpen(true);
+      searchParams.delete('add');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
