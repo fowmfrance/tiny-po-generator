@@ -35,6 +35,7 @@ const Auth: React.FC = () => {
   const [showResetPassword, setShowResetPassword] = useState(
     () => new URLSearchParams(window.location.search).get('reset') === 'true'
   );
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,6 +60,19 @@ const Auth: React.FC = () => {
     // Check if this is a password reset flow
     const isReset = searchParams.get('reset') === 'true';
     if (isReset) {
+      setShowResetPassword(true);
+    }
+
+    // Lien de récupération invalide/expiré : l'erreur revient dans le hash de l'URL
+    // (#error=access_denied&error_code=otp_expired&error_description=...)
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (hashParams.get('error')) {
+      const code = hashParams.get('error_code');
+      setRecoveryError(
+        code === 'otp_expired'
+          ? 'Ce lien de réinitialisation a expiré ou a déjà été utilisé. Demandez-en un nouveau.'
+          : (hashParams.get('error_description') || '').replace(/\+/g, ' ') || 'Lien invalide.'
+      );
       setShowResetPassword(true);
     }
 
@@ -331,6 +345,23 @@ const Auth: React.FC = () => {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
+            {recoveryError ? (
+              <div className="space-y-4 text-center">
+                <p className="text-sm text-destructive">{recoveryError}</p>
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => {
+                    setRecoveryError(null);
+                    setShowResetPassword(false);
+                    setShowForgotPassword(true);
+                    navigate('/auth', { replace: true });
+                  }}
+                >
+                  Demander un nouveau lien
+                </Button>
+              </div>
+            ) : (
             <form className="space-y-6" onSubmit={handleResetPassword}>
               <div>
                 <Label htmlFor="new-password">Nouveau mot de passe</Label>
@@ -375,6 +406,7 @@ const Auth: React.FC = () => {
                 {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
               </Button>
             </form>
+            )}
           </div>
         </div>
       </div>
