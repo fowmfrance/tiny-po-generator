@@ -32,7 +32,9 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(
+    () => new URLSearchParams(window.location.search).get('reset') === 'true'
+  );
   const [forgotEmail, setForgotEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,27 +65,28 @@ const Auth: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        // Don't redirect if we're in password reset mode
-        if (session && !showResetPassword && event !== 'PASSWORD_RECOVERY') {
-          redirectByRole(session.user.id);
-        }
-        // Handle password recovery event
-        if (event === 'PASSWORD_RECOVERY') {
+        // En mode réinitialisation (flag URL ou event recovery), on reste sur le
+        // formulaire de reset : ne JAMAIS rediriger, même si la session s'ouvre
+        // (le flux PKCE émet SIGNED_IN au lieu de PASSWORD_RECOVERY).
+        if (isReset || event === 'PASSWORD_RECOVERY') {
           setShowResetPassword(true);
+          return;
+        }
+        if (session) {
+          redirectByRole(session.user.id);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      // Don't redirect if we're in password reset mode
       if (session && !isReset) {
         redirectByRole(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, searchParams, showResetPassword]);
+  }, [navigate, searchParams]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
