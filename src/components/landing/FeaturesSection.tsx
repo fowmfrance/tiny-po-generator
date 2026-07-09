@@ -1,38 +1,36 @@
-
 import React from 'react';
+import { Users, Wallet, Activity, Plug, BarChart3, LayoutDashboard } from 'lucide-react';
 
 const features = [
   {
     title: "Gestion des Fournisseurs",
     description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
-    icon: "👥"
+    icon: Users
   },
   {
     title: "Pilotage des Budgets",
     description: "Contrôlez facilement vos dépenses avec une gestion intuitive des budgets.",
-    icon: "💰"
+    icon: Wallet
   },
-  
   {
     title: "Suivi en Temps Réel",
     description: "Accédez à l'état de vos budgets : montants engagés, factures reçues, factures restant à payer...Et traduction comptable en terme de reconnaissance des charges",
-    icon: "🔄"
+    icon: Activity
   },
- 
   {
     title: "Implémentation en quelques clicks",
     description: "Personnalisez votre nomenclature, importez et exportez facilement vers d'autres outils, ou créez des connexion avec nos API",
-    icon: "🔌"
+    icon: Plug
   },
   {
     title: "Analyses Détaillées",
     description: "Obtenez des insights précieux grâce à des rapports et analyses complets",
-    icon: "📊"
+    icon: BarChart3
   },
   {
     title: "Interface Intuitive",
     description: "Une interface utilisateur conçue pour être simple et efficace",
-    icon: "🖥️"
+    icon: LayoutDashboard
   }
 ];
 
@@ -52,8 +50,8 @@ const FeaturesSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {features.map((feature, index) => (
             <div key={index} className="flex flex-col items-center p-6 bg-white/50 backdrop-blur-sm rounded-lg shadow-marie">
-              <div className="text-4xl mb-4">
-                {typeof feature.icon === 'string' ? feature.icon : feature.icon}
+              <div className="w-14 h-14 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
+                <feature.icon className="h-7 w-7 text-brand" strokeWidth={1.5} />
               </div>
               <h3 className="font-semibold text-xl mb-3 text-primary text-center">{feature.title}</h3>
               <p className="text-gray-600 text-center">{feature.description}</p>
