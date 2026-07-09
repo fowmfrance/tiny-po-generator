@@ -17,7 +17,13 @@ import { ExpenseTypesCard } from '@/components/create-budget/ExpenseTypesCard';
 import { RecognitionMethodCard } from '@/components/create-budget/RecognitionMethodCard';
 import { FormValues, BUDGET_TYPES, MILESTONE_METHOD_CODE, formatBudgetCode } from '@/components/create-budget/types';
 
-const CreateBudget = () => {
+interface CreateBudgetProps {
+  embedded?: boolean;
+  onCreated?: (budget: any) => void;
+  onCancel?: () => void;
+}
+
+const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetProps = {}) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -172,6 +178,15 @@ const CreateBudget = () => {
         });
         return;
       }
+      // Mode encapsulé (modale) : on rend la main à l'appelant sans naviguer
+      if (embedded) {
+        toast({
+          title: "Budget créé",
+          description: `Le code projet ${budget.code} a été créé.`,
+        });
+        onCreated?.(budget);
+        return;
+      }
       toast({
         title: "Budget créé",
         description: `Le budget ${generatedCode} a été créé avec succès.`,
@@ -226,16 +241,18 @@ const CreateBudget = () => {
   const isSubmitting = createBudgetMutation.isPending;
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => navigate('/budgets')} className="p-2">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Créer un budget</h1>
-          <p className="text-muted-foreground">Configurez un nouveau budget pour vos projets ou dépenses</p>
+    <div className={embedded ? "space-y-6" : "space-y-6 pb-24"}>
+      {!embedded && (
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => navigate('/budgets')} className="p-2">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Créer un budget</h1>
+            <p className="text-muted-foreground">Configurez un nouveau budget pour vos projets ou dépenses</p>
+          </div>
         </div>
-      </div>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -264,7 +281,7 @@ const CreateBudget = () => {
           </div>
 
           <div className="sticky bottom-0 bg-background border-t border-border -mx-8 px-8 py-4 flex justify-end gap-4 z-10">
-            <Button type="button" variant="outline" onClick={() => navigate('/budgets')} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={() => (embedded && onCancel ? onCancel() : navigate('/budgets'))} disabled={isSubmitting}>
               Annuler
             </Button>
             <Button type="submit" className="bg-po-blue hover:bg-blue-600" disabled={isSubmitting}>

@@ -20,6 +20,7 @@ import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
 import { getInitials, getMonogramColor } from '@/utils/monogram';
+import CreateBudget from '@/pages/CreateBudget';
 
 interface BankAccount {
   slug: string;
@@ -113,8 +114,10 @@ const Banks = () => {
     return date;
   });
   const navigate = useNavigate();
-  const { budgets } = useBudgetsData();
+  const { budgets, refetch: refetchBudgets } = useBudgetsData();
   const { suppliers, createSupplier } = useSuppliers();
+  const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
+  const [createBudgetForTxId, setCreateBudgetForTxId] = useState<string | null>(null);
   const [isCreateSupplierOpen, setIsCreateSupplierOpen] = useState(false);
   const [createForTxId, setCreateForTxId] = useState<string | null>(null);
   const [newSupplierName, setNewSupplierName] = useState('');
@@ -953,13 +956,23 @@ const Banks = () => {
                               <TableCell>
                                 <Select
                                   value={tx.project_code || 'none'}
-                                  onValueChange={(value) => updateTransaction(tx.id, 'project_code', value === 'none' ? null : value)}
+                                  onValueChange={(value) => {
+                                    if (value === '__new_budget__') {
+                                      setCreateBudgetForTxId(tx.id);
+                                      setIsCreateBudgetOpen(true);
+                                      return;
+                                    }
+                                    updateTransaction(tx.id, 'project_code', value === 'none' ? null : value);
+                                  }}
                                 >
                                   <SelectTrigger className="w-[150px]">
                                     <SelectValue placeholder="Projet" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none">Aucun</SelectItem>
+                                    <SelectItem value="__new_budget__" className="text-brand font-medium">
+                                      + Nouveau code projet
+                                    </SelectItem>
                                     {budgets.map(budget => (
                                       <SelectItem key={budget.id} value={budget.code}>
                                         {budget.code}
@@ -1028,6 +1041,32 @@ const Banks = () => {
               {creatingSupplier ? 'Création…' : 'Créer et rattacher'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreateBudgetOpen} onOpenChange={setIsCreateBudgetOpen}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nouveau code projet</DialogTitle>
+            <DialogDescription>
+              Créez un budget / code projet et rattachez-le directement à la transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateBudget
+            embedded
+            onCancel={() => {
+              setIsCreateBudgetOpen(false);
+              setCreateBudgetForTxId(null);
+            }}
+            onCreated={async (budget) => {
+              await refetchBudgets();
+              if (createBudgetForTxId && budget?.code) {
+                await updateTransaction(createBudgetForTxId, 'project_code', budget.code);
+              }
+              setIsCreateBudgetOpen(false);
+              setCreateBudgetForTxId(null);
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>
