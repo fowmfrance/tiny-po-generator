@@ -28,6 +28,10 @@ export function useSupplierAccessToken(supplierId?: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
+      const { getCurrentOrganizationId } = await import('@/utils/organization');
+      const organizationId = await getCurrentOrganizationId();
+      if (!organizationId) throw new Error('Aucune organisation associée au profil.');
+
       // Deactivate existing tokens
       await supabase
         .from('supplier_access_tokens' as any)
@@ -41,6 +45,7 @@ export function useSupplierAccessToken(supplierId?: string) {
         .insert({
           supplier_id: supplierIdParam,
           created_by: user.id,
+          organization_id: organizationId,
         } as any)
         .select()
         .single();
