@@ -337,25 +337,36 @@ const Banks = () => {
     try {
       const fromDate = startDate || syncStartDate;
 
-      // Use secure API with connectionId - credentials decrypted server-side
-      const { data, error } = await supabase.functions.invoke('qonto-proxy', {
-        body: { 
-          action: 'qonto_api',
-          connectionId: connection.id,
-          endpoint: 'transactions',
-          params: {
-            slug: slug,
-            per_page: 100,
-            settled_at_from: format(fromDate, 'yyyy-MM-dd'),
-          }
-        },
-      });
+      // Use secure API with connectionId - credentials decrypted server-side.
+      // Qonto pagine à 100/page : on boucle sur meta.next_page pour tout récupérer.
+      const qontoTxns: QontoTransaction[] = [];
+      let page = 1;
+      const MAX_PAGES = 100; // garde-fou (10 000 transactions)
+      while (page && page <= MAX_PAGES) {
+        const { data, error } = await supabase.functions.invoke('qonto-proxy', {
+          body: {
+            action: 'qonto_api',
+            connectionId: connection.id,
+            endpoint: 'transactions',
+            params: {
+              slug: slug,
+              per_page: 100,
+              current_page: page,
+              settled_at_from: format(fromDate, 'yyyy-MM-dd'),
+            }
+          },
+        });
 
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
 
-      const qontoTxns: QontoTransaction[] = data.transactions || [];
-      
+        qontoTxns.push(...((data.transactions || []) as QontoTransaction[]));
+
+        // Qonto renvoie meta.next_page (numéro) ou null quand c'est fini
+        const nextPage = data?.meta?.next_page;
+        page = typeof nextPage === 'number' ? nextPage : 0;
+      }
+
       // UPSERT transactions - only update Qonto fields, preserve Sapajoo fields
       const upsertData = qontoTxns.map(tx => ({
         user_id: user.id,
@@ -383,12 +394,16 @@ const Banks = () => {
         qonto_raw_data: JSON.parse(JSON.stringify(tx)),
       }));
 
-      const { error: upsertError } = await supabase.from('transactions').upsert(upsertData, {
-        onConflict: 'user_id,qonto_transaction_id',
-      });
-
-      if (upsertError) {
-        console.error('Upsert error:', upsertError);
+      // Upsert par lots (la pagination peut ramener beaucoup de lignes)
+      const BATCH = 500;
+      for (let i = 0; i < upsertData.length; i += BATCH) {
+        const { error: upsertError } = await supabase
+          .from('transactions')
+          .upsert(upsertData.slice(i, i + BATCH), { onConflict: 'user_id,qonto_transaction_id' });
+        if (upsertError) {
+          console.error('Upsert error:', upsertError);
+          throw new Error(upsertError.message);
+        }
       }
 
       await loadTransactionsFromDB(connection.id);
