@@ -43,10 +43,13 @@ const fmtE = (v: number) =>
 
 const pct = (v: number, t: number) => (t > 0 ? `${((v / t) * 100).toFixed(1)}%` : '—');
 
+// Palette de charts Kiosco (terracotta en tête + tons terroir)
+const KIOSCO_CHART = ['#D97757', '#B8853A', '#4A7C59', '#4A5568', '#9B3B2A', '#6B6860', '#C08A5E', '#8AA98F'];
+
 const DarkTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl px-4 py-3 shadow-lg" style={{ background: '#1a1a2e', color: '#fff' }}>
+    <div className="rounded-xl px-4 py-3 shadow-lg" style={{ background: '#1A1914', color: '#FAF8F3' }}>
       <p className="text-xs font-semibold mb-1 opacity-70">{label}</p>
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 text-sm">
@@ -63,7 +66,7 @@ const DonutTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   return (
-    <div className="rounded-xl px-4 py-3 shadow-lg" style={{ background: '#1a1a2e', color: '#fff' }}>
+    <div className="rounded-xl px-4 py-3 shadow-lg" style={{ background: '#1A1914', color: '#FAF8F3' }}>
       <div className="flex items-center gap-2 text-sm">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.payload?.fill || d.payload?.color }} />
         <span className="font-semibold">{d.name}</span>
@@ -206,7 +209,7 @@ const SupplierDashboardTab: React.FC = () => {
 
   const barColors = showByTrade
     ? data.trades.reduce((acc, t) => ({ ...acc, [t.name]: t.color }), {} as Record<string, string>)
-    : { Projet: '#3B82F6', 'Hors projet': '#94A3B8' };
+    : { Projet: '#D97757', 'Hors projet': '#6B6860' };
 
   const hasCumulative = data.cumulativeData.some(m => m.ca > 0 || m.chargesInternes > 0 || m.chargesExternes > 0);
 
@@ -272,16 +275,16 @@ const SupplierDashboardTab: React.FC = () => {
           <div className="h-[350px]">
             <ReResponsiveContainer width="100%" height="100%">
               <ReComposedChart data={barData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                <ReCartesianGrid strokeDasharray="3 3" vertical={false} />
-                <ReXAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                <ReCartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D6" />
+                <ReXAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B6860' }} axisLine={false} tickLine={false} />
+                <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#6B6860' }} axisLine={false} tickLine={false} />
                 <ReTooltip content={<DarkTooltip />} />
                 {barKeys.map((key, i) => (
                   <ReBar
                     key={key}
                     dataKey={key}
                     stackId="a"
-                    fill={(barColors as any)[key] || `hsl(${i * 30}, 60%, 50%)`}
+                    fill={(barColors as any)[key] || KIOSCO_CHART[i % KIOSCO_CHART.length]}
                     radius={i === barKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
                   />
                 ))}
@@ -289,9 +292,9 @@ const SupplierDashboardTab: React.FC = () => {
                   <ReLine
                     type="monotone"
                     dataKey="CA linéarisé"
-                    stroke="#10B981"
+                    stroke="#4A7C59"
                     strokeWidth={2}
-                    dot={{ r: 3, fill: '#10B981' }}
+                    dot={{ r: 3, fill: '#4A7C59' }}
                     activeDot={{ r: 5 }}
                   />
                 )}
@@ -311,20 +314,20 @@ const SupplierDashboardTab: React.FC = () => {
             <div className="h-[350px]">
               <ReResponsiveContainer width="100%" height="100%">
                 <ReComposedChart data={data.cumulativeData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                  <ReCartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <ReXAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                  <ReCartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D6" />
+                  <ReXAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B6860' }} axisLine={false} tickLine={false} />
+                  <ReYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#6B6860' }} axisLine={false} tickLine={false} />
                   <ReTooltip content={<DarkTooltip />} />
-                  <ReBar dataKey="ca" name="CA" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <ReBar dataKey="chargesInternes" name="Charges internes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                  <ReBar dataKey="chargesExternes" name="Charges externes" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                  <ReBar dataKey="ca" name="CA" fill="#4A7C59" radius={[4, 4, 0, 0]} />
+                  <ReBar dataKey="chargesInternes" name="Charges internes" fill="#B8853A" radius={[4, 4, 0, 0]} />
+                  <ReBar dataKey="chargesExternes" name="Charges externes" fill="#9B3B2A" radius={[4, 4, 0, 0]} />
                   <ReLine
                     type="monotone"
                     dataKey="cumul"
                     name="Cumul"
-                    stroke="#8B5CF6"
+                    stroke="#D97757"
                     strokeWidth={2.5}
-                    dot={{ r: 3, fill: '#8B5CF6' }}
+                    dot={{ r: 3, fill: '#D97757' }}
                     activeDot={{ r: 5 }}
                   />
                 </ReComposedChart>

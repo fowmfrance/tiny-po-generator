@@ -37,7 +37,8 @@ export interface SupplierDashboardData {
   hasComparison: boolean;
 }
 
-const PAYMENT_COLORS = ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899'];
+// Palette Kiosco (terracotta en tête + tons terroir)
+const PAYMENT_COLORS = ['#D97757', '#B8853A', '#4A7C59', '#4A5568', '#9B3B2A', '#6B6860'];
 
 function shiftYearMinus1(d: Date): Date {
   const shifted = new Date(d);
@@ -130,7 +131,7 @@ function buildAggregation(
     const amt = Number(p.total_amount) || 0;
     const s = supplierMap.get(p.supplier_id);
     const tradeName = s?.supplier_type?.name || 'Non classé';
-    const tradeColor = s?.supplier_type?.color || '#6B7280';
+    const tradeColor = s?.supplier_type?.color || '#B8853A';
     const pmName = s?.payment_method?.name || 'Non défini';
 
     if (p.budget_id) projetTotal += amt; else horsProjetTotal += amt;
@@ -189,8 +190,8 @@ function buildAggregation(
   const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
   const projectSplit = [
-    { name: 'Projet', value: projetTotal, color: '#3B82F6' },
-    { name: 'Hors projet', value: horsProjetTotal, color: '#94A3B8' },
+    { name: 'Projet', value: projetTotal, color: '#D97757' },
+    { name: 'Hors projet', value: horsProjetTotal, color: '#6B6860' },
   ].filter(d => d.value > 0);
 
   const byTrade = Array.from(tradeMap.entries())
