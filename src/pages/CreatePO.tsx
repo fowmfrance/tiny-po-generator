@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, Trash2, Calendar, Lock } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Calendar, Lock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { defaultCurrency } from '@/services/budgetService';
 import CreateBudgetDialog from '@/components/purchase-orders/CreateBudgetDialog';
@@ -762,7 +762,7 @@ const CreatePO = () => {
               </Button>
             )}
             {isPriceCapBreached && (
-              <p className="text-xs text-orange-600 mt-1">⚠ Un ou plusieurs articles dépassent le prix plafond défini dans le catalogue.</p>
+              <p className="text-xs text-orange-600 mt-1 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Un ou plusieurs articles dépassent le prix plafond défini dans le catalogue.</p>
             )}
           </div>
         </form>

@@ -505,7 +505,9 @@ const CutOffSimulator = () => {
                           "text-lg font-bold",
                           isCoherent(results.dateJour.controle) ? "text-emerald-700" : "text-red-700"
                         )}>
-                          {isCoherent(results.dateJour.controle) ? "✓ Cohérent" : `Écart: ${formatCurrency(results.dateJour.controle)} €`}
+                          {isCoherent(results.dateJour.controle)
+                            ? <span className="inline-flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Cohérent</span>
+                            : `Écart: ${formatCurrency(results.dateJour.controle)} €`}
                         </p>
                       </div>
                       <div className={cn(
@@ -526,7 +528,9 @@ const CutOffSimulator = () => {
                           "text-lg font-bold",
                           isCoherent(results.finPeriode.controle) ? "text-emerald-700" : "text-red-700"
                         )}>
-                          {isCoherent(results.finPeriode.controle) ? "✓ Cohérent" : `Écart: ${formatCurrency(results.finPeriode.controle)} €`}
+                          {isCoherent(results.finPeriode.controle)
+                            ? <span className="inline-flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Cohérent</span>
+                            : `Écart: ${formatCurrency(results.finPeriode.controle)} €`}
                         </p>
                       </div>
                     </div>

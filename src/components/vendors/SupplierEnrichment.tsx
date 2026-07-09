@@ -198,7 +198,7 @@ export function SupplierEnrichment({ supplier }: SupplierEnrichmentProps) {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       setConfirmOpen(false);
       setExtractedData(null);
-      toast({ title: 'Fiche mise à jour ✅' });
+      toast({ title: 'Fiche mise à jour' });
     },
     onError: (e: any) => {
       toast({ title: 'Erreur', description: e.message, variant: 'destructive' });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Landmark, Info, FileSpreadsheet, Download } from 'lucide-react';
+import { Landmark, Info, FileSpreadsheet, Download, Check, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
@@ -261,8 +261,10 @@ const CutOffClosing = () => {
               <CardTitle className="text-base">Journal des écritures FNP + extourne</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 Clôture au {frDate(cutoff)} · extourne au {frDate(addDaysISO(cutoff, 1))} ·
-                équilibre débit/crédit&nbsp;: {fmt2(totalDebit)} / {fmt2(totalCredit)}
-                {Math.abs(totalDebit - totalCredit) < 0.01 ? ' ✓' : ' ⚠'}
+                équilibre débit/crédit&nbsp;: {fmt2(totalDebit)} / {fmt2(totalCredit)}{' '}
+                {Math.abs(totalDebit - totalCredit) < 0.01
+                  ? <Check className="inline h-3.5 w-3.5 text-emerald-600 align-text-bottom" />
+                  : <AlertTriangle className="inline h-3.5 w-3.5 text-red-600 align-text-bottom" />}
               </p>
             </div>
             <button onClick={exportCSV}

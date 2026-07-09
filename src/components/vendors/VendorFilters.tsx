@@ -216,10 +216,10 @@ const VendorFilters = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes notes</SelectItem>
-                  <SelectItem value="4.5">⭐ 4.5+</SelectItem>
-                  <SelectItem value="4">⭐ 4+</SelectItem>
-                  <SelectItem value="3.5">⭐ 3.5+</SelectItem>
-                  <SelectItem value="3">⭐ 3+</SelectItem>
+                  <SelectItem value="4.5"><span className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" /> 4.5+</span></SelectItem>
+                  <SelectItem value="4"><span className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" /> 4+</span></SelectItem>
+                  <SelectItem value="3.5"><span className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" /> 3.5+</span></SelectItem>
+                  <SelectItem value="3"><span className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" /> 3+</span></SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -183,7 +183,7 @@ const VendorKYCReviewTab: React.FC<VendorKYCReviewTabProps> = ({ supplierId, sup
       await supabase.from('suppliers').update({ kyc_status: 'verified', is_active: true } as any).eq('id', supplierId);
       queryClient.invalidateQueries({ queryKey: ['supplier-kyc-admin', supplierId] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast({ title: 'KYC complet ✅', description: `${supplierName} est maintenant vérifié et actif.` });
+      toast({ title: 'KYC complet', description: `${supplierName} est maintenant vérifié et actif.` });
     }
   };
 

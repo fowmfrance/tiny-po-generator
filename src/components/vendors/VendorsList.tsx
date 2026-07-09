@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import { Plus, LayoutGrid, List, Clapperboard, Building2, Paperclip } from 'lucide-react';
 import VendorCard from './VendorCard';
 import { Vendor } from '@/types/vendor';
 import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
@@ -43,9 +43,15 @@ function getVendorGroup(vendor: Vendor): VendorGroup {
 }
 
 const GROUP_LABELS: Record<VendorGroup, string> = {
-  projets: '🎬 Projets',
-  services: '🏢 Services généraux',
-  mixte: '📎 Mixte / Non classé',
+  projets: 'Projets',
+  services: 'Services généraux',
+  mixte: 'Mixte / Non classé',
+};
+
+const GROUP_ICONS: Record<VendorGroup, React.ElementType> = {
+  projets: Clapperboard,
+  services: Building2,
+  mixte: Paperclip,
 };
 
 const GROUP_ORDER: VendorGroup[] = ['projets', 'services', 'mixte'];
@@ -120,7 +126,10 @@ const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) 
           <Collapsible key={groupKey} open={isOpen} onOpenChange={() => toggleGroup(groupKey)}>
             <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 px-1 hover:bg-muted/50 rounded-md transition-colors">
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <span className="font-semibold text-base">{GROUP_LABELS[groupKey]}</span>
+              <span className="font-semibold text-base flex items-center gap-1.5">
+                {React.createElement(GROUP_ICONS[groupKey], { className: 'h-4 w-4 text-muted-foreground' })}
+                {GROUP_LABELS[groupKey]}
+              </span>
               <Badge variant="secondary" className="text-xs ml-1">{groupVendors.length}</Badge>
             </CollapsibleTrigger>
             <CollapsibleContent>
