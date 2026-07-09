@@ -230,13 +230,24 @@ serve(async (req) => {
         },
       });
 
-      const data = await response.json();
+      // Qonto peut renvoyer du non-JSON (page d'erreur, corps vide) : on ne
+      // laisse pas response.json() faire planter la fonction en 500.
+      const rawBody = await response.text();
+      let data: any = {};
+      try {
+        data = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        data = { message: rawBody?.slice(0, 300) || 'Réponse Qonto illisible' };
+      }
 
       if (!response.ok) {
-        const detail = data?.errors?.[0]?.detail || data?.message || 'Identifiants invalides';
-        console.error(`Qonto validation error: ${JSON.stringify(data)}`);
+        const detail =
+          data?.errors?.[0]?.detail ||
+          data?.message ||
+          `Qonto a refusé la connexion (HTTP ${response.status}). Vérifiez le login (slug) et la clé secrète.`;
+        console.error(`Qonto validation error (${response.status}): ${rawBody?.slice(0, 500)}`);
         return new Response(
-          JSON.stringify({ error: detail, code: 'QONTO_UNAUTHORIZED', details: data }),
+          JSON.stringify({ error: detail, code: 'QONTO_UNAUTHORIZED', status: response.status, details: data }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

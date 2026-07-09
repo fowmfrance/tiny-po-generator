@@ -187,26 +187,31 @@ const Banks = () => {
 
     setIsConnecting(true);
 
-    const getInvokeMessage = (err: unknown) => {
+    // supabase-js renvoie l'erreur d'une edge function non-2xx sous forme de
+    // FunctionsHttpError dont .context est un objet Response : il faut LIRE son
+    // corps pour récupérer le vrai message (sinon on n'a que "non-2xx status code").
+    const getInvokeMessage = async (err: unknown) => {
       const anyErr = err as any;
-      const status = anyErr?.context?.status;
-      const body = anyErr?.context?.body;
-
-      // Supabase functions errors often come as generic message; try to surface JSON body
-      if (typeof body === 'string') {
+      const ctx = anyErr?.context;
+      const status = ctx?.status;
+      let parsed: any = null;
+      if (ctx && typeof ctx.clone === 'function') {
         try {
-          const parsed = JSON.parse(body);
-          return {
-            status,
-            message: parsed?.error || parsed?.message || anyErr?.message || 'Erreur inconnue',
-            code: parsed?.code,
-          };
+          parsed = await ctx.clone().json();
         } catch {
-          return { status, message: anyErr?.message || body, code: undefined };
+          try {
+            const t = await ctx.clone().text();
+            parsed = t ? { error: t } : null;
+          } catch {
+            /* corps illisible */
+          }
         }
       }
-
-      return { status, message: anyErr?.message || 'Erreur inconnue', code: undefined };
+      return {
+        status,
+        message: parsed?.error || parsed?.message || anyErr?.message || 'Erreur inconnue',
+        code: parsed?.code,
+      };
     };
 
     try {
@@ -224,9 +229,9 @@ const Banks = () => {
       });
 
       if (validateError) {
-        const info = getInvokeMessage(validateError);
-        if (info.status === 401) {
-          throw new Error("Identifiants Qonto invalides (vérifiez login + clé secrète).");
+        const info = await getInvokeMessage(validateError);
+        if (info.status === 401 || info.code === 'QONTO_UNAUTHORIZED') {
+          throw new Error(info.message || "Identifiants Qonto invalides (vérifiez login + clé secrète).");
         }
         throw new Error(info.message || 'Erreur de validation');
       }
@@ -249,7 +254,7 @@ const Banks = () => {
       });
 
       if (createError) {
-        const info = getInvokeMessage(createError);
+        const info = await getInvokeMessage(createError);
         throw new Error(info.message || 'Erreur de création');
       }
       if (createData?.error) throw new Error(createData.error);
