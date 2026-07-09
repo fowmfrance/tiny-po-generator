@@ -9,17 +9,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  MoreVertical, 
-  Edit, 
-  Copy, 
+import {
+  MoreVertical,
+  Edit,
+  Copy,
   Download,
   CalendarRange,
   Send,
   ArrowUp,
   ArrowDown,
-  Search
+  Search,
+  Trash2
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -51,8 +55,32 @@ type SortDir = 'asc' | 'desc';
 const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [sortKey, setSortKey] = useState<SortKey>('code');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [editBudget, setEditBudget] = useState<Budget | null>(null);
+
+  const refreshBudgets = () => {
+    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    queryClient.invalidateQueries({ queryKey: ['budgets-with-milestones'] });
+  };
+
+  const handleDeleteBudget = async (budget: Budget) => {
+    if (!window.confirm(`Supprimer le budget ${budget.code} — ${budget.name} ? Cette action est irréversible.`)) return;
+    const { error } = await supabase.from('budgets').delete().eq('id', budget.id);
+    if (error) {
+      toast({
+        title: 'Suppression impossible',
+        description: error.message.includes('foreign key')
+          ? 'Ce budget a des BC ou jalons liés. Supprimez-les d\'abord.'
+          : error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    toast({ title: 'Budget supprimé', description: `${budget.code} a été supprimé.` });
+    refreshBudgets();
+  };
   const [search, setSearch] = useState('');
 
   const handleSort = (key: SortKey) => {
@@ -264,18 +292,18 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditBudget(budget)}>
                         <Edit className="mr-2 h-4 w-4" /> Modifier
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Copy className="mr-2 h-4 w-4" /> Dupliquer
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAdjustBudget(budget)}>
                         <Edit className="mr-2 h-4 w-4" /> Ajuster le budget au montant envoyé
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Download className="mr-2 h-4 w-4" /> Télécharger
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteBudget(budget)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -285,6 +313,26 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
           ))}
         </TableBody>
       </Table>
+
+      {editBudget && (
+        <EditBudgetDialog
+          open={!!editBudget}
+          onOpenChange={(o) => !o && setEditBudget(null)}
+          budget={{
+            id: editBudget.id,
+            name: editBudget.name,
+            code: editBudget.code,
+            currency: editBudget.currency,
+            initial_amount: editBudget.initialAmount,
+            start_date: editBudget.startDate ? new Date(editBudget.startDate).toISOString().split('T')[0] : null,
+            end_date: editBudget.endDate ? new Date(editBudget.endDate).toISOString().split('T')[0] : null,
+          }}
+          onSaved={() => {
+            setEditBudget(null);
+            refreshBudgets();
+          }}
+        />
+      )}
     </div>
   );
 };

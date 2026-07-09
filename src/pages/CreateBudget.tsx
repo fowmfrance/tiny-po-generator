@@ -165,7 +165,11 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
           const { error: milestonesError } = await supabase
             .from('budget_milestones')
             .insert(milestonesData);
-          if (milestonesError) throw milestonesError;
+          if (milestonesError) {
+            // Rollback : on ne laisse pas un budget orphelin (source des doublons)
+            await supabase.from('budgets').delete().eq('id', budget.id);
+            throw milestonesError;
+          }
         }
       }
 
