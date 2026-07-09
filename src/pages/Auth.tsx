@@ -321,7 +321,18 @@ const Auth: React.FC = () => {
       setConfirmPassword('');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Une erreur est survenue');
+      // Supabase renvoie un 422 quand le mot de passe est refusé à la validation
+      const code = error?.code || error?.error_code;
+      let msg = error?.message || 'Une erreur est survenue';
+      if (code === 'same_password' || /different from the old/i.test(msg)) {
+        msg = "Le nouveau mot de passe doit être différent de l'ancien.";
+      } else if (code === 'weak_password' || /weak|at least|should contain/i.test(msg)) {
+        msg = 'Mot de passe trop faible : min. 8 caractères, avec majuscule, minuscule et chiffre.';
+      } else if (/session|expired|missing/i.test(msg)) {
+        msg = 'Session expirée. Redemandez un lien de réinitialisation.';
+      }
+      setValidationErrors({ password: msg });
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
