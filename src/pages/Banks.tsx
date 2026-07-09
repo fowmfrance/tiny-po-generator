@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
+import { getInitials, getMonogramColor } from '@/utils/monogram';
 
 interface BankAccount {
   slug: string;
@@ -78,6 +79,7 @@ interface Transaction {
   qonto_category: string | null;
   qonto_operation_type: string | null;
   qonto_reference: string | null;
+  bank_connection_id: string | null;
   sapajoo_category_id: string | null;
   project_code: string | null;
   supplier_id: string | null;
@@ -165,14 +167,14 @@ const Banks = () => {
         bank_accounts: (conn.bank_accounts as unknown as BankAccount[]) || []
       }));
       setConnections(typedData);
-      
+      // Vue unifiée : on charge toutes les transactions, toutes banques confondues
+      loadAllTransactions();
+
       if (!selectedConnection && typedData.length > 0) {
         setSelectedConnection(typedData[0]);
         if (typedData[0].bank_accounts.length > 0) {
           setSelectedAccountSlug(typedData[0].bank_accounts[0].slug);
         }
-        // Load transactions from DB for the first connection
-        loadTransactionsFromDB(typedData[0].id);
       }
     }
     setIsLoading(false);
@@ -301,18 +303,19 @@ const Banks = () => {
     }
   };
 
-  const loadTransactionsFromDB = async (connectionId: string) => {
+  // Vue unifiée : toutes les transactions de l'utilisateur, toutes banques confondues
+  // (la RLS scope déjà par user_id).
+  const loadAllTransactions = async () => {
     setIsLoadingTransactions(true);
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
-      .eq('bank_connection_id', connectionId)
       .order('qonto_settled_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error loading transactions:', error);
     } else {
-      setTransactions(data || []);
+      setTransactions((data || []) as Transaction[]);
     }
     setIsLoadingTransactions(false);
   };
@@ -412,7 +415,7 @@ const Banks = () => {
         }
       }
 
-      await loadTransactionsFromDB(connection.id);
+      await loadAllTransactions();
       
       toast({
         title: "Synchronisation réussie",
@@ -541,6 +544,23 @@ const Banks = () => {
       </div>
     );
   }
+
+  const connById = new Map(connections.map((c) => [c.id, c]));
+  const showBankAvatar = connections.length > 1;
+  const bankAvatar = (connectionId: string | null) => {
+    const conn = connectionId ? connById.get(connectionId) : null;
+    const label = conn?.organization_name || conn?.bank_name || '?';
+    const mono = getMonogramColor(label);
+    return (
+      <span
+        className="inline-flex w-6 h-6 rounded-md items-center justify-center text-[10px] font-medium shrink-0"
+        style={{ backgroundColor: mono.bg, color: mono.fg }}
+        title={label}
+      >
+        {getInitials(label)}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -674,7 +694,7 @@ const Banks = () => {
                     if (connection.bank_accounts.length > 0) {
                       setSelectedAccountSlug(connection.bank_accounts[0].slug);
                     }
-                    loadTransactionsFromDB(connection.id);
+                    loadAllTransactions();
                   }}
                 >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -770,10 +790,10 @@ const Banks = () => {
                 </CardContent>
               </Card>
 
-              {selectedAccountSlug && (
+              {connections.length > 0 && (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Opérations</CardTitle>
+                    <CardTitle>Toutes les opérations</CardTitle>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <Label className="text-sm text-muted-foreground whitespace-nowrap">Depuis le</Label>
@@ -828,6 +848,7 @@ const Banks = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            {showBankAvatar && <TableHead className="w-8"></TableHead>}
                             <TableHead>Date</TableHead>
                             <TableHead>Libellé</TableHead>
                             <TableHead>Catégorie Qonto</TableHead>
@@ -842,6 +863,9 @@ const Banks = () => {
                         <TableBody>
                           {transactions.map((tx) => (
                             <TableRow key={tx.id}>
+                              {showBankAvatar && (
+                                <TableCell className="w-8 pr-0">{bankAvatar(tx.bank_connection_id)}</TableCell>
+                              )}
                               <TableCell>
                                 {new Date(tx.qonto_settled_at || tx.qonto_emitted_at || '').toLocaleDateString('fr-FR')}
                               </TableCell>
