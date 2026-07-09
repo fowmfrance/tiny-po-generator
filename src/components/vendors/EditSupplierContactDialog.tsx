@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Supplier } from '@/hooks/useSuppliers';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { supabase } from '@/integrations/supabase/client';
 import { ShieldOff } from 'lucide-react';
 
 interface EditSupplierContactDialogProps {
@@ -21,6 +22,16 @@ interface EditSupplierContactDialogProps {
 
 export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave, isPending, isAdmin }: EditSupplierContactDialogProps) {
   const { methods, getModalitiesForMethod } = usePaymentMethods();
+  const [supplierTypes, setSupplierTypes] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('supplier_types')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
+      .then(({ data }) => setSupplierTypes(data || []));
+  }, []);
 
   const [form, setForm] = useState({
     name: '',
@@ -32,6 +43,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
     vat_number: '',
     siren: '',
     specialty: '',
+    supplier_type_id: '' as string,
     is_po_exempt: false,
     default_payment_method_id: '' as string,
     default_payment_modality_id: '' as string,
@@ -49,6 +61,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
         vat_number: (supplier as any).vat_number || '',
         siren: (supplier as any).siren || '',
         specialty: supplier.specialty || '',
+        supplier_type_id: supplier.supplier_type_id || '',
         is_po_exempt: supplier.is_po_exempt || false,
         default_payment_method_id: supplier.default_payment_method_id || '',
         default_payment_modality_id: supplier.default_payment_modality_id || '',
@@ -72,6 +85,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
       vat_number: form.vat_number || null,
       siren: form.siren || null,
       specialty: form.specialty || null,
+      supplier_type_id: form.supplier_type_id || null,
       is_po_exempt: form.is_po_exempt,
       default_payment_method_id: form.default_payment_method_id || null,
       default_payment_modality_id: form.default_payment_modality_id || null,
@@ -125,9 +139,28 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
               <Input id="country" value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="specialty">Spécialité</Label>
-            <Input id="specialty" value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Activité / Métier</Label>
+              <Select
+                value={form.supplier_type_id || 'none'}
+                onValueChange={v => setForm(f => ({ ...f, supplier_type_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Non classé" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non classé</SelectItem>
+                  {supplierTypes.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="specialty">Spécialité</Label>
+              <Input id="specialty" value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} />
+            </div>
           </div>
 
           <Separator />
