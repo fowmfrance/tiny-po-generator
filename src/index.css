@@ -4,47 +4,48 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Slate-50 */
-    --foreground: 215 25% 17%; /* Slate-900 */
-    
-    --primary: 215 25% 17%; /* Slate-900 */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 210 18% 96%; /* Slate-100 */
-    --secondary-foreground: 215 25% 17%;
-    
-    --muted: 210 18% 96%;
-    --muted-foreground: 215 16% 47%; /* Slate-500 */
-    
-    --accent: 217 91% 60%; /* Blue-500 */
-    --accent-foreground: 0 0% 100%;
+    /* Palette Kiosco — papier chaud (jamais blanc pur) */
+    --background: 43 41% 97%; /* paper #FAF8F3 */
+    --foreground: 50 13% 9%; /* ink #1A1914 */
 
-    --brand: 15 63% 60%; /* Terracotta #D97757 - Sapajoo brand accent */
+    --primary: 50 13% 9%; /* ink */
+    --primary-foreground: 43 41% 97%; /* paper */
+
+    --secondary: 42 35% 93%; /* cream #F3EFE6 */
+    --secondary-foreground: 50 13% 9%;
+
+    --muted: 42 35% 93%; /* cream */
+    --muted-foreground: 44 5% 40%; /* ash #6B6860 */
+
+    --accent: 42 35% 93%; /* cream (hover subtil) */
+    --accent-foreground: 50 13% 9%;
+
+    --brand: 15 63% 60%; /* Terracotta #D97757 - accent Sapajoo (conservé) */
     --brand-foreground: 0 0% 100%;
-    --brand-subtle: 18 75% 96%; /* Light terracotta tint for backgrounds */
+    --brand-subtle: 18 75% 96%; /* tint terracotta clair */
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 17%;
+    --card: 43 78% 98%; /* warm white #FEFCF7 */
+    --card-foreground: 50 13% 9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 17%;
+    --popover: 43 78% 98%;
+    --popover-foreground: 50 13% 9%;
 
-    --border: 214 32% 91%; /* Gray-200 */
-    --input: 214 32% 91%;
-    --ring: 15 63% 60%; /* Terracotta focus ring */
-    
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --border: 41 24% 87%; /* hairline #E6E1D6 */
+    --input: 41 24% 87%;
+    --ring: 15 63% 60%; /* focus terracotta */
 
-    --sidebar-background: 215 25% 17%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --destructive: 9 57% 39%; /* brique #9B3B2A */
+    --destructive-foreground: 43 41% 97%;
+
+    --sidebar-background: 50 13% 9%; /* ink (warm near-black) */
+    --sidebar-foreground: 43 41% 97%; /* paper */
+    --sidebar-primary: 15 63% 60%; /* terracotta */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 27%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 25% 27%;
-    --sidebar-ring: 217 91% 60%;
-    
+    --sidebar-accent: 48 8% 18%; /* warm dark hover */
+    --sidebar-accent-foreground: 43 41% 97%;
+    --sidebar-border: 48 8% 18%;
+    --sidebar-ring: 15 63% 60%;
+
     --radius: 0.75rem;
   }
 
@@ -100,6 +101,19 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Titres en Young Serif (romain), signature éditoriale Kiosco */
+  h1, h2, h3 {
+    @apply font-serif font-normal tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Chiffres scannables : JetBrains Mono tabular-nums (montants, KPI, codes) */
+  .num {
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 

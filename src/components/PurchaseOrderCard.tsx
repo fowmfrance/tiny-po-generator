@@ -60,7 +60,7 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
           <div className="text-xs text-muted-foreground truncate">{poNumber}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-base font-semibold text-foreground tabular-nums">
+          <div className="num text-base font-semibold text-foreground">
             {formatCurrency(amount)}
           </div>
           <div className={`text-[11px] flex items-center gap-1 justify-end ${meta.text}`}>

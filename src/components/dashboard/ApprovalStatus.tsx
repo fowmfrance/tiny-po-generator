@@ -34,7 +34,7 @@ const ApprovalStatus = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold mb-1 ${pendingApproval > 0 ? 'text-amber-600' : 'text-foreground'}`}>{pendingApproval}</div>
+          <div className={`num text-2xl font-bold mb-1 ${pendingApproval > 0 ? 'text-amber-600' : 'text-foreground'}`}>{pendingApproval}</div>
           <div className="text-xs text-muted-foreground">
             BC en attente d'approbation
           </div>
@@ -55,7 +55,7 @@ const ApprovalStatus = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold mb-1 ${overdueInvoices > 0 ? 'text-red-600' : 'text-foreground'}`}>{overdueInvoices}</div>
+          <div className={`num text-2xl font-bold mb-1 ${overdueInvoices > 0 ? 'text-red-600' : 'text-foreground'}`}>{overdueInvoices}</div>
           <div className="text-xs text-muted-foreground">
             Factures en retard
           </div>
@@ -76,7 +76,7 @@ const ApprovalStatus = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold mb-1 ${completedThisMonth > 0 ? 'text-emerald-600' : 'text-foreground'}`}>{completedThisMonth}</div>
+          <div className={`num text-2xl font-bold mb-1 ${completedThisMonth > 0 ? 'text-emerald-600' : 'text-foreground'}`}>{completedThisMonth}</div>
           <div className="text-xs text-muted-foreground">
             BC exécutés ce mois-ci
           </div>

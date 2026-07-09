@@ -60,7 +60,7 @@ const StatsOverview = () => {
             <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
             <stat.icon className={`h-5 w-5 ${stat.highlight ? 'text-brand' : 'text-muted-foreground'}`} />
           </div>
-          <div className={`text-3xl font-bold tracking-tight ${stat.highlight ? 'text-brand' : 'text-foreground'}`}>
+          <div className={`num text-3xl font-bold tracking-tight ${stat.highlight ? 'text-brand' : 'text-foreground'}`}>
             {stat.value}
           </div>
           {stat.progress !== undefined && (
