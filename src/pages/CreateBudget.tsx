@@ -16,6 +16,21 @@ import { FinancialDetailsCard } from '@/components/create-budget/FinancialDetail
 import { ExpenseTypesCard } from '@/components/create-budget/ExpenseTypesCard';
 import { RecognitionMethodCard } from '@/components/create-budget/RecognitionMethodCard';
 import { FormValues, BUDGET_TYPES, MILESTONE_METHOD_CODE, formatBudgetCode } from '@/components/create-budget/types';
+import { useBudgetsData } from '@/hooks/useBudgetsData';
+
+// Préfixe d'un format de code (ex 'PR{YY}-{NNN}' -> 'PR26-') pour l'année courante
+const codePrefix = (poFormat: string) => {
+  const year = new Date().getFullYear().toString();
+  return poFormat.replace('{YYYY}', year).replace('{YY}', year.slice(-2)).replace('{NNN}', '');
+};
+
+// Plus grand numéro déjà utilisé pour ce préfixe (tient compte des suppressions)
+const maxSuffixForPrefix = (codes: (string | null | undefined)[], prefix: string) =>
+  codes.reduce((max, code) => {
+    if (!code || !code.startsWith(prefix)) return max;
+    const n = parseInt(code.slice(prefix.length), 10);
+    return isNaN(n) ? max : Math.max(max, n);
+  }, 0);
 
 interface CreateBudgetProps {
   embedded?: boolean;
@@ -26,6 +41,7 @@ interface CreateBudgetProps {
 const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetProps = {}) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { budgets: existingBudgets } = useBudgetsData();
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
@@ -71,8 +87,10 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
   const generatedCode = useMemo(() => {
     const budgetType = BUDGET_TYPES.find(t => t.id === selectedBudgetTypeId);
     if (!budgetType) return '';
-    return formatBudgetCode(budgetType.poFormat, budgetType.currentSequence);
-  }, [selectedBudgetTypeId]);
+    const prefix = codePrefix(budgetType.poFormat);
+    const maxSuffix = maxSuffixForPrefix(existingBudgets.map(b => b.code), prefix);
+    return formatBudgetCode(budgetType.poFormat, maxSuffix);
+  }, [selectedBudgetTypeId, existingBudgets]);
 
   const selectedMethod = useMemo(() => {
     return recognitionMethods.find(m => m.id === selectedRecognitionMethodId);
@@ -99,12 +117,25 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
       const organizationId = await getCurrentOrganizationId();
       if (!organizationId) throw new Error('Aucune organisation associée au profil.');
 
+      // Numérotation robuste : on recalcule le prochain code depuis la base au
+      // moment de l'insert (donnée fraîche → +1 réel, tient compte des suppressions).
+      const budgetTypeForCode = BUDGET_TYPES.find(t => t.id === data.budgetTypeId);
+      const prefix = codePrefix(budgetTypeForCode?.poFormat || '');
+      const { data: existingCodes } = await supabase
+        .from('budgets')
+        .select('code')
+        .ilike('code', `${prefix}%`);
+      const nextCode = formatBudgetCode(
+        budgetTypeForCode?.poFormat || '',
+        maxSuffixForPrefix((existingCodes || []).map((b: any) => b.code), prefix)
+      );
+
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
         .insert({
           user_id: user.id,
           organization_id: organizationId,
-          code: generatedCode,
+          code: nextCode,
           name: data.name,
           budget_type_id: data.budgetTypeId,
           currency: data.currency,
@@ -195,7 +226,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
       }
       toast({
         title: "Budget créé",
-        description: `Le budget ${generatedCode} a été créé avec succès.`,
+        description: `Le budget ${budget.code} a été créé avec succès.`,
         action: (
           <Button
             variant="outline"
