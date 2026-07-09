@@ -77,6 +77,7 @@ interface Transaction {
   qonto_status: string;
   qonto_category: string | null;
   qonto_operation_type: string | null;
+  qonto_reference: string | null;
   sapajoo_category_id: string | null;
   project_code: string | null;
   supplier_id: string | null;
@@ -111,7 +112,12 @@ const Banks = () => {
   });
   const navigate = useNavigate();
   const { budgets } = useBudgetsData();
-  const { suppliers } = useSuppliers();
+  const { suppliers, createSupplier } = useSuppliers();
+  const [isCreateSupplierOpen, setIsCreateSupplierOpen] = useState(false);
+  const [createForTxId, setCreateForTxId] = useState<string | null>(null);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [newSupplierEmail, setNewSupplierEmail] = useState('');
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
 
   useEffect(() => {
     loadConnections();
@@ -449,9 +455,40 @@ const Banks = () => {
       return;
     }
 
-    setTransactions(prev => prev.map(tx => 
+    setTransactions(prev => prev.map(tx =>
       tx.id === transactionId ? { ...tx, [field]: value } : tx
     ));
+  };
+
+  const handleCreateSupplier = async () => {
+    const name = newSupplierName.trim();
+    if (!name) {
+      toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du fournisseur.', variant: 'destructive' });
+      return;
+    }
+    setCreatingSupplier(true);
+    try {
+      const created: any = await createSupplier.mutateAsync({
+        name,
+        email: newSupplierEmail.trim() || `${name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '')}@a-renseigner.local`,
+      });
+      if (createForTxId && created?.id) {
+        await updateTransaction(createForTxId, 'supplier_id', created.id);
+      }
+      toast({ title: 'Fournisseur créé', description: `${name} a été créé et rattaché.` });
+      setIsCreateSupplierOpen(false);
+      setNewSupplierName('');
+      setNewSupplierEmail('');
+      setCreateForTxId(null);
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Impossible de créer le fournisseur.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingSupplier(false);
+    }
   };
 
   const handleDisconnect = async (connectionId: string) => {
@@ -808,13 +845,20 @@ const Banks = () => {
                               <TableCell>
                                 {new Date(tx.qonto_settled_at || tx.qonto_emitted_at || '').toLocaleDateString('fr-FR')}
                               </TableCell>
-                              <TableCell className="flex items-center gap-2">
-                                {tx.qonto_side === 'credit' ? (
-                                  <ArrowDownLeft className="w-4 h-4 text-green-500" />
-                                ) : (
-                                  <ArrowUpRight className="w-4 h-4 text-red-500" />
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {tx.qonto_side === 'credit' ? (
+                                    <ArrowDownLeft className="w-4 h-4 text-green-500 shrink-0" />
+                                  ) : (
+                                    <ArrowUpRight className="w-4 h-4 text-red-500 shrink-0" />
+                                  )}
+                                  <span>{tx.qonto_label || 'Sans libellé'}</span>
+                                </div>
+                                {tx.qonto_reference && (
+                                  <div className="text-xs text-muted-foreground mt-0.5 ml-6">
+                                    Réf : {tx.qonto_reference}
+                                  </div>
                                 )}
-                                {tx.qonto_label || 'Sans libellé'}
                               </TableCell>
                               <TableCell>
                                 <span className="text-sm text-muted-foreground">
@@ -845,13 +889,25 @@ const Banks = () => {
                               <TableCell>
                                 <Select
                                   value={tx.supplier_id || 'none'}
-                                  onValueChange={(value) => updateTransaction(tx.id, 'supplier_id', value === 'none' ? null : value)}
+                                  onValueChange={(value) => {
+                                    if (value === '__new__') {
+                                      setCreateForTxId(tx.id);
+                                      setNewSupplierName(tx.qonto_label || '');
+                                      setNewSupplierEmail('');
+                                      setIsCreateSupplierOpen(true);
+                                      return;
+                                    }
+                                    updateTransaction(tx.id, 'supplier_id', value === 'none' ? null : value);
+                                  }}
                                 >
                                   <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Fournisseur" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none">Non rattaché</SelectItem>
+                                    <SelectItem value="__new__" className="text-brand font-medium">
+                                      + Nouveau fournisseur
+                                    </SelectItem>
                                     {suppliers.map(s => (
                                       <SelectItem key={s.id} value={s.id}>
                                         {s.name}
@@ -914,6 +970,42 @@ const Banks = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isCreateSupplierOpen} onOpenChange={setIsCreateSupplierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau fournisseur</DialogTitle>
+            <DialogDescription>Créez un fournisseur et rattachez-le à la transaction.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-supplier-name">Nom</Label>
+              <Input
+                id="new-supplier-name"
+                value={newSupplierName}
+                onChange={(e) => setNewSupplierName(e.target.value)}
+                placeholder="Nom du fournisseur"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-supplier-email">Email (optionnel)</Label>
+              <Input
+                id="new-supplier-email"
+                type="email"
+                value={newSupplierEmail}
+                onChange={(e) => setNewSupplierEmail(e.target.value)}
+                placeholder="contact@fournisseur.com"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsCreateSupplierOpen(false)}>Annuler</Button>
+            <Button onClick={handleCreateSupplier} disabled={creatingSupplier}>
+              {creatingSupplier ? 'Création…' : 'Créer et rattacher'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
