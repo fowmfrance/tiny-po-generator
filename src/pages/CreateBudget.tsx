@@ -128,6 +128,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
         if (milestoneMode === 'global' && milestones.length > 0) {
           milestonesData = milestones.map((m, index) => ({
             budget_id: budget.id,
+            organization_id: organizationId,
             title: m.title,
             description: m.description || null,
             target_date: m.targetDate.toISOString().split('T')[0],
@@ -143,6 +144,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
             block.milestones.forEach(m => {
               milestonesData.push({
                 budget_id: budget.id,
+                organization_id: organizationId,
                 title: m.title,
                 description: m.description || null,
                 target_date: m.targetDate.toISOString().split('T')[0],
