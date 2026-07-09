@@ -453,9 +453,10 @@ const Banks = () => {
       .eq('id', transactionId);
 
     if (error) {
+      console.error('updateTransaction error:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la transaction",
+        title: "Impossible de mettre à jour",
+        description: error.message || "Erreur inconnue.",
         variant: "destructive",
       });
       return;
@@ -848,8 +849,9 @@ const Banks = () => {
                         Aucune opération trouvée depuis le {format(syncStartDate, "dd MMMM yyyy", { locale: fr })}
                       </p>
                     ) : (
+                      <div className="max-h-[calc(100vh-22rem)] overflow-auto rounded-md border border-border">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 z-10 bg-secondary [&_th]:bg-secondary">
                           <TableRow>
                             {showBankAvatar && <TableHead className="w-8"></TableHead>}
                             <TableHead>Date</TableHead>
@@ -999,6 +1001,7 @@ const Banks = () => {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
