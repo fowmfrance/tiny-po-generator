@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Settings, CalendarIcon } from 'lucide-react';
+import { Plus, Building2, Link2, Trash2, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Settings, CalendarIcon, Users, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymen
 import { getInitials, getMonogramColor } from '@/utils/monogram';
 import CreateBudget from '@/pages/CreateBudget';
 import VendorDetail from '@/pages/VendorDetail';
+import { findSupplierMatches, findSiblingTransactions, type SupplierMatch } from '@/utils/fuzzyMatch';
 
 interface BankAccount {
   slug: string;
@@ -125,6 +126,12 @@ const Banks = () => {
   const [newSupplierName, setNewSupplierName] = useState('');
   const [newSupplierEmail, setNewSupplierEmail] = useState('');
   const [creatingSupplier, setCreatingSupplier] = useState(false);
+  // Inc B — dédup : fournisseurs existants proches du nom saisi
+  const [dedupCandidates, setDedupCandidates] = useState<SupplierMatch<typeof suppliers[number]>[]>([]);
+  // Rattachement en masse des transactions au même libellé
+  const [siblingTxs, setSiblingTxs] = useState<Transaction[]>([]);
+  const [siblingTarget, setSiblingTarget] = useState<{ id: string; name: string } | null>(null);
+  const [attachingSiblings, setAttachingSiblings] = useState(false);
 
   useEffect(() => {
     loadConnections();
@@ -469,11 +476,51 @@ const Banks = () => {
     ));
   };
 
-  const handleCreateSupplier = async () => {
+  const resetCreateSupplierForm = () => {
+    setIsCreateSupplierOpen(false);
+    setNewSupplierName('');
+    setNewSupplierEmail('');
+    setCreateForTxId(null);
+    setDedupCandidates([]);
+  };
+
+  // Après liaison (nouveau ou existant) : proposer de rattacher les autres
+  // transactions non liées au même libellé. On exclut la transaction qui vient
+  // d'être liée (dont l'état local n'est pas encore propagé dans `transactions`).
+  const proposeSiblings = (supplierId: string, supplierName: string, excludeTxId: string | null) => {
+    const siblings = findSiblingTransactions(supplierName, transactions).filter(
+      (tx) => tx.id !== excludeTxId && !tx.supplier_id,
+    );
+    if (siblings.length > 0) {
+      setSiblingTxs(siblings);
+      setSiblingTarget({ id: supplierId, name: supplierName });
+    }
+  };
+
+  // Lier la transaction courante à un fournisseur existant (dédup).
+  const handleLinkExisting = async (supplier: { id: string; name: string }) => {
+    const txId = createForTxId;
+    if (txId) {
+      await updateTransaction(txId, 'supplier_id', supplier.id);
+    }
+    resetCreateSupplierForm();
+    proposeSiblings(supplier.id, supplier.name, txId);
+    toast({ title: 'Transaction rattachée', description: `Rattachée au fournisseur existant « ${supplier.name} ».` });
+  };
+
+  const handleCreateSupplier = async (force = false) => {
     const name = newSupplierName.trim();
     if (!name) {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du fournisseur.', variant: 'destructive' });
       return;
+    }
+    // Garde dédup : si des fournisseurs proches existent, on les propose d'abord.
+    if (!force) {
+      const matches = findSupplierMatches(name, suppliers);
+      if (matches.length > 0) {
+        setDedupCandidates(matches);
+        return;
+      }
     }
     setCreatingSupplier(true);
     try {
@@ -481,14 +528,15 @@ const Banks = () => {
         name,
         email: newSupplierEmail.trim() || `${name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '')}@a-renseigner.local`,
       });
-      if (createForTxId && created?.id) {
-        await updateTransaction(createForTxId, 'supplier_id', created.id);
+      const txId = createForTxId;
+      if (txId && created?.id) {
+        await updateTransaction(txId, 'supplier_id', created.id);
       }
-      toast({ title: 'Fournisseur créé', description: `${name} a été créé et rattaché.` });
-      setIsCreateSupplierOpen(false);
-      setNewSupplierName('');
-      setNewSupplierEmail('');
-      setCreateForTxId(null);
+      const createdName: string = created?.name ?? name;
+      const createdId: string | undefined = created?.id;
+      resetCreateSupplierForm();
+      if (createdId) proposeSiblings(createdId, createdName, txId);
+      toast({ title: 'Fournisseur créé', description: `${createdName} a été créé et rattaché.` });
     } catch (err) {
       toast({
         title: 'Erreur',
@@ -497,6 +545,30 @@ const Banks = () => {
       });
     } finally {
       setCreatingSupplier(false);
+    }
+  };
+
+  const handleAttachSiblings = async () => {
+    if (!siblingTarget) return;
+    setAttachingSiblings(true);
+    try {
+      for (const tx of siblingTxs) {
+        await updateTransaction(tx.id, 'supplier_id', siblingTarget.id);
+      }
+      toast({
+        title: 'Transactions rattachées',
+        description: `${siblingTxs.length} transaction(s) rattachée(s) à « ${siblingTarget.name} ».`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Rattachement partiel — réessayez.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAttachingSiblings(false);
+      setSiblingTxs([]);
+      setSiblingTarget(null);
     }
   };
 
@@ -926,6 +998,7 @@ const Banks = () => {
                                       setCreateForTxId(tx.id);
                                       setNewSupplierName(tx.qonto_label || '');
                                       setNewSupplierEmail('');
+                                      setDedupCandidates([]);
                                       setIsCreateSupplierOpen(true);
                                       return;
                                     }
@@ -1025,7 +1098,7 @@ const Banks = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isCreateSupplierOpen} onOpenChange={setIsCreateSupplierOpen}>
+      <Dialog open={isCreateSupplierOpen} onOpenChange={(o) => { if (!o) resetCreateSupplierForm(); else setIsCreateSupplierOpen(true); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nouveau fournisseur</DialogTitle>
@@ -1037,10 +1110,34 @@ const Banks = () => {
               <Input
                 id="new-supplier-name"
                 value={newSupplierName}
-                onChange={(e) => setNewSupplierName(e.target.value)}
+                onChange={(e) => { setNewSupplierName(e.target.value); setDedupCandidates([]); }}
                 placeholder="Nom du fournisseur"
               />
             </div>
+            {dedupCandidates.length > 0 && (
+              <div className="rounded-lg border border-brand/30 bg-brand-subtle/60 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-brand">
+                  <Sparkles className="h-4 w-4" />
+                  Fournisseur similaire déjà existant
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Liez la transaction à un fournisseur existant plutôt que de créer un doublon.
+                </p>
+                <div className="space-y-1.5">
+                  {dedupCandidates.map(({ supplier, score }) => (
+                    <div key={supplier.id} className="flex items-center justify-between gap-2 rounded-md bg-background/70 px-2.5 py-1.5">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="truncate text-sm font-medium">{supplier.name}</span>
+                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{Math.round(score * 100)}%</span>
+                      </span>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0" onClick={() => handleLinkExisting(supplier)}>
+                        <Link2 className="h-3.5 w-3.5 mr-1" /> Lier
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="new-supplier-email">Email (optionnel)</Label>
               <Input
@@ -1053,9 +1150,40 @@ const Banks = () => {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsCreateSupplierOpen(false)}>Annuler</Button>
-            <Button onClick={handleCreateSupplier} disabled={creatingSupplier}>
-              {creatingSupplier ? 'Création…' : 'Créer et rattacher'}
+            <Button variant="outline" onClick={resetCreateSupplierForm}>Annuler</Button>
+            <Button onClick={() => handleCreateSupplier(dedupCandidates.length > 0)} disabled={creatingSupplier}>
+              {creatingSupplier ? 'Création…' : dedupCandidates.length > 0 ? 'Créer quand même' : 'Créer et rattacher'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={siblingTxs.length > 0} onOpenChange={(o) => { if (!o) { setSiblingTxs([]); setSiblingTarget(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-brand" />
+              Rattacher les transactions similaires
+            </DialogTitle>
+            <DialogDescription>
+              {siblingTxs.length} autre(s) transaction(s) non rattachée(s) portent le même libellé que
+              {siblingTarget ? ` « ${siblingTarget.name} »` : ''}. Les rattacher aussi ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-64 overflow-y-auto space-y-1 py-1">
+            {siblingTxs.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between gap-2 rounded-md border border-border/60 px-2.5 py-1.5 text-sm">
+                <span className="truncate">{tx.qonto_label}</span>
+                <span className="shrink-0 tabular-nums text-muted-foreground">
+                  {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: tx.qonto_currency || 'EUR' }).format(tx.qonto_amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setSiblingTxs([]); setSiblingTarget(null); }}>Ignorer</Button>
+            <Button onClick={handleAttachSiblings} disabled={attachingSiblings}>
+              {attachingSiblings ? 'Rattachement…' : `Rattacher les ${siblingTxs.length}`}
             </Button>
           </div>
         </DialogContent>
