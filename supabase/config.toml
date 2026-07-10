@@ -23,3 +23,22 @@ verify_jwt = false
 
 [functions.supplier-upload-invoice]
 verify_jwt = false
+
+# --- Module Frais & Attribution (Sprint 1) ---
+[functions.google-oauth-start]
+verify_jwt = true
+
+[functions.google-oauth-callback]
+verify_jwt = false   # Google redirige le navigateur sans JWT (identité via state)
+
+[functions.sync-calendar]
+verify_jwt = false   # JWT user OU secret cron (x-cron-secret)
+
+[functions.google-calendar-webhook]
+verify_jwt = false   # push Google, sans JWT (anti-spoof via X-Goog-Channel-Id)
+
+[functions.match-expense]
+verify_jwt = false   # trigger DB / cron OU JWT user
+
+[functions.ocr-receipt]
+verify_jwt = false   # appelé après upload (JWT user) ou trigger storage
