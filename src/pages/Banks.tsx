@@ -21,6 +21,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
 import { getInitials, getMonogramColor } from '@/utils/monogram';
 import CreateBudget from '@/pages/CreateBudget';
+import VendorDetail from '@/pages/VendorDetail';
 
 interface BankAccount {
   slug: string;
@@ -118,6 +119,7 @@ const Banks = () => {
   const { suppliers, createSupplier } = useSuppliers();
   const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
   const [createBudgetForTxId, setCreateBudgetForTxId] = useState<string | null>(null);
+  const [viewSupplierId, setViewSupplierId] = useState<string | null>(null);
   const [isCreateSupplierOpen, setIsCreateSupplierOpen] = useState(false);
   const [createForTxId, setCreateForTxId] = useState<string | null>(null);
   const [newSupplierName, setNewSupplierName] = useState('');
@@ -916,6 +918,7 @@ const Banks = () => {
                                 </Select>
                               </TableCell>
                               <TableCell>
+                                <div className="flex items-center gap-1.5">
                                 <Select
                                   value={tx.supplier_id || 'none'}
                                   onValueChange={(value) => {
@@ -929,7 +932,7 @@ const Banks = () => {
                                     updateTransaction(tx.id, 'supplier_id', value === 'none' ? null : value);
                                   }}
                                 >
-                                  <SelectTrigger className="w-[180px]">
+                                  <SelectTrigger className={`w-[180px] ${tx.supplier_id ? 'border-brand text-brand font-medium' : ''}`}>
                                     <SelectValue placeholder="Fournisseur" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -944,6 +947,17 @@ const Banks = () => {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                {tx.supplier_id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewSupplierId(tx.supplier_id)}
+                                    title="Ouvrir la fiche fournisseur"
+                                    className="text-brand hover:text-brand/70 shrink-0"
+                                  >
+                                    <Link2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 {(() => {
@@ -1070,6 +1084,12 @@ const Banks = () => {
               setCreateBudgetForTxId(null);
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewSupplierId} onOpenChange={(o) => !o && setViewSupplierId(null)}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+          {viewSupplierId && <VendorDetail embedded supplierId={viewSupplierId} />}
         </DialogContent>
       </Dialog>
     </div>

@@ -45,8 +45,14 @@ function getFilterDate(period: PeriodFilter): Date | null {
   }
 }
 
-const VendorDetail = () => {
-  const { id } = useParams<{ id: string }>();
+interface VendorDetailProps {
+  supplierId?: string;
+  embedded?: boolean;
+}
+
+const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) => {
+  const { id: paramId } = useParams<{ id: string }>();
+  const id = supplierId || paramId;
   const navigate = useNavigate();
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
@@ -153,9 +159,11 @@ const VendorDetail = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <Button variant="outline" onClick={() => navigate('/vendors')} className="flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
-        </Button>
+        {!embedded ? (
+          <Button variant="outline" onClick={() => navigate('/vendors')} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" /> Retour aux fournisseurs
+          </Button>
+        ) : <div />}
         <div className="flex items-center gap-2">
           {isAdmin && (
             <Button 
