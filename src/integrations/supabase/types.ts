@@ -84,10 +84,10 @@ export type Database = {
           encryption_iv: string | null
           id: string
           is_active: boolean | null
-          login: string
-          organization_id: string
+          login: string | null
+          organization_id: string | null
           organization_name: string | null
-          secret_key: string
+          secret_key: string | null
           updated_at: string
           user_id: string
         }
@@ -100,10 +100,10 @@ export type Database = {
           encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
-          login: string
-          organization_id: string
+          login?: string | null
+          organization_id?: string | null
           organization_name?: string | null
-          secret_key: string
+          secret_key?: string | null
           updated_at?: string
           user_id: string
         }
@@ -116,10 +116,10 @@ export type Database = {
           encryption_iv?: string | null
           id?: string
           is_active?: boolean | null
-          login?: string
-          organization_id?: string
+          login?: string | null
+          organization_id?: string | null
           organization_name?: string | null
-          secret_key?: string
+          secret_key?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2160,6 +2160,13 @@ export type Database = {
             columns: ["sapajoo_category_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
