@@ -491,6 +491,7 @@ const SupplierPOView = () => {
             <TabsContent value="kyc">
               <SupplierKYCTab
                 supplierId={supplier.id}
+                portalToken={token}
                 initialSupplier={{
                   kyc_level_id: supplier.kyc_level_id,
                   kyc_status: supplier.kyc_status,
