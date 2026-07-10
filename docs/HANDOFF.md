@@ -30,7 +30,7 @@ Document pour un agent reprenant le projet à contexte propre. À lire avec `doc
 - **Landing + app** : emojis → Lucide.
 
 ## 5. Threads ouverts (next steps)
-- **Inc B — dédup fuzzy** (le plus utile) : à la création d'un fournisseur depuis une transaction, crawl fuzzy serré sur le nom vs fournisseurs existants + libellés d'autres transactions → proposer de lier plutôt que dupliquer + rattacher auto les transactions du même libellé. (Cf. le doublon « HELDER FERREIRA FILM ».)
+- ✅ **Inc B — dédup fuzzy** (livré, commit `3348580`) : à la création d'un fournisseur depuis une transaction, rapprochement flou du nom saisi vs fournisseurs existants (`src/utils/fuzzyMatch.ts` — Levenshtein + recouvrement de tokens, normalisation formes juridiques/bruit bancaire, seuil 0.72) → dialog propose de **lier** au lieu de dupliquer, sinon « Créer quand même ». Après liaison, dialog de **rattachement en masse** des autres transactions non liées au même libellé (seuil 0.85). Logique testée (cas HELDER + non-régressions), tsc + build OK. _Reste possible : régler les seuils sur données réelles, ou persister les paires « ignoré » pour ne pas re-proposer._
 - **FNP increment 3** : pondération fine du « réalisé » par jalons (au lieu du taux global), persistance `accrual_runs`, export format Pennylane/Cegid.
 - **Numérotation budgets 100 % atomique** : trigger/séquence DB (actuellement calcul client à l'insert, race théorique en multi-user).
 - **Éditer les jalons** d'un budget existant (`EditBudgetDialog` n'édite que nom/montant/dates).
