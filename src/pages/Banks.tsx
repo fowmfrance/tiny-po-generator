@@ -18,11 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useClients } from '@/hooks/useClients';
 import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
 import { getInitials, getMonogramColor } from '@/utils/monogram';
 import CreateBudget from '@/pages/CreateBudget';
 import VendorDetail from '@/pages/VendorDetail';
-import { findSupplierMatches, findSiblingTransactions, type SupplierMatch } from '@/utils/fuzzyMatch';
+import ClientDetail from '@/pages/ClientDetail';
+import TiersCell from '@/components/banks/TiersCell';
+import { findSupplierMatches, nameSimilarity, type SupplierMatch } from '@/utils/fuzzyMatch';
 
 interface BankAccount {
   slug: string;
@@ -86,6 +89,7 @@ interface Transaction {
   sapajoo_category_id: string | null;
   project_code: string | null;
   supplier_id: string | null;
+  client_id: string | null;
 }
 
 interface ExpenseCategory {
@@ -118,19 +122,27 @@ const Banks = () => {
   const navigate = useNavigate();
   const { budgets, refetch: refetchBudgets } = useBudgetsData();
   const { suppliers, createSupplier } = useSuppliers();
+  const { clients, createClient } = useClients();
   const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
   const [createBudgetForTxId, setCreateBudgetForTxId] = useState<string | null>(null);
   const [viewSupplierId, setViewSupplierId] = useState<string | null>(null);
+  const [viewClientId, setViewClientId] = useState<string | null>(null);
   const [isCreateSupplierOpen, setIsCreateSupplierOpen] = useState(false);
   const [createForTxId, setCreateForTxId] = useState<string | null>(null);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [newSupplierEmail, setNewSupplierEmail] = useState('');
   const [creatingSupplier, setCreatingSupplier] = useState(false);
-  // Inc B — dédup : fournisseurs existants proches du nom saisi
+  // Création client (fiche minimale : nom seul)
+  const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+  const [createClientForTxId, setCreateClientForTxId] = useState<string | null>(null);
+  const [newClientName, setNewClientName] = useState('');
+  const [creatingClient, setCreatingClient] = useState(false);
+  // Inc B — dédup : tiers existants proches du nom saisi
   const [dedupCandidates, setDedupCandidates] = useState<SupplierMatch<typeof suppliers[number]>[]>([]);
+  const [clientDedupCandidates, setClientDedupCandidates] = useState<SupplierMatch<typeof clients[number]>[]>([]);
   // Rattachement en masse des transactions au même libellé
   const [siblingTxs, setSiblingTxs] = useState<Transaction[]>([]);
-  const [siblingTarget, setSiblingTarget] = useState<{ id: string; name: string } | null>(null);
+  const [siblingTarget, setSiblingTarget] = useState<{ id: string; name: string; kind: 'supplier' | 'client' } | null>(null);
   const [attachingSiblings, setAttachingSiblings] = useState(false);
 
   useEffect(() => {
@@ -476,6 +488,26 @@ const Banks = () => {
     ));
   };
 
+  // Écrit le tiers (fournisseur XOR client) en une seule mise à jour : on pose
+  // l'un et on efface l'autre pour éviter un double rattachement.
+  const updateTransactionTiers = async (
+    transactionId: string,
+    patch: { supplier_id: string | null; client_id: string | null },
+  ) => {
+    const { error } = await supabase
+      .from('transactions')
+      .update(patch)
+      .eq('id', transactionId);
+
+    if (error) {
+      console.error('updateTransactionTiers error:', error);
+      toast({ title: 'Impossible de mettre à jour', description: error.message || 'Erreur inconnue.', variant: 'destructive' });
+      return;
+    }
+
+    setTransactions(prev => prev.map(tx => (tx.id === transactionId ? { ...tx, ...patch } : tx)));
+  };
+
   const resetCreateSupplierForm = () => {
     setIsCreateSupplierOpen(false);
     setNewSupplierName('');
@@ -484,16 +516,49 @@ const Banks = () => {
     setDedupCandidates([]);
   };
 
+  const resetCreateClientForm = () => {
+    setIsCreateClientOpen(false);
+    setNewClientName('');
+    setCreateClientForTxId(null);
+    setClientDedupCandidates([]);
+  };
+
+  // Ouvre le dialog de création depuis la cellule Tiers, pré-rempli du libellé.
+  const openCreateSupplier = (tx: Transaction) => {
+    setCreateForTxId(tx.id);
+    setNewSupplierName(tx.qonto_label || '');
+    setNewSupplierEmail('');
+    setDedupCandidates([]);
+    setIsCreateSupplierOpen(true);
+  };
+  const openCreateClient = (tx: Transaction) => {
+    setCreateClientForTxId(tx.id);
+    setNewClientName(tx.qonto_label || '');
+    setClientDedupCandidates([]);
+    setIsCreateClientOpen(true);
+  };
+
   // Après liaison (nouveau ou existant) : proposer de rattacher les autres
-  // transactions non liées au même libellé. On exclut la transaction qui vient
-  // d'être liée (dont l'état local n'est pas encore propagé dans `transactions`).
-  const proposeSiblings = (supplierId: string, supplierName: string, excludeTxId: string | null) => {
-    const siblings = findSiblingTransactions(supplierName, transactions).filter(
-      (tx) => tx.id !== excludeTxId && !tx.supplier_id,
+  // transactions non liées, de même signe, au même libellé. On exclut la
+  // transaction qui vient d'être liée (état local pas encore propagé).
+  const proposeSiblings = (
+    kind: 'supplier' | 'client',
+    id: string,
+    name: string,
+    excludeTxId: string | null,
+  ) => {
+    const wantCredit = kind === 'client';
+    const siblings = transactions.filter(
+      (tx) =>
+        tx.id !== excludeTxId &&
+        !tx.supplier_id &&
+        !tx.client_id &&
+        (tx.qonto_side === 'credit') === wantCredit &&
+        nameSimilarity(name, tx.qonto_label || '') >= 0.85,
     );
     if (siblings.length > 0) {
       setSiblingTxs(siblings);
-      setSiblingTarget({ id: supplierId, name: supplierName });
+      setSiblingTarget({ id, name, kind });
     }
   };
 
@@ -501,11 +566,22 @@ const Banks = () => {
   const handleLinkExisting = async (supplier: { id: string; name: string }) => {
     const txId = createForTxId;
     if (txId) {
-      await updateTransaction(txId, 'supplier_id', supplier.id);
+      await updateTransactionTiers(txId, { supplier_id: supplier.id, client_id: null });
     }
     resetCreateSupplierForm();
-    proposeSiblings(supplier.id, supplier.name, txId);
+    proposeSiblings('supplier', supplier.id, supplier.name, txId);
     toast({ title: 'Transaction rattachée', description: `Rattachée au fournisseur existant « ${supplier.name} ».` });
+  };
+
+  // Lier la transaction courante à un client existant (dédup).
+  const handleLinkExistingClient = async (client: { id: string; name: string }) => {
+    const txId = createClientForTxId;
+    if (txId) {
+      await updateTransactionTiers(txId, { supplier_id: null, client_id: client.id });
+    }
+    resetCreateClientForm();
+    proposeSiblings('client', client.id, client.name, txId);
+    toast({ title: 'Transaction rattachée', description: `Rattachée au client existant « ${client.name} ».` });
   };
 
   const handleCreateSupplier = async (force = false) => {
@@ -530,12 +606,12 @@ const Banks = () => {
       });
       const txId = createForTxId;
       if (txId && created?.id) {
-        await updateTransaction(txId, 'supplier_id', created.id);
+        await updateTransactionTiers(txId, { supplier_id: created.id, client_id: null });
       }
       const createdName: string = created?.name ?? name;
       const createdId: string | undefined = created?.id;
       resetCreateSupplierForm();
-      if (createdId) proposeSiblings(createdId, createdName, txId);
+      if (createdId) proposeSiblings('supplier', createdId, createdName, txId);
       toast({ title: 'Fournisseur créé', description: `${createdName} a été créé et rattaché.` });
     } catch (err) {
       toast({
@@ -548,12 +624,51 @@ const Banks = () => {
     }
   };
 
+  const handleCreateClient = async (force = false) => {
+    const name = newClientName.trim();
+    if (!name) {
+      toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du client.', variant: 'destructive' });
+      return;
+    }
+    if (!force) {
+      const matches = findSupplierMatches(name, clients);
+      if (matches.length > 0) {
+        setClientDedupCandidates(matches);
+        return;
+      }
+    }
+    setCreatingClient(true);
+    try {
+      const created: any = await createClient.mutateAsync({ name });
+      const txId = createClientForTxId;
+      if (txId && created?.id) {
+        await updateTransactionTiers(txId, { supplier_id: null, client_id: created.id });
+      }
+      const createdName: string = created?.name ?? name;
+      const createdId: string | undefined = created?.id;
+      resetCreateClientForm();
+      if (createdId) proposeSiblings('client', createdId, createdName, txId);
+      toast({ title: 'Client créé', description: `${createdName} a été créé et rattaché.` });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Impossible de créer le client.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingClient(false);
+    }
+  };
+
   const handleAttachSiblings = async () => {
     if (!siblingTarget) return;
     setAttachingSiblings(true);
+    const patch = siblingTarget.kind === 'supplier'
+      ? { supplier_id: siblingTarget.id, client_id: null }
+      : { supplier_id: null, client_id: siblingTarget.id };
     try {
       for (const tx of siblingTxs) {
-        await updateTransaction(tx.id, 'supplier_id', siblingTarget.id);
+        await updateTransactionTiers(tx.id, patch);
       }
       toast({
         title: 'Transactions rattachées',
@@ -932,7 +1047,7 @@ const Banks = () => {
                             <TableHead>Libellé</TableHead>
                             <TableHead>Catégorie Qonto</TableHead>
                             <TableHead>Catégorie Sapajoo</TableHead>
-                            <TableHead>Fournisseur</TableHead>
+                            <TableHead>Tiers</TableHead>
                             <TableHead>Mode</TableHead>
                             <TableHead>Code projet</TableHead>
                             <TableHead>Status</TableHead>
@@ -990,47 +1105,19 @@ const Banks = () => {
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                <Select
-                                  value={tx.supplier_id || 'none'}
-                                  onValueChange={(value) => {
-                                    if (value === '__new__') {
-                                      setCreateForTxId(tx.id);
-                                      setNewSupplierName(tx.qonto_label || '');
-                                      setNewSupplierEmail('');
-                                      setDedupCandidates([]);
-                                      setIsCreateSupplierOpen(true);
-                                      return;
-                                    }
-                                    updateTransaction(tx.id, 'supplier_id', value === 'none' ? null : value);
-                                  }}
-                                >
-                                  <SelectTrigger className={`w-[180px] ${tx.supplier_id ? 'border-brand text-brand font-medium' : ''}`}>
-                                    <SelectValue placeholder="Fournisseur" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Non rattaché</SelectItem>
-                                    <SelectItem value="__new__" className="text-brand font-medium">
-                                      + Nouveau fournisseur
-                                    </SelectItem>
-                                    {suppliers.map(s => (
-                                      <SelectItem key={s.id} value={s.id}>
-                                        {s.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                {tx.supplier_id && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewSupplierId(tx.supplier_id)}
-                                    title="Ouvrir la fiche fournisseur"
-                                    className="text-brand hover:text-brand/70 shrink-0"
-                                  >
-                                    <Link2 className="h-4 w-4" />
-                                  </button>
-                                )}
-                                </div>
+                                <TiersCell
+                                  txId={tx.id}
+                                  qontoSide={tx.qonto_side}
+                                  supplierId={tx.supplier_id}
+                                  clientId={tx.client_id}
+                                  suppliers={suppliers}
+                                  clients={clients}
+                                  onSave={(patch) => updateTransactionTiers(tx.id, patch)}
+                                  onCreateSupplier={() => openCreateSupplier(tx)}
+                                  onCreateClient={() => openCreateClient(tx)}
+                                  onOpenSupplier={(id) => setViewSupplierId(id)}
+                                  onOpenClient={(id) => setViewClientId(id)}
+                                />
                               </TableCell>
                               <TableCell>
                                 {(() => {
@@ -1158,6 +1245,56 @@ const Banks = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isCreateClientOpen} onOpenChange={(o) => { if (!o) resetCreateClientForm(); else setIsCreateClientOpen(true); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau client</DialogTitle>
+            <DialogDescription>Créez un client et rattachez-le à la transaction.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-client-name">Nom</Label>
+              <Input
+                id="new-client-name"
+                value={newClientName}
+                onChange={(e) => { setNewClientName(e.target.value); setClientDedupCandidates([]); }}
+                placeholder="Nom du client"
+              />
+            </div>
+            {clientDedupCandidates.length > 0 && (
+              <div className="rounded-lg border border-brand/30 bg-brand-subtle/60 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-brand">
+                  <Sparkles className="h-4 w-4" />
+                  Client similaire déjà existant
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Liez la transaction à un client existant plutôt que de créer un doublon.
+                </p>
+                <div className="space-y-1.5">
+                  {clientDedupCandidates.map(({ supplier: client, score }) => (
+                    <div key={client.id} className="flex items-center justify-between gap-2 rounded-md bg-background/70 px-2.5 py-1.5">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="truncate text-sm font-medium">{client.name}</span>
+                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{Math.round(score * 100)}%</span>
+                      </span>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0" onClick={() => handleLinkExistingClient(client)}>
+                        <Link2 className="h-3.5 w-3.5 mr-1" /> Lier
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={resetCreateClientForm}>Annuler</Button>
+            <Button onClick={() => handleCreateClient(clientDedupCandidates.length > 0)} disabled={creatingClient}>
+              {creatingClient ? 'Création…' : clientDedupCandidates.length > 0 ? 'Créer quand même' : 'Créer et rattacher'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={siblingTxs.length > 0} onOpenChange={(o) => { if (!o) { setSiblingTxs([]); setSiblingTarget(null); } }}>
         <DialogContent>
           <DialogHeader>
@@ -1218,6 +1355,12 @@ const Banks = () => {
       <Dialog open={!!viewSupplierId} onOpenChange={(o) => !o && setViewSupplierId(null)}>
         <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
           {viewSupplierId && <VendorDetail embedded supplierId={viewSupplierId} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewClientId} onOpenChange={(o) => !o && setViewClientId(null)}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+          {viewClientId && <ClientDetail embedded clientId={viewClientId} />}
         </DialogContent>
       </Dialog>
     </div>
