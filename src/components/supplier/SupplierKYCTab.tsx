@@ -11,6 +11,7 @@ import {
 
 interface SupplierKYCTabProps {
   supplierId: string;
+  portalToken?: string;
   initialSupplier?: {
     kyc_level_id: string | null;
     kyc_status: string;
@@ -24,15 +25,47 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; var
   rejected: { label: 'Refusé', icon: XCircle, variant: 'destructive' },
 };
 
-const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupplier = null }) => {
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const idx = result.indexOf(',');
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, portalToken, initialSupplier = null }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
 
+  const useTokenPath = !!portalToken;
+
+  // Portal (anon) path: fetch requirements + documents via edge function.
+  const portalDataQuery = useQuery({
+    queryKey: ['supplier-kyc-portal', portalToken],
+    enabled: useTokenPath,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('supplier-kyc-portal', {
+        body: { token: portalToken, action: 'get' },
+      });
+      if (error) throw error;
+      return data as {
+        kycLevelId: string | null;
+        requirements: any[];
+        documents: any[];
+      };
+    },
+  });
+
+  // Authenticated path: direct queries (used by internal review screens if reused).
   const { data: queriedSupplier } = useQuery({
     queryKey: ['supplier-kyc-level', supplierId],
-    enabled: !!supplierId && !initialSupplier,
+    enabled: !useTokenPath && !!supplierId && !initialSupplier,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('suppliers')
@@ -46,9 +79,9 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
 
   const supplier = initialSupplier ?? queriedSupplier ?? null;
 
-  const { data: requirements = [] } = useQuery({
+  const { data: authRequirements = [] } = useQuery({
     queryKey: ['kyc-requirements', supplier?.kyc_level_id],
-    enabled: !!supplier?.kyc_level_id,
+    enabled: !useTokenPath && !!supplier?.kyc_level_id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('kyc_level_requirements')
@@ -59,9 +92,9 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
     },
   });
 
-  // Fetch already uploaded documents
-  const { data: uploadedDocs = [] } = useQuery({
+  const { data: authUploadedDocs = [] } = useQuery({
     queryKey: ['kyc-documents', supplierId],
+    enabled: !useTokenPath,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('supplier_kyc_documents')
@@ -72,16 +105,34 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
     },
   });
 
+  const requirements = useTokenPath ? (portalDataQuery.data?.requirements ?? []) : authRequirements;
+  const uploadedDocs = useTokenPath ? (portalDataQuery.data?.documents ?? []) : authUploadedDocs;
+  const effectiveKycLevelId = useTokenPath ? portalDataQuery.data?.kycLevelId : supplier?.kyc_level_id;
+
   const uploadMutation = useMutation({
     mutationFn: async ({ file, documentTypeId }: { file: File; documentTypeId: string }) => {
+      if (useTokenPath) {
+        const fileBase64 = await fileToBase64(file);
+        const { data, error } = await supabase.functions.invoke('supplier-kyc-portal', {
+          body: {
+            token: portalToken,
+            action: 'upload',
+            documentTypeId,
+            fileBase64,
+            fileName: file.name,
+            contentType: file.type,
+          },
+        });
+        if (error) throw error;
+        return data;
+      }
+      // Authenticated path (kept for internal use)
       const ext = file.name.split('.').pop();
       const path = `${supplierId}/${documentTypeId}_${Date.now()}.${ext}`;
-
       const { error: uploadError } = await supabase.storage
         .from('kyc-documents')
         .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
       const { data: insertData, error: insertError } = await supabase
         .from('supplier_kyc_documents')
         .insert({
@@ -96,7 +147,11 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
       return insertData;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-documents', supplierId] });
+      if (useTokenPath) {
+        queryClient.invalidateQueries({ queryKey: ['supplier-kyc-portal', portalToken] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['kyc-documents', supplierId] });
+      }
       toast({ title: 'Document déposé', description: 'Votre document a été envoyé pour validation.' });
       setUploadingDocType(null);
     },
@@ -121,8 +176,7 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
     uploadMutation.mutate({ file, documentTypeId });
   };
 
-  // No KYC required
-  if (!supplier?.kyc_level_id) {
+  if (!effectiveKycLevelId) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -137,7 +191,6 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
   const getDocStatus = (docTypeId: string) => {
     const docs = uploadedDocs.filter((d: any) => d.document_type_id === docTypeId);
     if (docs.length === 0) return null;
-    // Return the latest
     return docs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   };
 
@@ -148,7 +201,6 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
 
   return (
     <div className="space-y-6">
-      {/* Overall status */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -168,7 +220,6 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
         </CardHeader>
       </Card>
 
-      {/* Document list */}
       <div className="grid gap-4">
         {requirements.map((req: any) => {
           const docType = req.document_type;
@@ -249,7 +300,6 @@ const SupplierKYCTab: React.FC<SupplierKYCTabProps> = ({ supplierId, initialSupp
         })}
       </div>
 
-      {/* Help text */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="py-4">
           <div className="flex items-start gap-3">
