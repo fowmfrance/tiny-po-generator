@@ -1,0 +1,11 @@
+# Sapajoo
+
+> Solution SaaS française de gestion des achats, contrôle budgétaire et procurement pour TPE, PME et directions financières à temps partagé.
+
+Sapajoo centralise les demandes d'achat, les bons de commande, les factures fournisseurs et le suivi budgétaire dans une interface simple, pensée comme une alternative légère aux ERP pour les petites et moyennes structures. La plateforme couvre également le portail fournisseur, le rapprochement bancaire (Qonto), les écritures de cut-off comptable et l'export SEPA.
+
+## Pages
+
+- [Accueil](/): présentation de Sapajoo, fonctionnalités, cas d'usage et FAQ.
+- [Mentions légales](/mentions-legales): éditeur (FOWM SAS), hébergeur et informations légales.
+- [Connexion](/auth): accès à l'espace client Sapajoo.

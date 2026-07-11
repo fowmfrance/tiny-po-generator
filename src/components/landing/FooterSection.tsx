@@ -33,9 +33,11 @@ const FooterSection = () => {
               href="https://linkedin.com/company/sapajoo" 
               target="_blank" 
               rel="noopener noreferrer"
+              aria-label="LinkedIn Sapajoo"
               className="inline-flex items-center text-white hover:text-blue-300 transition-colors"
             >
-              <Linkedin size={16} />
+              <Linkedin size={16} aria-hidden="true" />
+              <span className="sr-only">LinkedIn</span>
             </a>
           </div>
         </div>

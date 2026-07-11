@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -488,6 +489,14 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <Helmet>
+        <title>Connexion à Sapajoo — Espace client</title>
+        <meta name="description" content="Connectez-vous à Sapajoo pour piloter vos achats, budgets et fournisseurs. Accès sécurisé à votre espace de gestion." />
+        <link rel="canonical" href="https://sapajoo.fr/auth" />
+        <meta property="og:title" content="Connexion à Sapajoo" />
+        <meta property="og:description" content="Accédez à votre espace Sapajoo pour gérer achats, budgets et fournisseurs." />
+        <meta property="og:url" content="https://sapajoo.fr/auth" />
+      </Helmet>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sapajoo

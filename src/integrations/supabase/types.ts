@@ -2039,7 +2039,6 @@ export type Database = {
       transactions: {
         Row: {
           bank_connection_id: string | null
-          client_id: string | null
           created_at: string
           id: string
           organization_id: string
@@ -2071,7 +2070,6 @@ export type Database = {
         }
         Insert: {
           bank_connection_id?: string | null
-          client_id?: string | null
           created_at?: string
           id?: string
           organization_id: string
@@ -2103,7 +2101,6 @@ export type Database = {
         }
         Update: {
           bank_connection_id?: string | null
-          client_id?: string | null
           created_at?: string
           id?: string
           organization_id?: string
@@ -2139,13 +2136,6 @@ export type Database = {
             columns: ["bank_connection_id"]
             isOneToOne: false
             referencedRelation: "bank_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {

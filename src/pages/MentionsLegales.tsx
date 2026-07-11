@@ -1,10 +1,36 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import FooterSection from '@/components/landing/FooterSection';
 
 const MentionsLegales = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
+      <Helmet>
+        <title>Mentions légales — Sapajoo</title>
+        <meta name="description" content="Informations légales de Sapajoo (FOWM SAS) : éditeur, hébergeur et coordonnées de la solution de gestion des achats pour TPE/PME." />
+        <link rel="canonical" href="https://sapajoo.fr/mentions-legales" />
+        <meta property="og:title" content="Mentions légales — Sapajoo" />
+        <meta property="og:description" content="Informations légales de Sapajoo (FOWM SAS), éditeur de la plateforme de gestion des achats et du contrôle budgétaire." />
+        <meta property="og:url" content="https://sapajoo.fr/mentions-legales" />
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "FOWM (Sapajoo)",
+  "url": "https://sapajoo.fr/mentions-legales",
+  "image": "https://sapajoo.fr/lovable-uploads/31b5b719-db9f-4cc5-8b06-08110cd382ab.png",
+  "email": "hello@sapajoo.fr",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "9 rue Milton",
+    "postalCode": "75009",
+    "addressLocality": "Paris",
+    "addressCountry": "FR"
+  }
+}
+`}</script>
+      </Helmet>
       <main className="flex-grow container mx-auto py-16 px-4 md:px-8">
         <div className="max-w-4xl mx-auto">
           <Link to="/" className="inline-flex items-center text-primary hover:underline mb-8">
