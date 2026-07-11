@@ -339,7 +339,7 @@ const Banks = () => {
     if (error) {
       console.error('Error loading transactions:', error);
     } else {
-      setTransactions((data || []) as Transaction[]);
+      setTransactions((data || []) as unknown as Transaction[]);
     }
     setIsLoadingTransactions(false);
   };
