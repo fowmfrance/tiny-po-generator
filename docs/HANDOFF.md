@@ -30,6 +30,7 @@ Document pour un agent reprenant le projet à contexte propre. À lire avec `doc
 - **Landing + app** : emojis → Lucide.
 
 ## 5. Threads ouverts (next steps)
+- ✅ **Colonne « Tiers » (fournisseur OU client)** (livré, commit `acba745`) : l'ex-colonne « Fournisseur » de l'écran banque gère les deux types. Débit → fournisseur, crédit → client ; type **pré-filtré par le signe mais modifiable** (toggle dans l'éditeur). Plus de picklist permanente : `src/components/banks/TiersCell.tsx` = valeur discrète éditable au **crayon** (popover + recherche cmdk) ; une fois liée, le nom est cliquable et ouvre la fiche (`VendorDetail` fournisseur / `ClientDetail` client, nouvelle fiche minimale nom+encaissements). Nouveaux : `src/hooks/useClients.ts`, `src/pages/ClientDetail.tsx`. Dédup fuzzy (Inc B) étendue aux clients + rattachement en masse par signe. ⚠ **Nécessite la migration `transactions.client_id` (voir §6) — sans elle TOUTE édition de tiers échoue.** Décisions produit : fiche client minimale (pas d'enrichissement table `clients`), type modifiable (pas verrouillé). Reste possible : enrichir `clients` (email/SIREN…) + `ClientDetail` complet si besoin.
 - ✅ **Inc B — dédup fuzzy** (livré, commit `3348580`) : à la création d'un fournisseur depuis une transaction, rapprochement flou du nom saisi vs fournisseurs existants (`src/utils/fuzzyMatch.ts` — Levenshtein + recouvrement de tokens, normalisation formes juridiques/bruit bancaire, seuil 0.72) → dialog propose de **lier** au lieu de dupliquer, sinon « Créer quand même ». Après liaison, dialog de **rattachement en masse** des autres transactions non liées au même libellé (seuil 0.85). Logique testée (cas HELDER + non-régressions), tsc + build OK. _Reste possible : régler les seuils sur données réelles, ou persister les paires « ignoré » pour ne pas re-proposer._
 - **FNP increment 3** : pondération fine du « réalisé » par jalons (au lieu du taux global), persistance `accrual_runs`, export format Pennylane/Cegid.
 - **Numérotation budgets 100 % atomique** : trigger/séquence DB (actuellement calcul client à l'insert, race théorique en multi-user).
@@ -37,5 +38,15 @@ Document pour un agent reprenant le projet à contexte propre. À lire avec `doc
 - **Onglet Devis** (feature inexistante) + **RIB par devise** (vérifier si `supplier_bank_accounts` porte la devise) pour compléter la fiche fournisseur.
 - **e-invoicing 2026 / PDP** : impératif réglementaire (raccordement à une PDP partenaire) — thèse stratégique (rachat Qonto/Pennylane, wedge = FNP auto que Pennylane fait en manuel).
 
-## 6. Rien en attente d'action manuelle DB
-Les 2 migrations récentes (`transactions.supplier_id`, `bank_connections`) ont été **appliquées par Clement**. Pour toute future migration : la donner en SQL à exécuter dans Lovable Cloud.
+## 6. Action manuelle DB en attente
+- ⏳ **`transactions.client_id`** (migration `supabase/migrations/20260710150000_add_transactions_client_id.sql`) — **à exécuter à la main dans Lovable Cloud → SQL Editor** :
+  ```sql
+  ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS client_id uuid
+    REFERENCES public.clients(id) ON DELETE SET NULL;
+  ```
+  Sans elle, la colonne « Tiers » (fournisseur inclus, car l'update écrit les deux champs) renvoie « column client_id does not exist ». `types.ts` déjà à jour.
+- Migrations déjà **appliquées par Clement** : `transactions.supplier_id`, `bank_connections`. Pour toute future migration : la donner en SQL à exécuter dans Lovable Cloud.
+
+## 7. ⚠ Piège collaboration Lovable
+Lovable **auto-commite sur `main`** (« Changes ») pendant qu'on travaille en local → course/rebase possible. Vérifier `git fetch` avant push, préférer `--force-with-lease`. Ne jamais `git add -A` : la WIP Lovable non-commitée (ex. module « Frais & Attribution » : edge functions google/ocr/match-expense/sync-calendar, `config.toml`, migration `mod_frais_socle`) traîne dans le working tree et se ferait embarquer. Stager uniquement ses propres fichiers.
