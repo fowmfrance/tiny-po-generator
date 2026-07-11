@@ -1,46 +1,32 @@
-## Contexte
+## Goal
 
-Le back-office `/backoffice` existe déjà avec :
-- Table `organizations` (multi-tenant) + page `BackofficeOrganizations`
-- Table `profiles` liée à `organization_id` + page `BackofficeUsers`
-- Table `user_roles` (admin-sapajoo / admin / manager / user)
-- Edge function `invite-org-user` pour inviter un user rattaché à une organisation
-- RLS multi-tenant scopée par `organization_id` (migration récente)
+Resolve the remaining SEO finding `gsc:gsc` by connecting Google Search Console to this project, verifying ownership of `https://sapajoo.fr/`, and submitting the sitemap.
 
-Il ne manque donc pas d'infrastructure : il manque **la création effective de l'instance FLEURON + l'invitation de cyrielle@fleuron.fr**, plus une petite vérification que le back-office affiche bien les deux tables demandées.
+## Steps
 
-## Plan d'action (rapide)
+1. **Launch the connector flow.** Call `standard_connectors--connect` with `connector_id: "google_search_console"`. You'll see an inline authorization card in chat — sign in with the Google account that should own the Search Console property. Wait for the connection to land before I continue.
 
-### 1. Créer l'organisation FLEURON (data)
-`INSERT` dans `public.organizations` :
-- `name` = "FLEURON"
-- `slug` = "fleuron"
+2. **Check for existing verification.** Once connected, list verified properties via the connector gateway (`GET /webmasters/v3/sites`). If `https://sapajoo.fr/` is already verified on this Google account, skip to step 4.
 
-### 2. Inviter cyrielle@fleuron.fr comme admin de FLEURON
-Appel de l'edge function `invite-org-user` avec :
-- `email` = "cyrielle@fleuron.fr"
-- `organization_id` = id de FLEURON
-- `role` = "admin"
+3. **Verify ownership via META tag (if needed).**
+   - Request a verification token from the Site Verification API for `https://sapajoo.fr/`.
+   - Add the returned `<meta name="google-site-verification" content="…" />` tag to `index.html`'s `<head>`.
+   - You publish the app (the meta tag must be live on `https://sapajoo.fr/`).
+   - Tell me when the deploy is live, then I call the verify endpoint.
 
-Elle recevra un email d'invitation Supabase Auth ; à sa première connexion, son `profiles.organization_id` sera rattaché à FLEURON et elle verra uniquement les données de son instance (RLS multi-tenant déjà en place).
+4. **Register the site in Search Console.** `PUT /webmasters/v3/sites/https%3A%2F%2Fsapajoo.fr%2F` so the property appears in your Search Console account.
 
-### 3. Vérifier le back-office (aucun code à écrire si OK)
-Confirmer que :
-- `/backoffice/organizations` liste bien FLEURON après création
-- `/backoffice/users` liste cyrielle avec l'organisation FLEURON et le rôle admin
+5. **Submit the sitemap.** `PUT /webmasters/v3/sites/https%3A%2F%2Fsapajoo.fr%2F/sitemaps/https%3A%2F%2Fsapajoo.fr%2Fsitemap.xml`.
 
-Si l'affichage d'une des deux tables est incomplet, patch ciblé (colonne manquante uniquement).
+6. **Mark the finding fixed.** Call `seo_chat--update_findings` for `gsc:gsc` with a short note of what was done.
 
-## Détails techniques
+## Technical notes
 
-- L'org FLEURON est créée via `supabase--insert` (opération data, pas de schéma).
-- L'invitation passe par `supabase.functions.invoke('invite-org-user', ...)` déclenché depuis la page `BackofficeOrganizations` (bouton "Inviter un utilisateur" déjà présent) — OU directement via l'edge function côté serveur pour aller plus vite.
-- Aucune nouvelle table nécessaire : `organizations` = table des instances, `profiles` (jointe à `organizations` via `organization_id`) = table des users des instances. C'est exactement le modèle demandé.
-- Aucun changement de schéma → pas de migration.
+- The connector is workspace-scoped; secrets `LOVABLE_API_KEY` and `GOOGLE_SEARCH_CONSOLE_API_KEY` are injected automatically after linking. No manual secret entry.
+- Verification uses the `META` method (only method feasible for a Lovable-hosted app). DNS/file/Analytics methods are out of scope.
+- Step 3 requires a publish before verification can succeed — Google fetches the live HTML. If `sapajoo.fr` is already verified on the connected account (common case), no code change or publish is needed.
+- No app code changes beyond the possible one-line meta tag in `index.html`.
 
-## Livrable
+## Prerequisite from you
 
-Après exécution :
-- 1 organisation "FLEURON" visible dans `/backoffice/organizations`
-- 1 email d'invitation envoyé à cyrielle@fleuron.fr
-- cyrielle apparaît dans `/backoffice/users` avec `organization = FLEURON`, `role = admin`
+Sign in during the connector prompt with the Google account that either already owns `sapajoo.fr` in Search Console, or that you want to become the owner.
