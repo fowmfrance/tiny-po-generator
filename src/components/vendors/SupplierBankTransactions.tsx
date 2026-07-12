@@ -49,7 +49,13 @@ function periodStart(key: PeriodKey, customFrom: string): Date | null {
 
 const txDate = (t: Tx) => t.qonto_settled_at || t.qonto_emitted_at || null;
 
-export default function SupplierBankTransactions({ supplierId }: { supplierId: string }) {
+export default function SupplierBankTransactions({
+  supplierId,
+  refreshToken = 0,
+}: {
+  supplierId: string;
+  refreshToken?: number;
+}) {
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey>('12M');
@@ -75,7 +81,7 @@ export default function SupplierBankTransactions({ supplierId }: { supplierId: s
     return () => {
       active = false;
     };
-  }, [supplierId]);
+  }, [supplierId, refreshToken]);
 
   const filtered = useMemo(() => {
     const from = periodStart(period, customFrom);

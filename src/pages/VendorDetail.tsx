@@ -24,6 +24,7 @@ import VendorKYCReviewTab from '@/components/vendors/VendorKYCReviewTab';
 import { EditSupplierContactDialog } from '@/components/vendors/EditSupplierContactDialog';
 import SupplierTimeline from '@/components/vendors/SupplierTimeline';
 import SupplierBankTransactions from '@/components/vendors/SupplierBankTransactions';
+import SupplierPaymentSuggestions from '@/components/vendors/SupplierPaymentSuggestions';
 import { SupplierContactsSection } from '@/components/vendors/SupplierContactsSection';
 import { DeleteSupplierDialog } from '@/components/vendors/DeleteSupplierDialog';
 import { useSupplierContacts } from '@/hooks/useSupplierContacts';
@@ -61,6 +62,7 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
   const [period, setPeriod] = useState<PeriodFilter>('ALL');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
+  const [bankRefresh, setBankRefresh] = useState(0);
 
   // Check admin role
   React.useEffect(() => {
@@ -280,6 +282,9 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
           <TabsTrigger value="overview" className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" /> Aperçu
           </TabsTrigger>
+          <TabsTrigger value="paiements" className="flex items-center gap-1.5">
+            <CreditCard className="h-4 w-4" /> Paiements
+          </TabsTrigger>
           <TabsTrigger value="contacts" className="flex items-center gap-1.5">
             <Users className="h-4 w-4" /> Contacts
           </TabsTrigger>
@@ -453,6 +458,15 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
           </Card>
         </TabsContent>
 
+        <TabsContent value="paiements" className="mt-4 space-y-6">
+          <SupplierPaymentSuggestions
+            supplierId={id!}
+            supplierName={supplier.name}
+            onAttached={() => setBankRefresh((n) => n + 1)}
+          />
+          <SupplierBankTransactions supplierId={id!} refreshToken={bankRefresh} />
+        </TabsContent>
+
         <TabsContent value="contacts" className="mt-4">
           <SupplierContactsSection supplierId={id!} />
         </TabsContent>
@@ -462,7 +476,6 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
             purchaseOrders={supplierPOs}
             invoices={supplierInvoices}
           />
-          <SupplierBankTransactions supplierId={id!} />
         </TabsContent>
 
         <TabsContent value="kpis" className="mt-4">

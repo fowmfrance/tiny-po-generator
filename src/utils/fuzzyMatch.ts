@@ -120,3 +120,27 @@ export function findSiblingTransactions<T extends { id: string; qonto_label: str
     (tx) => !tx.supplier_id && nameSimilarity(targetName, tx.qonto_label || '') >= threshold,
   );
 }
+
+export interface TransactionMatch<T> {
+  transaction: T;
+  score: number;
+}
+
+/**
+ * Transactions non rattachées à suggérer pour un tiers donné, triées par score
+ * décroissant. Seuil plus permissif (0.55) que {@link findSiblingTransactions}
+ * car ces suggestions sont confirmées à la main (un clic « Rattacher ») et non
+ * rattachées en masse silencieusement.
+ */
+export function findTransactionSuggestions<T extends { id: string; qonto_label: string | null }>(
+  targetName: string,
+  transactions: T[],
+  threshold = 0.55,
+  limit = 20,
+): TransactionMatch<T>[] {
+  return transactions
+    .map((transaction) => ({ transaction, score: nameSimilarity(targetName, transaction.qonto_label || '') }))
+    .filter((m) => m.score >= threshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
