@@ -106,6 +106,35 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
   const totalFacture = useMemo(() => filteredInvoices.reduce((s, inv) => s + Number(inv.amount), 0), [filteredInvoices]);
   const totalPaye = useMemo(() => paidInvoices.reduce((s, inv) => s + Number(inv.amount), 0), [paidInvoices]);
 
+  // Paiements bancaires rattachés au tiers (décaissements). Alimentent la synthèse
+  // pour que l'argent réellement versé soit visible même sans facture saisie.
+  const { data: bankTx } = useQuery({
+    queryKey: ['supplier-bank-tx', id, bankRefresh],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, qonto_amount, qonto_side, qonto_settled_at, qonto_emitted_at')
+        .eq('supplier_id', id!);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const filteredBankTx = useMemo(() => {
+    const rows = (bankTx || []).filter(t => t.qonto_side === 'debit');
+    if (!filterDate) return rows;
+    return rows.filter(t => {
+      const d = t.qonto_settled_at || t.qonto_emitted_at;
+      return d ? isAfter(parseISO(d), filterDate) : true;
+    });
+  }, [bankTx, filterDate]);
+
+  const totalPayeBanque = useMemo(
+    () => filteredBankTx.reduce((s, t) => s + Math.abs(Number(t.qonto_amount) || 0), 0),
+    [filteredBankTx]
+  );
+
   // Load PO items for KPI calculations
   const { data: poItems } = useQuery({
     queryKey: ['po-items-for-supplier', id],
@@ -276,8 +305,8 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="overview">
+      {/* Tabs — en modale (depuis la banque) on ouvre direct sur Paiements */}
+      <Tabs defaultValue={embedded ? 'paiements' : 'overview'}>
         <TabsList>
           <TabsTrigger value="overview" className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" /> Aperçu
@@ -335,6 +364,11 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
                   <span className="text-lg font-bold">{filteredInvoices.length}</span>
                   <span className="text-sm text-muted-foreground">factures reçues</span>
                 </div>
+                <span className="text-muted-foreground">·</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-bold">{filteredBankTx.length}</span>
+                  <span className="text-sm text-muted-foreground">paiements banque</span>
+                </div>
                 <span className="text-muted-foreground">dont :</span>
                 <div className="flex gap-2">
                   <div className="bg-green-50 rounded-md px-3 py-1.5 text-center">
@@ -353,7 +387,7 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
               </div>
 
               {/* Row 2: financial totals */}
-              <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t">
                 <div>
                   <p className="text-xs text-muted-foreground">Total commandé</p>
                   <p className="text-xl font-bold">{formatCurrency(totalCommande)}</p>
@@ -363,8 +397,12 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
                   <p className="text-xl font-bold">{formatCurrency(totalFacture)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total payé</p>
+                  <p className="text-xs text-muted-foreground">Payé (factures)</p>
                   <p className="text-xl font-bold">{formatCurrency(totalPaye)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Réglé (banque)</p>
+                  <p className="text-xl font-bold text-brand">{formatCurrency(totalPayeBanque)}</p>
                 </div>
               </div>
             </CardContent>
