@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useClients } from '@/hooks/useClients';
+import { useSupplierTypes } from '@/hooks/useSupplierTypes';
 import { derivePaymentMethod, paymentMethodBadgeClass } from '@/utils/bankPaymentMethod';
 import { getInitials, getMonogramColor } from '@/utils/monogram';
 import CreateBudget from '@/pages/CreateBudget';
@@ -26,6 +27,7 @@ import VendorDetail from '@/pages/VendorDetail';
 import ClientDetail from '@/pages/ClientDetail';
 import TiersCell from '@/components/banks/TiersCell';
 import { findSupplierMatches, nameSimilarity, type SupplierMatch } from '@/utils/fuzzyMatch';
+import { toProperCase } from '@/utils/properCase';
 
 interface BankAccount {
   slug: string;
@@ -123,6 +125,7 @@ const Banks = () => {
   const { budgets, refetch: refetchBudgets } = useBudgetsData();
   const { suppliers, createSupplier } = useSuppliers();
   const { clients, createClient } = useClients();
+  const { supplierTypes } = useSupplierTypes();
   const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
   const [createBudgetForTxId, setCreateBudgetForTxId] = useState<string | null>(null);
   const [viewSupplierId, setViewSupplierId] = useState<string | null>(null);
@@ -131,6 +134,7 @@ const Banks = () => {
   const [createForTxId, setCreateForTxId] = useState<string | null>(null);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [newSupplierEmail, setNewSupplierEmail] = useState('');
+  const [newSupplierTypeId, setNewSupplierTypeId] = useState<string>('');
   const [creatingSupplier, setCreatingSupplier] = useState(false);
   // Création client (fiche minimale : nom seul)
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
@@ -512,6 +516,7 @@ const Banks = () => {
     setIsCreateSupplierOpen(false);
     setNewSupplierName('');
     setNewSupplierEmail('');
+    setNewSupplierTypeId('');
     setCreateForTxId(null);
     setDedupCandidates([]);
   };
@@ -526,14 +531,15 @@ const Banks = () => {
   // Ouvre le dialog de création depuis la cellule Tiers, pré-rempli du libellé.
   const openCreateSupplier = (tx: Transaction) => {
     setCreateForTxId(tx.id);
-    setNewSupplierName(tx.qonto_label || '');
+    setNewSupplierName(toProperCase(tx.qonto_label || ''));
     setNewSupplierEmail('');
+    setNewSupplierTypeId('');
     setDedupCandidates([]);
     setIsCreateSupplierOpen(true);
   };
   const openCreateClient = (tx: Transaction) => {
     setCreateClientForTxId(tx.id);
-    setNewClientName(tx.qonto_label || '');
+    setNewClientName(toProperCase(tx.qonto_label || ''));
     setClientDedupCandidates([]);
     setIsCreateClientOpen(true);
   };
@@ -585,7 +591,7 @@ const Banks = () => {
   };
 
   const handleCreateSupplier = async (force = false) => {
-    const name = newSupplierName.trim();
+    const name = toProperCase(newSupplierName.trim());
     if (!name) {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du fournisseur.', variant: 'destructive' });
       return;
@@ -603,6 +609,7 @@ const Banks = () => {
       const created: any = await createSupplier.mutateAsync({
         name,
         email: newSupplierEmail.trim() || `${name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '')}@a-renseigner.local`,
+        supplier_type_id: newSupplierTypeId || undefined,
       });
       const txId = createForTxId;
       if (txId && created?.id) {
@@ -625,7 +632,7 @@ const Banks = () => {
   };
 
   const handleCreateClient = async (force = false) => {
-    const name = newClientName.trim();
+    const name = toProperCase(newClientName.trim());
     if (!name) {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du client.', variant: 'destructive' });
       return;
@@ -1038,19 +1045,21 @@ const Banks = () => {
                         Aucune opération trouvée depuis le {format(syncStartDate, "dd MMMM yyyy", { locale: fr })}
                       </p>
                     ) : (
-                      <div className="max-h-[calc(100vh-22rem)] overflow-auto rounded-md border border-border">
-                      <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-secondary [&_th]:bg-secondary">
+                      // [&>div]:overflow-visible neutralise le wrapper overflow-auto de shadcn Table,
+                      // sinon l'en-tête sticky s'ancre à ce div interne (non scrollable) au lieu du conteneur max-h
+                      <div className="max-h-[calc(100vh-20rem)] overflow-auto rounded-md border border-border [&>div]:overflow-visible">
+                      <Table className="text-[13px] [&_td]:py-1.5 [&_td]:px-2.5 [&_th]:px-2.5">
+                        <TableHeader className="sticky top-0 z-20 bg-secondary [&_th]:bg-secondary [&_th]:h-9 [&_th]:whitespace-nowrap">
                           <TableRow>
                             {showBankAvatar && <TableHead className="w-8"></TableHead>}
                             <TableHead>Date</TableHead>
                             <TableHead>Libellé</TableHead>
-                            <TableHead>Catégorie Qonto</TableHead>
-                            <TableHead>Catégorie Sapajoo</TableHead>
+                            <TableHead>Qonto</TableHead>
+                            <TableHead>Sapajoo</TableHead>
                             <TableHead>Tiers</TableHead>
                             <TableHead>Mode</TableHead>
-                            <TableHead>Code projet</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>Projet</TableHead>
+                            <TableHead>Statut</TableHead>
                             <TableHead className="text-right">Montant</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1088,7 +1097,7 @@ const Banks = () => {
                                   value={tx.sapajoo_category_id || 'none'}
                                   onValueChange={(value) => updateTransaction(tx.id, 'sapajoo_category_id', value === 'none' ? null : value)}
                                 >
-                                  <SelectTrigger className="w-[180px]">
+                                  <SelectTrigger className="w-[132px] h-8">
                                     <SelectValue placeholder="Catégorie" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1141,7 +1150,7 @@ const Banks = () => {
                                     updateTransaction(tx.id, 'project_code', value === 'none' ? null : value);
                                   }}
                                 >
-                                  <SelectTrigger className="w-[150px]">
+                                  <SelectTrigger className="w-[120px] h-8">
                                     <SelectValue placeholder="Projet" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1225,6 +1234,30 @@ const Banks = () => {
                 </div>
               </div>
             )}
+            <div className="space-y-1.5">
+              <Label>Activité / métier</Label>
+              <Select value={newSupplierTypeId || 'none'} onValueChange={(v) => setNewSupplierTypeId(v === 'none' ? '' : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une activité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non renseignée</SelectItem>
+                  {supplierTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <span className="flex items-center gap-2">
+                        {t.color && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
+                        {t.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {supplierTypes.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Aucune activité définie pour cette organisation. Créez-en dans Réglages → Catalogue fournisseurs.
+                </p>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-supplier-email">Email (optionnel)</Label>
               <Input

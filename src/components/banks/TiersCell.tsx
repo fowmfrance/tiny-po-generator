@@ -93,7 +93,7 @@ const TiersCell = ({
       type="button"
       onClick={() => onOpenSupplier(linkedSupplier.id)}
       title="Ouvrir la fiche fournisseur"
-      className="inline-flex items-center gap-1 text-brand font-medium hover:underline truncate max-w-[150px]"
+      className="inline-flex items-center gap-1 text-brand font-medium hover:underline truncate max-w-[120px]"
     >
       <Building2 className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{linkedSupplier.name}</span>
@@ -103,7 +103,7 @@ const TiersCell = ({
       type="button"
       onClick={() => onOpenClient(linkedClient.id)}
       title="Ouvrir la fiche client"
-      className="inline-flex items-center gap-1 text-brand font-medium hover:underline truncate max-w-[150px]"
+      className="inline-flex items-center gap-1 text-brand font-medium hover:underline truncate max-w-[120px]"
     >
       <Users className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{linkedClient.name}</span>
