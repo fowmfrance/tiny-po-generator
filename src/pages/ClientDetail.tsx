@@ -35,7 +35,7 @@ const ClientDetail = ({ clientId, embedded = false }: ClientDetailProps) => {
       setLoading(true);
       const [{ data: client }, { data: transactions }] = await Promise.all([
         supabase.from('clients').select('name').eq('id', clientId).single(),
-        (supabase as any)
+        supabase
           .from('transactions')
           .select('id, qonto_label, qonto_amount, qonto_currency, qonto_settled_at, qonto_emitted_at')
           .eq('client_id', clientId)
