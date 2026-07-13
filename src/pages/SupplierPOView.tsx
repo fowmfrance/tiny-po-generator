@@ -14,10 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import SupplierKYCTab from '@/components/supplier/SupplierKYCTab';
 import SupplierInvoiceUploadDialog from '@/components/supplier/SupplierInvoiceUploadDialog';
+import SupplierPortalMessages from '@/components/supplier/SupplierPortalMessages';
 import { formatCurrency } from '@/utils/paymentUtils';
 import {
   AlertCircle, ArrowLeft, Calendar, CheckCircle2, Clock, CreditCard,
-  FileCheck, FileText, Loader2, MapPin, Package, Receipt, Upload, XCircle,
+  FileCheck, FileText, Loader2, MapPin, MessageSquare, Package, Receipt, Upload, XCircle,
 } from 'lucide-react';
 
 type PortalSupplier = {
@@ -220,6 +221,10 @@ const SupplierPOView = () => {
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Paiements
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Messages
             </TabsTrigger>
             {hasKyc && (
               <TabsTrigger value="kyc" className="flex items-center gap-2">
@@ -484,6 +489,11 @@ const SupplierPOView = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* === MESSAGES TAB === */}
+          <TabsContent value="messages">
+            {token && <SupplierPortalMessages token={token} />}
           </TabsContent>
 
           {/* === KYC TAB === */}
