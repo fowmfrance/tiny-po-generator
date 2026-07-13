@@ -17,15 +17,23 @@ const RYAxis = YAxis as unknown as React.ComponentType<any>;
 const RTooltip = Tooltip as unknown as React.ComponentType<any>;
 const RCartesianGrid = CartesianGrid as unknown as React.ComponentType<any>;
 
+interface BankTx {
+  qonto_amount: number;
+  qonto_side: string | null;
+  qonto_settled_at: string | null;
+  qonto_emitted_at: string | null;
+}
+
 interface VendorKPITabProps {
   supplierPOs: PurchaseOrder[];
   supplierInvoices: InvoiceWithPaymentStatus[];
+  bankTransactions?: BankTx[];
   currency?: string;
 }
 
-function VendorKPITab({ supplierPOs, supplierInvoices, currency = 'EUR' }: VendorKPITabProps) {
+function VendorKPITab({ supplierPOs, supplierInvoices, bankTransactions = [], currency = 'EUR' }: VendorKPITabProps) {
   const kpis = useMemo(() => {
-    // Revenue by year
+    // Revenue by year (commandé, via BdC)
     const revenueByYear = new Map<number, number>();
     supplierPOs.forEach(po => {
       if (po.status === 'rejected') return;
@@ -33,6 +41,23 @@ function VendorKPITab({ supplierPOs, supplierInvoices, currency = 'EUR' }: Vendo
       revenueByYear.set(year, (revenueByYear.get(year) || 0) + Number(po.total_amount));
     });
     const revenueData = Array.from(revenueByYear.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, total]) => ({ year: String(year), total }));
+
+    // Versé par année (via transactions bancaires réellement rattachées).
+    // C'est la donnée « connectée » : disponible même sans BdC ni facture saisis.
+    const spendByYear = new Map<number, number>();
+    let bankTotal = 0;
+    bankTransactions.forEach(t => {
+      if (t.qonto_side !== 'debit') return;
+      const d = t.qonto_settled_at || t.qonto_emitted_at;
+      if (!d) return;
+      const amount = Math.abs(Number(t.qonto_amount) || 0);
+      bankTotal += amount;
+      const year = new Date(d).getFullYear();
+      spendByYear.set(year, (spendByYear.get(year) || 0) + amount);
+    });
+    const paidData = Array.from(spendByYear.entries())
       .sort((a, b) => a[0] - b[0])
       .map(([year, total]) => ({ year: String(year), total }));
 
@@ -86,10 +111,19 @@ function VendorKPITab({ supplierPOs, supplierInvoices, currency = 'EUR' }: Vendo
       .map(([name, data]) => ({ name, ...data, avgPrice: data.totalSpend / data.count }))
       .sort((a, b) => b.totalSpend - a.totalSpend);
 
-    return { revenueData, avgOrder, avgFrequency, avgPaymentDelay, avgPricePerItem, itemsBreakdown };
-  }, [supplierPOs, supplierInvoices]);
+    return { revenueData, paidData, bankTotal, avgOrder, avgFrequency, avgPaymentDelay, avgPricePerItem, itemsBreakdown };
+  }, [supplierPOs, supplierInvoices, bankTransactions]);
+
+  // Le graphe s'appuie sur les paiements bancaires réels si disponibles,
+  // sinon retombe sur le montant commandé (BdC).
+  const usingBank = kpis.paidData.length > 0;
+  const chartData = usingBank ? kpis.paidData : kpis.revenueData;
+  const chartTitle = usingBank ? 'Versé par année (banque)' : 'Commandé par année (BdC)';
 
   const statCards = [
+    ...(usingBank
+      ? [{ label: 'Total versé (banque)', value: formatCurrency(kpis.bankTotal, currency), icon: TrendingUp }]
+      : []),
     { label: 'Commande moyenne', value: formatCurrency(kpis.avgOrder, currency), icon: ShoppingCart },
     { label: 'Fréquence commandes', value: kpis.avgFrequency > 0 ? `${kpis.avgFrequency} jours` : '—', icon: CalendarClock },
     { label: 'Délai paiement moyen', value: kpis.avgPaymentDelay > 0 ? `${kpis.avgPaymentDelay} jours` : '—', icon: Timer },
@@ -99,7 +133,7 @@ function VendorKPITab({ supplierPOs, supplierInvoices, currency = 'EUR' }: Vendo
   return (
     <div className="space-y-6">
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {statCards.map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardContent className="pt-4 pb-3 px-4">
@@ -118,13 +152,13 @@ function VendorKPITab({ supplierPOs, supplierInvoices, currency = 'EUR' }: Vendo
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Chiffre d'affaires par année
+            {chartTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {kpis.revenueData.length > 0 ? (
+          {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={kpis.revenueData}>
+              <BarChart data={chartData}>
                 <RCartesianGrid strokeDasharray="3 3" vertical={false} />
                 <RXAxis dataKey="year" />
                 <RYAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />

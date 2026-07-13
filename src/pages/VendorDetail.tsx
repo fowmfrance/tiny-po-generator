@@ -520,6 +520,7 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
           <VendorKPITab
             supplierPOs={enrichedPOs}
             supplierInvoices={supplierInvoices}
+            bankTransactions={bankTx || []}
             currency={supplierPOs[0]?.currency || 'EUR'}
           />
         </TabsContent>
