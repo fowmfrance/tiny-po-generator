@@ -26,7 +26,8 @@ import CreateBudget from '@/pages/CreateBudget';
 import VendorDetail from '@/pages/VendorDetail';
 import ClientDetail from '@/pages/ClientDetail';
 import TiersCell from '@/components/banks/TiersCell';
-import { findSupplierMatches, nameSimilarity, type SupplierMatch } from '@/utils/fuzzyMatch';
+import { findSupplierMatches, nameSimilarity, proposeTiersLinks, type SupplierMatch, type TiersLinkProposal } from '@/utils/fuzzyMatch';
+import PostSyncMatchDialog from '@/components/banks/PostSyncMatchDialog';
 import { toProperCase } from '@/utils/properCase';
 
 interface BankAccount {
@@ -147,6 +148,9 @@ const Banks = () => {
   // Rattachement en masse des transactions au même libellé
   const [siblingTxs, setSiblingTxs] = useState<Transaction[]>([]);
   const [siblingTarget, setSiblingTarget] = useState<{ id: string; name: string; kind: 'supplier' | 'client' } | null>(null);
+  // Passe fuzzy post-synchronisation : rattachements proposés à valider en masse
+  const [postSyncProposals, setPostSyncProposals] = useState<TiersLinkProposal[]>([]);
+  const [applyingPostSync, setApplyingPostSync] = useState(false);
   const [attachingSiblings, setAttachingSiblings] = useState(false);
 
   useEffect(() => {
@@ -333,19 +337,22 @@ const Banks = () => {
 
   // Vue unifiée : toutes les transactions de l'utilisateur, toutes banques confondues
   // (la RLS scope déjà par user_id).
-  const loadAllTransactions = async () => {
+  const loadAllTransactions = async (): Promise<Transaction[]> => {
     setIsLoadingTransactions(true);
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .order('qonto_settled_at', { ascending: false });
 
+    let rows: Transaction[] = [];
     if (error) {
       console.error('Error loading transactions:', error);
     } else {
-      setTransactions((data || []) as unknown as Transaction[]);
+      rows = (data || []) as unknown as Transaction[];
+      setTransactions(rows);
     }
     setIsLoadingTransactions(false);
+    return rows;
   };
 
   const syncTransactions = async (connection: BankConnection, accountSlug?: string, startDate?: Date) => {
@@ -443,12 +450,17 @@ const Banks = () => {
         }
       }
 
-      await loadAllTransactions();
-      
+      const refreshed = await loadAllTransactions();
+
       toast({
         title: "Synchronisation réussie",
         description: `${qontoTxns.length} transactions synchronisées.`,
       });
+
+      // Passe fuzzy post-sync : propose de rattacher les transactions non
+      // affectées aux tiers déjà existants (par ressemblance de libellé).
+      const proposals = proposeTiersLinks(refreshed, suppliers, clients);
+      if (proposals.length > 0) setPostSyncProposals(proposals);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Impossible de synchroniser les transactions.";
       
@@ -510,6 +522,30 @@ const Banks = () => {
     }
 
     setTransactions(prev => prev.map(tx => (tx.id === transactionId ? { ...tx, ...patch } : tx)));
+  };
+
+  // Applique en masse les rattachements validés dans la revue post-sync.
+  const applyPostSyncProposals = async (accepted: TiersLinkProposal[]) => {
+    setApplyingPostSync(true);
+    let ok = 0;
+    for (const p of accepted) {
+      const patch = p.kind === 'supplier'
+        ? { supplier_id: p.entityId, client_id: null }
+        : { supplier_id: null, client_id: p.entityId };
+      const { error } = await supabase.from('transactions').update(patch).eq('id', p.txId);
+      if (error) {
+        console.error('applyPostSyncProposals error:', error);
+      } else {
+        ok += 1;
+        setTransactions(prev => prev.map(tx => (tx.id === p.txId ? { ...tx, ...patch } : tx)));
+      }
+    }
+    setApplyingPostSync(false);
+    setPostSyncProposals([]);
+    toast({
+      title: 'Rattachements appliqués',
+      description: `${ok} transaction(s) rattachée(s) automatiquement à leur tiers.`,
+    });
   };
 
   const resetCreateSupplierForm = () => {
@@ -1327,6 +1363,13 @@ const Banks = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PostSyncMatchDialog
+        proposals={postSyncProposals}
+        isApplying={applyingPostSync}
+        onConfirm={applyPostSyncProposals}
+        onClose={() => setPostSyncProposals([])}
+      />
 
       <Dialog open={siblingTxs.length > 0} onOpenChange={(o) => { if (!o) { setSiblingTxs([]); setSiblingTarget(null); } }}>
         <DialogContent>

@@ -126,6 +126,75 @@ export interface TransactionMatch<T> {
   score: number;
 }
 
+export interface TiersLinkProposal {
+  txId: string;
+  label: string;
+  side: string | null;
+  amount: number;
+  currency: string | null;
+  date: string | null;
+  kind: 'supplier' | 'client';
+  entityId: string;
+  entityName: string;
+  score: number;
+}
+
+interface ProposableTx {
+  id: string;
+  qonto_label: string | null;
+  qonto_side: string | null;
+  qonto_amount: number;
+  qonto_currency?: string | null;
+  qonto_settled_at?: string | null;
+  qonto_emitted_at?: string | null;
+  supplier_id: string | null;
+  client_id: string | null;
+}
+
+/**
+ * Passe fuzzy post-synchronisation : pour chaque transaction non encore
+ * rattachée à un tiers, propose le meilleur fournisseur (décaissement) ou
+ * client (encaissement) existant dont le nom ressemble au libellé bancaire.
+ * Ex. libellé « FRANCOIS TOUCHARD EI - Touch Prod » → fournisseur « Francois
+ * Touchard » déjà présent. Retourne les propositions triées par score.
+ */
+export function proposeTiersLinks(
+  transactions: ProposableTx[],
+  suppliers: Array<{ id: string; name: string }>,
+  clients: Array<{ id: string; name: string }>,
+  threshold = 0.62,
+): TiersLinkProposal[] {
+  const proposals: TiersLinkProposal[] = [];
+  for (const tx of transactions) {
+    if (tx.supplier_id || tx.client_id) continue;
+    const label = tx.qonto_label || '';
+    if (!label) continue;
+    const isCredit = tx.qonto_side === 'credit';
+    const pool = isCredit ? clients : suppliers;
+    let best: { id: string; name: string; score: number } | null = null;
+    for (const e of pool) {
+      const score = nameSimilarity(label, e.name);
+      if (score >= threshold && (!best || score > best.score)) {
+        best = { id: e.id, name: e.name, score };
+      }
+    }
+    if (!best) continue;
+    proposals.push({
+      txId: tx.id,
+      label,
+      side: tx.qonto_side ?? null,
+      amount: tx.qonto_amount,
+      currency: tx.qonto_currency ?? null,
+      date: tx.qonto_settled_at || tx.qonto_emitted_at || null,
+      kind: isCredit ? 'client' : 'supplier',
+      entityId: best.id,
+      entityName: best.name,
+      score: best.score,
+    });
+  }
+  return proposals.sort((a, b) => b.score - a.score);
+}
+
 /**
  * Transactions non rattachées à suggérer pour un tiers donné, triées par score
  * décroissant. Seuil plus permissif (0.55) que {@link findSiblingTransactions}
