@@ -1153,6 +1153,7 @@ const Banks = () => {
                                 <TiersCell
                                   txId={tx.id}
                                   qontoSide={tx.qonto_side}
+                                  qontoLabel={tx.qonto_label}
                                   supplierId={tx.supplier_id}
                                   clientId={tx.client_id}
                                   suppliers={suppliers}

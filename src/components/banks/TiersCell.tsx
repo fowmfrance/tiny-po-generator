@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Building2, Users, Plus, Link2, X } from 'lucide-react';
+import { Pencil, Building2, Users, Plus, Link2, X, Sparkles } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command,
@@ -11,6 +11,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { findSupplierMatches } from '@/utils/fuzzyMatch';
 
 type TiersKind = 'supplier' | 'client';
 
@@ -22,6 +23,7 @@ interface TiersEntity {
 interface TiersCellProps {
   txId: string;
   qontoSide: string; // 'credit' = encaissement -> client ; sinon décaissement -> fournisseur
+  qontoLabel?: string; // libellé de la transaction, pour suggérer un tiers existant
   supplierId: string | null;
   clientId: string | null;
   suppliers: TiersEntity[];
@@ -42,6 +44,7 @@ interface TiersCellProps {
 const TiersCell = ({
   txId,
   qontoSide,
+  qontoLabel,
   supplierId,
   clientId,
   suppliers,
@@ -73,6 +76,13 @@ const TiersCell = ({
   };
 
   const list = kind === 'supplier' ? suppliers : clients;
+
+  // Suggestions : tiers existants proches du libellé de la transaction (seuil
+  // permissif — un clic pour lier). Répond au cas « le fournisseur existe mais
+  // n'est pas surfacé » (ex. LA FRENCHIE COMMUNICATION).
+  const suggestions = qontoLabel
+    ? findSupplierMatches(qontoLabel, list, 0.6).map((m) => m.supplier)
+    : [];
 
   const linkSupplier = (id: string) => {
     onSave({ supplier_id: id, client_id: null });
@@ -175,8 +185,26 @@ const TiersCell = ({
           <CommandInput placeholder={kind === 'supplier' ? 'Rechercher un fournisseur…' : 'Rechercher un client…'} />
           <CommandList>
             <CommandEmpty>Aucun résultat.</CommandEmpty>
+            {suggestions.length > 0 && (
+              <>
+                <CommandGroup heading="Suggestions">
+                  {suggestions.map((item) => (
+                    <CommandItem
+                      key={`sug-${item.id}`}
+                      value={`__suggestion__ ${item.name}`}
+                      onSelect={() => (kind === 'supplier' ? linkSupplier(item.id) : linkClient(item.id))}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4 text-brand" />
+                      <span className="truncate">{item.name}</span>
+                      <Link2 className="ml-auto h-4 w-4 text-brand/60" />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
             {list.length > 0 && (
-              <CommandGroup>
+              <CommandGroup heading={suggestions.length > 0 ? 'Tous' : undefined}>
                 {list.map((item) => (
                   <CommandItem
                     key={item.id}
