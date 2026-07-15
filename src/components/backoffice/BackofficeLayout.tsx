@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, Users, Shield, CreditCard, Briefcase, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Shield, CreditCard, Briefcase, Type, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/backoffice/permissions', icon: Shield, label: 'Permissions' },
   { to: '/backoffice/payment-methods', icon: CreditCard, label: 'Moyens de paiement' },
   { to: '/backoffice/supplier-types', icon: Briefcase, label: 'Catalogue métiers' },
+  { to: '/backoffice/normalize-names', icon: Type, label: 'Normaliser les noms' },
 ];
 
 const BackofficeLayout: React.FC = () => {

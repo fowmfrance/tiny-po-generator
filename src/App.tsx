@@ -39,6 +39,7 @@ import BackofficeUsers from './pages/backoffice/BackofficeUsers';
 import BackofficePermissions from './pages/backoffice/BackofficePermissions';
 import BackofficePaymentMethods from './pages/backoffice/BackofficePaymentMethods';
 import BackofficeSupplierTypes from './pages/backoffice/BackofficeSupplierTypes';
+import BackofficeNormalizeNames from './pages/backoffice/BackofficeNormalizeNames';
 
 function App() {
   return (
@@ -84,6 +85,7 @@ function App() {
           <Route path="permissions" element={<BackofficePermissions />} />
           <Route path="payment-methods" element={<BackofficePaymentMethods />} />
           <Route path="supplier-types" element={<BackofficeSupplierTypes />} />
+          <Route path="normalize-names" element={<BackofficeNormalizeNames />} />
         </Route>
         <Route path="*" element={<NotFound />} />
         </Routes>
