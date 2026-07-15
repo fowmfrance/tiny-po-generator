@@ -152,6 +152,25 @@ const Banks = () => {
   const [postSyncProposals, setPostSyncProposals] = useState<TiersLinkProposal[]>([]);
   const [applyingPostSync, setApplyingPostSync] = useState(false);
   const [attachingSiblings, setAttachingSiblings] = useState(false);
+  // Filtres de la table des opérations
+  const [filterTiers, setFilterTiers] = useState<'all' | 'with' | 'without'>('all');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'with' | 'without'>('all');
+  const [filterSide, setFilterSide] = useState<'all' | 'debit' | 'credit'>('all');
+  const [filterSearch, setFilterSearch] = useState('');
+
+  const filteredTransactions = transactions.filter((tx) => {
+    const hasTiers = !!(tx.supplier_id || tx.client_id);
+    if (filterTiers === 'with' && !hasTiers) return false;
+    if (filterTiers === 'without' && hasTiers) return false;
+    const hasCat = !!tx.sapajoo_category_id;
+    if (filterCategory === 'with' && !hasCat) return false;
+    if (filterCategory === 'without' && hasCat) return false;
+    if (filterSide !== 'all' && tx.qonto_side !== filterSide) return false;
+    const q = filterSearch.trim().toLowerCase();
+    if (q && !(tx.qonto_label || '').toLowerCase().includes(q) && !(tx.qonto_reference || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const hasActiveFilter = filterTiers !== 'all' || filterCategory !== 'all' || filterSide !== 'all' || filterSearch.trim() !== '';
 
   useEffect(() => {
     loadConnections();
@@ -1084,6 +1103,54 @@ const Banks = () => {
                         Aucune opération trouvée depuis le {format(syncStartDate, "dd MMMM yyyy", { locale: fr })}
                       </p>
                     ) : (
+                      <>
+                      {/* Barre de filtres */}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <div className="relative w-[200px]">
+                          <input
+                            value={filterSearch}
+                            onChange={(e) => setFilterSearch(e.target.value)}
+                            placeholder="Rechercher libellé / réf…"
+                            className="w-full h-8 rounded-md border border-border bg-background pl-2.5 pr-2 text-sm"
+                          />
+                        </div>
+                        <Select value={filterTiers} onValueChange={(v) => setFilterTiers(v as any)}>
+                          <SelectTrigger className="w-[150px] h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tiers : tous</SelectItem>
+                            <SelectItem value="with">Avec tiers</SelectItem>
+                            <SelectItem value="without">Sans tiers</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v as any)}>
+                          <SelectTrigger className="w-[170px] h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Catégorie : toutes</SelectItem>
+                            <SelectItem value="with">Avec catégorie</SelectItem>
+                            <SelectItem value="without">Sans catégorie</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={filterSide} onValueChange={(v) => setFilterSide(v as any)}>
+                          <SelectTrigger className="w-[140px] h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Sens : tous</SelectItem>
+                            <SelectItem value="debit">Décaissements</SelectItem>
+                            <SelectItem value="credit">Encaissements</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {filteredTransactions.length} / {transactions.length}
+                        </span>
+                        {hasActiveFilter && (
+                          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs"
+                            onClick={() => { setFilterTiers('all'); setFilterCategory('all'); setFilterSide('all'); setFilterSearch(''); }}>
+                            Réinitialiser
+                          </Button>
+                        )}
+                      </div>
+                      {filteredTransactions.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">Aucune opération ne correspond aux filtres.</p>
+                      ) : (
                       // [&>div]:overflow-visible neutralise le wrapper overflow-auto de shadcn Table,
                       // sinon l'en-tête sticky s'ancre à ce div interne (non scrollable) au lieu du conteneur max-h
                       <div className="max-h-[calc(100vh-20rem)] overflow-auto rounded-md border border-border [&>div]:overflow-visible">
@@ -1103,7 +1170,7 @@ const Banks = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {transactions.map((tx) => (
+                          {filteredTransactions.map((tx) => (
                             <TableRow key={tx.id}>
                               {showBankAvatar && (
                                 <TableCell className="w-8 pr-0">{bankAvatar(tx.bank_connection_id)}</TableCell>
@@ -1225,6 +1292,8 @@ const Banks = () => {
                         </TableBody>
                       </Table>
                       </div>
+                      )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
