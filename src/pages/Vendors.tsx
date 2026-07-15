@@ -3,19 +3,16 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserPlus, Search, FileText, LayoutGrid, List } from 'lucide-react';
-import VendorsList from '@/components/vendors/VendorsList';
+import VendorsList, { VendorsGroupBy } from '@/components/vendors/VendorsList';
 import VendorFilters, { VendorFiltersButton } from '@/components/vendors/VendorFilters';
-import AnnuaireView from '@/components/vendors/AnnuaireView';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
 import { useSuppliers, Supplier } from '@/hooks/useSuppliers';
 import { Vendor } from '@/types/vendor';
 import { cn } from '@/lib/utils';
 
-type VendorsTab = 'liste' | 'annuaire';
-
-const TABS: { key: VendorsTab; label: string }[] = [
-  { key: 'liste', label: 'Liste' },
-  { key: 'annuaire', label: 'Par activité' },
+const TABS: { key: VendorsGroupBy; label: string }[] = [
+  { key: 'activity', label: 'Par activité' },
+  { key: 'budget', label: 'Par nature de budget' },
 ];
 
 // Map Supplier from DB to the Vendor interface used by components
@@ -53,11 +50,11 @@ const Vendors = () => {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Sous-onglet actif, persisté dans l'URL (/vendors?tab=annuaire)
-  const activeTab: VendorsTab = searchParams.get('tab') === 'annuaire' ? 'annuaire' : 'liste';
-  const setActiveTab = (tab: VendorsTab) => {
+  // Sous-onglet actif (mode de regroupement), persisté dans l'URL (/vendors?tab=budget)
+  const activeTab: VendorsGroupBy = searchParams.get('tab') === 'budget' ? 'budget' : 'activity';
+  const setActiveTab = (tab: VendorsGroupBy) => {
     const next = new URLSearchParams(searchParams);
-    if (tab === 'annuaire') next.set('tab', 'annuaire');
+    if (tab === 'budget') next.set('tab', 'budget');
     else next.delete('tab');
     setSearchParams(next, { replace: true });
   };
@@ -186,9 +183,6 @@ const Vendors = () => {
         </Button>
       </div>
 
-      {activeTab === 'annuaire' ? (
-        <AnnuaireView />
-      ) : (
       <div>
           {isLoading ? (
             <div className="flex items-center justify-center p-12">
@@ -266,11 +260,10 @@ const Vendors = () => {
                   specialties={specialties}
                 />
               )}
-              <VendorsList vendors={filteredVendors} viewMode={viewMode} />
+              <VendorsList vendors={filteredVendors} viewMode={viewMode} groupBy={activeTab} />
             </div>
           )}
       </div>
-      )}
 
       <InviteVendorDialog 
         isOpen={isInviteDialogOpen} 

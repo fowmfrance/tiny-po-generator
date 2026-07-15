@@ -25,14 +25,17 @@ import {
 } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
+export type VendorsGroupBy = 'activity' | 'budget';
+
 interface VendorsListProps {
   vendors: Vendor[];
   viewMode?: 'grid' | 'list';
+  groupBy?: VendorsGroupBy;
 }
 
 type ViewMode = 'grid' | 'list';
 
-// Regroupement PAR ACTIVITÉ (métier / supplier_type), et non par nature de budget.
+// Regroupement PAR ACTIVITÉ (métier / supplier_type).
 function groupByActivity(vendors: Vendor[]) {
   const map = new Map<string, Vendor[]>();
   vendors.forEach((v) => {
@@ -50,10 +53,32 @@ function groupByActivity(vendors: Vendor[]) {
     });
 }
 
+// Regroupement PAR NATURE DE BUDGET : Projets / Admin / Mixte, dérivé du métier.
+const ADMIN_CATEGORIES = ['Services généraux', 'IT', 'Juridique & Comptabilité', 'Voyage'];
+const BUDGET_ORDER = ['Projets', 'Admin', 'Mixte'];
+const budgetBucket = (category: string) => {
+  if (ADMIN_CATEGORIES.includes(category)) return 'Admin';
+  if (!category || category === 'Non classé') return 'Mixte';
+  return 'Projets';
+};
+
+function groupByBudget(vendors: Vendor[]) {
+  const map = new Map<string, Vendor[]>();
+  vendors.forEach((v) => {
+    const key = budgetBucket(v.category);
+    const arr = map.get(key) || [];
+    arr.push(v);
+    map.set(key, arr);
+  });
+  return Array.from(map.entries())
+    .map(([category, items]) => ({ category, items, icon: undefined as string | undefined }))
+    .sort((a, b) => BUDGET_ORDER.indexOf(a.category) - BUDGET_ORDER.indexOf(b.category));
+}
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
 
-const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) => {
+const VendorsList = ({ vendors, viewMode: externalViewMode, groupBy = 'activity' }: VendorsListProps) => {
   const [internalViewMode, setViewMode] = useState<ViewMode>('grid');
   const viewMode = externalViewMode ?? internalViewMode;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -77,7 +102,7 @@ const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) 
     );
   }
 
-  const groups = groupByActivity(vendors);
+  const groups = groupBy === 'budget' ? groupByBudget(vendors) : groupByActivity(vendors);
 
   return (
     <div className="space-y-2">
