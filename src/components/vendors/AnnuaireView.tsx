@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, Briefcase, ChevronRight } from 'lucide-react';
+import { Search, ArrowUp, ArrowDown, Briefcase, ChevronRight } from 'lucide-react';
 import { useSupplierCatalog, type CatalogSupplier } from '@/hooks/useSupplierCatalog';
 import { toProperCase } from '@/utils/properCase';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,8 @@ const fmtEur = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-const Annuaire = () => {
+// Vue annuaire : fournisseurs regroupés PAR ACTIVITÉ (métier), « Non classé » en dernier.
+const AnnuaireView = () => {
   const navigate = useNavigate();
   const { suppliers, isLoading } = useSupplierCatalog();
   const [search, setSearch] = useState('');
@@ -56,7 +57,6 @@ const Annuaire = () => {
         count: items.length,
       }))
       .sort((a, b) => {
-        // Par activité : alpha, « Non classé » en dernier
         if (a.typeName === 'Non classé') return 1;
         if (b.typeName === 'Non classé') return -1;
         return a.typeName.localeCompare(b.typeName, 'fr');
@@ -66,18 +66,8 @@ const Annuaire = () => {
   const totalSuppliers = suppliers.length;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h1 className="text-2xl font-serif text-ink">Annuaire fournisseurs</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {totalSuppliers} fournisseur{totalSuppliers > 1 ? 's' : ''}, regroupé{totalSuppliers > 1 ? 's' : ''} par activité
-          </p>
-        </div>
-      </div>
-
-      {/* Barre de recherche + tri */}
-      <div className="flex flex-wrap items-center gap-2 mb-5">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -112,6 +102,9 @@ const Annuaire = () => {
           {asc ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
           {sortKey === 'alpha' ? (asc ? 'A→Z' : 'Z→A') : sortKey === 'date' ? (asc ? 'Ancien' : 'Récent') : (asc ? 'Faible' : 'Élevé')}
         </Button>
+        <span className="text-sm text-muted-foreground ml-auto">
+          {totalSuppliers} fournisseur{totalSuppliers > 1 ? 's' : ''}
+        </span>
       </div>
 
       {isLoading ? (
@@ -167,4 +160,4 @@ const Annuaire = () => {
   );
 };
 
-export default Annuaire;
+export default AnnuaireView;

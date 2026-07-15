@@ -4,10 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserPlus, Search, FileText, LayoutGrid, List } from 'lucide-react';
 import VendorsList from '@/components/vendors/VendorsList';
-import VendorFilters from '@/components/vendors/VendorFilters';
+import VendorFilters, { VendorFiltersButton } from '@/components/vendors/VendorFilters';
+import AnnuaireView from '@/components/vendors/AnnuaireView';
 import InviteVendorDialog from '@/components/vendors/InviteVendorDialog';
 import { useSuppliers, Supplier } from '@/hooks/useSuppliers';
 import { Vendor } from '@/types/vendor';
+import { cn } from '@/lib/utils';
+
+type VendorsTab = 'liste' | 'annuaire';
+
+const TABS: { key: VendorsTab; label: string }[] = [
+  { key: 'liste', label: 'Liste' },
+  { key: 'annuaire', label: 'Par activité' },
+];
 
 // Map Supplier from DB to the Vendor interface used by components
 function supplierToVendor(s: Supplier): Vendor {
@@ -43,6 +52,15 @@ const Vendors = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sous-onglet actif, persisté dans l'URL (/vendors?tab=annuaire)
+  const activeTab: VendorsTab = searchParams.get('tab') === 'annuaire' ? 'annuaire' : 'liste';
+  const setActiveTab = (tab: VendorsTab) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'annuaire') next.set('tab', 'annuaire');
+    else next.delete('tab');
+    setSearchParams(next, { replace: true });
+  };
 
   // Ouverture directe du dialogue d'ajout via /vendors?add=1 (action rapide)
   useEffect(() => {
@@ -115,6 +133,17 @@ const Vendors = () => {
 
   const toggleFilters = () => setShowFilters(!showFilters);
 
+  const activeFiltersCount = [
+    categoryFilter.length > 0 ? 'active' : 'all',
+    statusFilter,
+    countryFilter,
+    cityFilter,
+    specialtyFilter,
+    negotiatedRatesFilter,
+    volumeFilter,
+    ratingFilter,
+  ].filter(f => f !== 'all').length;
+
   const resetFilters = () => {
     setCategoryFilter([]);
     setStatusFilter('all');
@@ -129,9 +158,26 @@ const Vendors = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Fournisseurs</h1>
-        <Button 
-          variant="outline" 
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Fournisseurs</h1>
+          <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                  activeTab === t.key ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Button
+          variant="outline"
           className="flex items-center gap-2"
           onClick={() => setIsInviteDialogOpen(true)}
         >
@@ -140,6 +186,9 @@ const Vendors = () => {
         </Button>
       </div>
 
+      {activeTab === 'annuaire' ? (
+        <AnnuaireView />
+      ) : (
       <div>
           {isLoading ? (
             <div className="flex items-center justify-center p-12">
@@ -167,30 +216,10 @@ const Vendors = () => {
                     <FileText className="w-4 h-4" />
                     DAS2
                   </Button>
-                  <VendorFilters 
+                  <VendorFiltersButton
                     showFilters={showFilters}
                     toggleFilters={toggleFilters}
-                    categoryFilter={categoryFilter}
-                    setCategoryFilter={setCategoryFilter}
-                    statusFilter={statusFilter}
-                    setStatusFilter={setStatusFilter}
-                    cityFilter={cityFilter}
-                    setCityFilter={setCityFilter}
-                    countryFilter={countryFilter}
-                    setCountryFilter={setCountryFilter}
-                    specialtyFilter={specialtyFilter}
-                    setSpecialtyFilter={setSpecialtyFilter}
-                    negotiatedRatesFilter={negotiatedRatesFilter}
-                    setNegotiatedRatesFilter={setNegotiatedRatesFilter}
-                    volumeFilter={volumeFilter}
-                    setVolumeFilter={setVolumeFilter}
-                    ratingFilter={ratingFilter}
-                    setRatingFilter={setRatingFilter}
-                    resetFilters={resetFilters}
-                    categories={categories}
-                    cities={cities}
-                    countries={countries}
-                    specialties={specialties}
+                    activeFiltersCount={activeFiltersCount}
                   />
                   <div className="flex border rounded-md overflow-hidden">
                     <Button
@@ -212,10 +241,36 @@ const Vendors = () => {
                   </div>
                 </div>
               </div>
+              {showFilters && (
+                <VendorFilters
+                  categoryFilter={categoryFilter}
+                  setCategoryFilter={setCategoryFilter}
+                  statusFilter={statusFilter}
+                  setStatusFilter={setStatusFilter}
+                  cityFilter={cityFilter}
+                  setCityFilter={setCityFilter}
+                  countryFilter={countryFilter}
+                  setCountryFilter={setCountryFilter}
+                  specialtyFilter={specialtyFilter}
+                  setSpecialtyFilter={setSpecialtyFilter}
+                  negotiatedRatesFilter={negotiatedRatesFilter}
+                  setNegotiatedRatesFilter={setNegotiatedRatesFilter}
+                  volumeFilter={volumeFilter}
+                  setVolumeFilter={setVolumeFilter}
+                  ratingFilter={ratingFilter}
+                  setRatingFilter={setRatingFilter}
+                  resetFilters={resetFilters}
+                  categories={categories}
+                  cities={cities}
+                  countries={countries}
+                  specialties={specialties}
+                />
+              )}
               <VendorsList vendors={filteredVendors} viewMode={viewMode} />
             </div>
           )}
       </div>
+      )}
 
       <InviteVendorDialog 
         isOpen={isInviteDialogOpen} 

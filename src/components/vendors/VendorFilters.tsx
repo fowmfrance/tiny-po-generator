@@ -16,9 +16,33 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface VendorFiltersProps {
+// Bouton d'ouverture des filtres — à placer dans la barre d'actions ;
+// le panneau (VendorFilters) se rend en dessous, en pleine largeur.
+export const VendorFiltersButton = ({
+  showFilters,
+  toggleFilters,
+  activeFiltersCount,
+}: {
   showFilters: boolean;
   toggleFilters: () => void;
+  activeFiltersCount: number;
+}) => (
+  <Button
+    variant={showFilters ? 'secondary' : 'outline'}
+    className="flex items-center gap-2"
+    onClick={toggleFilters}
+  >
+    <Filter className="w-4 h-4" />
+    Filtres
+    {activeFiltersCount > 0 && (
+      <span className="bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center ml-1">
+        {activeFiltersCount}
+      </span>
+    )}
+  </Button>
+);
+
+interface VendorFiltersProps {
   categoryFilter: string[];
   setCategoryFilter: (value: string[]) => void;
   statusFilter: string;
@@ -42,9 +66,7 @@ interface VendorFiltersProps {
   specialties: string[];
 }
 
-const VendorFilters = ({ 
-  showFilters,
-  toggleFilters,
+const VendorFilters = ({
   categoryFilter,
   setCategoryFilter,
   statusFilter,
@@ -67,18 +89,6 @@ const VendorFilters = ({
   countries,
   specialties
 }: VendorFiltersProps) => {
-  
-  const activeFiltersCount = [
-    categoryFilter.length > 0 ? 'active' : 'all',
-    statusFilter, 
-    countryFilter, 
-    cityFilter,
-    specialtyFilter,
-    negotiatedRatesFilter,
-    volumeFilter,
-    ratingFilter
-  ].filter(f => f !== 'all').length;
-
   const toggleCategory = (cat: string) => {
     if (categoryFilter.includes(cat)) {
       setCategoryFilter(categoryFilter.filter(c => c !== cat));
@@ -91,24 +101,8 @@ const VendorFilters = ({
   const realCategories = categories.filter(c => c !== 'all');
 
   return (
-    <>
-      <Button 
-        variant="outline" 
-        className="flex items-center gap-2"
-        onClick={toggleFilters}
-      >
-        <Filter className="w-4 h-4" />
-        Filtres
-        {activeFiltersCount > 0 && (
-          <span className="bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center ml-1">
-            {activeFiltersCount}
-          </span>
-        )}
-      </Button>
-
-      {showFilters && (
-        <div className="bg-muted/50 p-4 rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div className="w-full bg-muted/50 p-4 rounded-lg border">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* Catégorie multi-select */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -284,14 +278,12 @@ const VendorFilters = ({
             </div>
           </div>
           
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={resetFilters} className="text-sm">
-              Réinitialiser les filtres
-            </Button>
-          </div>
-        </div>
-      )}
-    </>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={resetFilters} className="text-sm">
+          Réinitialiser les filtres
+        </Button>
+      </div>
+    </div>
   );
 };
 
