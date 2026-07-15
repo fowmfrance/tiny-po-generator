@@ -41,7 +41,7 @@ export interface FormValues {
 export const formatBudgetCode = (format: string, sequence: number): string => {
   const year = new Date().getFullYear().toString();
   const shortYear = year.slice(-2);
-  const paddedSequence = (sequence + 1).toString().padStart(2, '0');
+  const paddedSequence = (sequence + 1).toString().padStart(3, '0'); // {NNN} = 3 chiffres (PR26-001)
   return format
     .replace('{YYYY}', year)
     .replace('{YY}', shortYear)
