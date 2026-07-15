@@ -8,27 +8,12 @@ import { toProperCase } from '@/utils/properCase';
 import { cn } from '@/lib/utils';
 
 type SortKey = 'alpha' | 'date' | 'volume';
-type Dimension = 'activite' | 'usage';
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'alpha', label: 'Alphabétique' },
   { key: 'date', label: "Date d'ajout" },
   { key: 'volume', label: 'Volume LTM' },
 ];
-
-const DIMENSIONS: { key: Dimension; label: string }[] = [
-  { key: 'activite', label: 'Par activité' },
-  { key: 'usage', label: 'Projets / Services / Mixte' },
-];
-
-// Dimension « usage » : dérivée du métier (aligné sur la liste /vendors).
-const SERVICE_CATEGORIES = ['Services généraux', 'IT', 'Juridique & Comptabilité', 'Voyage'];
-const USAGE_ORDER = ['Projets', 'Services généraux', 'Mixte / Non classé'];
-const usageBucket = (typeName: string) => {
-  if (SERVICE_CATEGORIES.includes(typeName)) return 'Services généraux';
-  if (typeName === 'Non classé') return 'Mixte / Non classé';
-  return 'Projets';
-};
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -40,7 +25,6 @@ const Annuaire = () => {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('alpha');
   const [asc, setAsc] = useState(true);
-  const [dimension, setDimension] = useState<Dimension>('activite');
 
   const groups = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -55,11 +39,9 @@ const Annuaire = () => {
       return (a.ltmVolume - b.ltmVolume) * dir;
     };
 
-    const groupKey = (s: CatalogSupplier) => (dimension === 'usage' ? usageBucket(s.typeName) : s.typeName);
-
     const byKey = new Map<string, CatalogSupplier[]>();
     for (const s of filtered) {
-      const key = groupKey(s);
+      const key = s.typeName;
       const arr = byKey.get(key) || [];
       arr.push(s);
       byKey.set(key, arr);
@@ -74,15 +56,12 @@ const Annuaire = () => {
         count: items.length,
       }))
       .sort((a, b) => {
-        if (dimension === 'usage') {
-          return USAGE_ORDER.indexOf(a.typeName) - USAGE_ORDER.indexOf(b.typeName);
-        }
         // Par activité : alpha, « Non classé » en dernier
         if (a.typeName === 'Non classé') return 1;
         if (b.typeName === 'Non classé') return -1;
         return a.typeName.localeCompare(b.typeName, 'fr');
       });
-  }, [suppliers, search, sortKey, asc, dimension]);
+  }, [suppliers, search, sortKey, asc]);
 
   const totalSuppliers = suppliers.length;
 
@@ -92,24 +71,8 @@ const Annuaire = () => {
         <div>
           <h1 className="text-2xl font-serif text-ink">Annuaire fournisseurs</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {totalSuppliers} fournisseur{totalSuppliers > 1 ? 's' : ''}, regroupé{totalSuppliers > 1 ? 's' : ''}{' '}
-            {dimension === 'usage' ? 'par usage' : 'par activité'}
+            {totalSuppliers} fournisseur{totalSuppliers > 1 ? 's' : ''}, regroupé{totalSuppliers > 1 ? 's' : ''} par activité
           </p>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border p-0.5 shrink-0">
-          {DIMENSIONS.map((d) => (
-            <button
-              key={d.key}
-              type="button"
-              onClick={() => setDimension(d.key)}
-              className={cn(
-                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                dimension === d.key ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {d.label}
-            </button>
-          ))}
         </div>
       </div>
 
