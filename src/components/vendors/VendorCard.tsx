@@ -9,6 +9,7 @@ import {
   ShieldOff,
   CreditCard,
 } from 'lucide-react';
+import { toProperCase } from '@/utils/properCase';
 import {
   Card,
   CardContent,
@@ -46,7 +47,7 @@ const VendorCard = ({ vendor }: VendorCardProps) => {
       <CardHeader className="pb-1 pt-3 px-3">
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-sm font-semibold truncate">{vendor.name}</CardTitle>
+            <CardTitle className="text-sm font-semibold truncate">{toProperCase(vendor.name)}</CardTitle>
             <div className="flex items-center gap-1 mt-0.5">
               <SupplierTypeIcon iconName={vendor.supplierTypeIcon} className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               <p className="text-xs text-muted-foreground truncate">{vendor.category}</p>

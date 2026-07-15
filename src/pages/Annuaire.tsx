@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, Briefcase, ChevronRight } from 'lucide-react';
 import { useSupplierCatalog, type CatalogSupplier } from '@/hooks/useSupplierCatalog';
+import { toProperCase } from '@/utils/properCase';
 import { cn } from '@/lib/utils';
 
 type SortKey = 'alpha' | 'date' | 'volume';
@@ -180,7 +181,7 @@ const Annuaire = () => {
                     >
                       <span className="flex-1 min-w-0">
                         <span className={cn('font-medium truncate block', !s.isActive && 'text-muted-foreground line-through')}>
-                          {s.name}
+                          {toProperCase(s.name)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           Ajouté le {fmtDate(s.createdAt)}
