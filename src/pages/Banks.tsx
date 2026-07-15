@@ -584,17 +584,19 @@ const Banks = () => {
   };
 
   // Ouvre le dialog de création depuis la cellule Tiers, pré-rempli du libellé.
-  const openCreateSupplier = (tx: Transaction) => {
+  const openCreateSupplier = (tx: Transaction, nameOverride?: string) => {
     setCreateForTxId(tx.id);
-    setNewSupplierName(toProperCase(tx.qonto_label || ''));
+    // nameOverride = texte de recherche saisi dans la cellule Tiers (déjà édité) ;
+    // sinon défaut = libellé au format propre.
+    setNewSupplierName(nameOverride ?? toProperCase(tx.qonto_label || ''));
     setNewSupplierEmail('');
     setNewSupplierTypeId('');
     setDedupCandidates([]);
     setIsCreateSupplierOpen(true);
   };
-  const openCreateClient = (tx: Transaction) => {
+  const openCreateClient = (tx: Transaction, nameOverride?: string) => {
     setCreateClientForTxId(tx.id);
-    setNewClientName(toProperCase(tx.qonto_label || ''));
+    setNewClientName(nameOverride ?? toProperCase(tx.qonto_label || ''));
     setClientDedupCandidates([]);
     setIsCreateClientOpen(true);
   };
@@ -1229,8 +1231,8 @@ const Banks = () => {
                                   suppliers={suppliers}
                                   clients={clients}
                                   onSave={(patch) => updateTransactionTiers(tx.id, patch)}
-                                  onCreateSupplier={() => openCreateSupplier(tx)}
-                                  onCreateClient={() => openCreateClient(tx)}
+                                  onCreateSupplier={(name) => openCreateSupplier(tx, name)}
+                                  onCreateClient={(name) => openCreateClient(tx, name)}
                                   onOpenSupplier={(id) => setViewSupplierId(id)}
                                   onOpenClient={(id) => setViewClientId(id)}
                                 />

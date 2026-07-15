@@ -3,7 +3,6 @@ import { Pencil, Building2, Users, Plus, Link2, X, Sparkles } from 'lucide-react
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { findSupplierMatches } from '@/utils/fuzzyMatch';
+import { toProperCase } from '@/utils/properCase';
 
 type TiersKind = 'supplier' | 'client';
 
@@ -29,8 +29,8 @@ interface TiersCellProps {
   suppliers: TiersEntity[];
   clients: TiersEntity[];
   onSave: (patch: { supplier_id: string | null; client_id: string | null }) => void;
-  onCreateSupplier: () => void;
-  onCreateClient: () => void;
+  onCreateSupplier: (name?: string) => void;
+  onCreateClient: (name?: string) => void;
   onOpenSupplier: (id: string) => void;
   onOpenClient: (id: string) => void;
 }
@@ -69,20 +69,28 @@ const TiersCell = ({
         ? 'client'
         : 'supplier';
   const [kind, setKind] = useState<TiersKind>(defaultKind);
+  const [search, setSearch] = useState('');
 
   const openEditor = () => {
     setKind(defaultKind);
+    // Pré-remplit la recherche avec le libellé (au format propre, éditable) pour
+    // une transaction encore non rattachée.
+    setSearch(isLinked ? '' : toProperCase(qontoLabel || ''));
     setOpen(true);
   };
 
-  const list = kind === 'supplier' ? suppliers : clients;
+  const allItems = kind === 'supplier' ? suppliers : clients;
+  const q = search.trim().toLowerCase();
 
-  // Suggestions : tiers existants proches du libellé de la transaction (seuil
-  // permissif — un clic pour lier). Répond au cas « le fournisseur existe mais
-  // n'est pas surfacé » (ex. LA FRENCHIE COMMUNICATION).
-  const suggestions = qontoLabel
-    ? findSupplierMatches(qontoLabel, list, 0.6).map((m) => m.supplier)
+  // Suggestions : tiers proches du texte de recherche (pré-rempli avec le
+  // libellé). Filtrage maison (shouldFilter=false) pour ne pas que cmdk masque
+  // une suggestion dont le nom est plus court que le libellé.
+  const suggestions = (search.trim() || qontoLabel)
+    ? findSupplierMatches(search.trim() || qontoLabel || '', allItems, 0.6).map((m) => m.supplier)
     : [];
+  const suggestionIds = new Set(suggestions.map((s) => s.id));
+  const filteredList = (q ? allItems.filter((i) => i.name.toLowerCase().includes(q)) : allItems)
+    .filter((i) => !suggestionIds.has(i.id));
 
   const linkSupplier = (id: string) => {
     onSave({ supplier_id: id, client_id: null });
@@ -181,17 +189,20 @@ const TiersCell = ({
           </button>
         </div>
 
-        <Command>
-          <CommandInput placeholder={kind === 'supplier' ? 'Rechercher un fournisseur…' : 'Rechercher un client…'} />
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder={kind === 'supplier' ? 'Rechercher un fournisseur…' : 'Rechercher un client…'}
+          />
           <CommandList>
-            <CommandEmpty>Aucun résultat.</CommandEmpty>
             {suggestions.length > 0 && (
               <>
                 <CommandGroup heading="Suggestions">
                   {suggestions.map((item) => (
                     <CommandItem
                       key={`sug-${item.id}`}
-                      value={`__suggestion__ ${item.name}`}
+                      value={`sug-${item.id}`}
                       onSelect={() => (kind === 'supplier' ? linkSupplier(item.id) : linkClient(item.id))}
                     >
                       <Sparkles className="mr-2 h-4 w-4 text-brand" />
@@ -203,12 +214,12 @@ const TiersCell = ({
                 <CommandSeparator />
               </>
             )}
-            {list.length > 0 && (
+            {filteredList.length > 0 && (
               <CommandGroup heading={suggestions.length > 0 ? 'Tous' : undefined}>
-                {list.map((item) => (
+                {filteredList.map((item) => (
                   <CommandItem
                     key={item.id}
-                    value={item.name}
+                    value={item.id}
                     onSelect={() => (kind === 'supplier' ? linkSupplier(item.id) : linkClient(item.id))}
                   >
                     {kind === 'supplier' ? <Building2 className="mr-2 h-4 w-4" /> : <Users className="mr-2 h-4 w-4" />}
@@ -220,26 +231,41 @@ const TiersCell = ({
                 ))}
               </CommandGroup>
             )}
-            <CommandSeparator />
-            <CommandGroup>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  kind === 'supplier' ? onCreateSupplier() : onCreateClient();
-                }}
-                className="text-brand"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {kind === 'supplier' ? 'Nouveau fournisseur' : 'Nouveau client'}
-              </CommandItem>
-              {isLinked && (
-                <CommandItem onSelect={detach} className="text-destructive">
-                  <X className="mr-2 h-4 w-4" />
-                  Détacher
-                </CommandItem>
-              )}
-            </CommandGroup>
+            {suggestions.length === 0 && filteredList.length === 0 && (
+              <div className="py-4 text-center text-sm text-muted-foreground">
+                Aucun {kind === 'supplier' ? 'fournisseur' : 'client'} existant.
+              </div>
+            )}
           </CommandList>
+          {/* Actions toujours visibles (hors filtrage cmdk) : jamais de cul-de-sac */}
+          <div className="border-t border-border p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                const name = search.trim() || undefined;
+                kind === 'supplier' ? onCreateSupplier(name) : onCreateClient(name);
+              }}
+              className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-brand hover:bg-brand-subtle text-left"
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {search.trim()
+                  ? `Créer ${kind === 'supplier' ? 'le fournisseur' : 'le client'} « ${search.trim()} »`
+                  : `Nouveau ${kind === 'supplier' ? 'fournisseur' : 'client'}`}
+              </span>
+            </button>
+            {isLinked && (
+              <button
+                type="button"
+                onClick={detach}
+                className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 text-left"
+              >
+                <X className="h-4 w-4 shrink-0" />
+                Détacher
+              </button>
+            )}
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
