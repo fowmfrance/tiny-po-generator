@@ -5,17 +5,25 @@
 -- ============================================================
 BEGIN;
 
--- 0) Contexte (org FOWM + user clement@fowm.io)
+-- 0) Contexte : org FLEURON, câblé en dur (l'org du profil clement@fowm.io
+--    n'est PAS celle du workspace de travail)
 CREATE TEMP TABLE _ctx ON COMMIT DROP AS
-SELECT p.id AS user_id, p.organization_id AS org_id
-FROM public.profiles p
-WHERE p.email = 'clement@fowm.io'
-LIMIT 1;
+SELECT '9d9f9f6c-ab05-4bc3-acdc-60d335523731'::uuid AS user_id,
+       'c636ddb8-725d-45d2-b43b-5d41704dcf62'::uuid AS org_id;
 
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM _ctx WHERE org_id IS NOT NULL) <> 1 THEN
-    RAISE EXCEPTION 'Contexte introuvable (profil clement@fowm.io avec organisation)';
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organizations o, _ctx c
+    WHERE o.id = c.org_id AND o.name = 'FLEURON'
+  ) THEN
+    RAISE EXCEPTION 'Org c636ddb8… introuvable ou pas nommée FLEURON';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles p, _ctx c
+    WHERE p.id = c.user_id AND p.organization_id = c.org_id
+  ) THEN
+    RAISE EXCEPTION 'Profil 9d9f9f6c… non rattaché à l''org FLEURON';
   END IF;
 END $$;
 
