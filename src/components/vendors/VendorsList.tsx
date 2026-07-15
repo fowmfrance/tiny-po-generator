@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, List, Clapperboard, Building2, Paperclip } from 'lucide-react';
+import { Plus, LayoutGrid, List } from 'lucide-react';
 import VendorCard from './VendorCard';
 import { Vendor } from '@/types/vendor';
 import { toProperCase } from '@/utils/properCase';
@@ -32,35 +32,22 @@ interface VendorsListProps {
 
 type ViewMode = 'grid' | 'list';
 
-// Grouping logic
-type VendorGroup = 'projets' | 'services' | 'mixte';
-
-const SERVICE_CATEGORIES = ['Services généraux', 'IT', 'Juridique & Comptabilité', 'Voyage'];
-
-function getVendorGroup(vendor: Vendor): VendorGroup {
-  if (SERVICE_CATEGORIES.includes(vendor.category)) return 'services';
-  if (vendor.category === 'Non classé') return 'mixte';
-  return 'projets';
-}
-
-const GROUP_LABELS: Record<VendorGroup, string> = {
-  projets: 'Projets',
-  services: 'Services généraux',
-  mixte: 'Mixte / Non classé',
-};
-
-const GROUP_ICONS: Record<VendorGroup, React.ElementType> = {
-  projets: Clapperboard,
-  services: Building2,
-  mixte: Paperclip,
-};
-
-const GROUP_ORDER: VendorGroup[] = ['projets', 'services', 'mixte'];
-
-function groupVendors(vendors: Vendor[]): Record<VendorGroup, Vendor[]> {
-  const groups: Record<VendorGroup, Vendor[]> = { projets: [], services: [], mixte: [] };
-  vendors.forEach(v => groups[getVendorGroup(v)].push(v));
-  return groups;
+// Regroupement PAR ACTIVITÉ (métier / supplier_type), et non par nature de budget.
+function groupByActivity(vendors: Vendor[]) {
+  const map = new Map<string, Vendor[]>();
+  vendors.forEach((v) => {
+    const key = v.category || 'Non classé';
+    const arr = map.get(key) || [];
+    arr.push(v);
+    map.set(key, arr);
+  });
+  return Array.from(map.entries())
+    .map(([category, items]) => ({ category, items, icon: items[0]?.supplierTypeIcon }))
+    .sort((a, b) => {
+      if (a.category === 'Non classé') return 1; // « Non classé » en dernier
+      if (b.category === 'Non classé') return -1;
+      return a.category.localeCompare(b.category, 'fr');
+    });
 }
 
 const formatCurrency = (amount: number) =>
@@ -69,7 +56,7 @@ const formatCurrency = (amount: number) =>
 const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) => {
   const [internalViewMode, setViewMode] = useState<ViewMode>('grid');
   const viewMode = externalViewMode ?? internalViewMode;
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ projets: true, services: true, mixte: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
 
   const toggleGroup = (group: string) => {
@@ -90,7 +77,7 @@ const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) 
     );
   }
 
-  const grouped = groupVendors(vendors);
+  const groups = groupByActivity(vendors);
 
   return (
     <div className="space-y-2">
@@ -118,18 +105,17 @@ const VendorsList = ({ vendors, viewMode: externalViewMode }: VendorsListProps) 
         </div>
       )}
 
-      {GROUP_ORDER.map(groupKey => {
-        const groupVendors = grouped[groupKey];
+      {groups.map(({ category, items: groupVendors, icon }) => {
         if (groupVendors.length === 0) return null;
-        const isOpen = openGroups[groupKey] ?? true;
+        const isOpen = openGroups[category] ?? true;
 
         return (
-          <Collapsible key={groupKey} open={isOpen} onOpenChange={() => toggleGroup(groupKey)}>
+          <Collapsible key={category} open={isOpen} onOpenChange={() => toggleGroup(category)}>
             <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 px-1 hover:bg-muted/50 rounded-md transition-colors">
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               <span className="font-semibold text-base flex items-center gap-1.5">
-                {React.createElement(GROUP_ICONS[groupKey], { className: 'h-4 w-4 text-muted-foreground' })}
-                {GROUP_LABELS[groupKey]}
+                <SupplierTypeIcon iconName={icon} className="h-4 w-4 text-muted-foreground" />
+                {category}
               </span>
               <Badge variant="secondary" className="text-xs ml-1">{groupVendors.length}</Badge>
             </CollapsibleTrigger>
