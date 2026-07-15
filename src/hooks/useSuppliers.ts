@@ -136,18 +136,20 @@ export function useSuppliers() {
 
       if (error) throw error;
 
-      // Send welcome email (best-effort)
-      try {
-        await supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName: 'supplier-welcome',
-            recipientEmail: data.email,
-            idempotencyKey: `supplier-welcome-${data.id}`,
-            templateData: { supplierName: data.name },
-          },
-        });
-      } catch {
-        // Non-blocking
+      // Send welcome email (best-effort) — seulement si un vrai email est renseigné
+      if (data.email && data.email.trim()) {
+        try {
+          await supabase.functions.invoke('send-transactional-email', {
+            body: {
+              templateName: 'supplier-welcome',
+              recipientEmail: data.email,
+              idempotencyKey: `supplier-welcome-${data.id}`,
+              templateData: { supplierName: data.name },
+            },
+          });
+        } catch {
+          // Non-blocking
+        }
       }
 
       return data;

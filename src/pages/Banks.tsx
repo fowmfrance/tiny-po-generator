@@ -667,7 +667,7 @@ const Banks = () => {
     try {
       const created: any = await createSupplier.mutateAsync({
         name,
-        email: newSupplierEmail.trim() || `${name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '')}@a-renseigner.local`,
+        email: newSupplierEmail.trim(), // pas de faux email : vide si non renseigné
         supplier_type_id: newSupplierTypeId || undefined,
       });
       const txId = createForTxId;
