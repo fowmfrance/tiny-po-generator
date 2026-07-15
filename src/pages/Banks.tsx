@@ -627,7 +627,9 @@ const Banks = () => {
   };
 
   const handleCreateSupplier = async (force = false) => {
-    const name = toProperCase(newSupplierName.trim());
+    // Le défaut pré-rempli est déjà en format propre (openCreateSupplier) ; on
+    // respecte ici ce que l'utilisateur a saisi/édité (correcteur neutralisé à l'édition).
+    const name = newSupplierName.trim();
     if (!name) {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du fournisseur.', variant: 'destructive' });
       return;
@@ -668,7 +670,8 @@ const Banks = () => {
   };
 
   const handleCreateClient = async (force = false) => {
-    const name = toProperCase(newClientName.trim());
+    // Défaut pré-rempli déjà en format propre ; on respecte l'édition utilisateur.
+    const name = newClientName.trim();
     if (!name) {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du client.', variant: 'destructive' });
       return;
