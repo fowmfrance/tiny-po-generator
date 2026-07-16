@@ -1,11 +1,10 @@
 -- ============================================================
 -- SAPAJOO v3 — BdC imputés au budget + factures seules (org FLEURON)
--- Remplace le backfill v1 (74 BdC). Source: onglet 2 du sheet (curé).
---  * 31 BdC réels -> purchase_orders (statut matched) imputés au Code projet
---    + facture liée (supplier_invoices) + PDF (invoice-attachments)
---  * 14 factures « Pas de BdC » (semi-auto) -> supplier_invoices SANS BdC
---    + code projet si présent + PDF ; fournisseurs passés is_po_exempt
---  * 38 lignes exclues (À créer=Non, ou BdC 2025 sans code)
+-- Remplace le backfill v1. Source: onglet « 2. BDC à créer » (curé).
+-- Cutoff: date de facture >= 2025-12-01 (antérieurs exclus).
+--  * 22 BdC réels -> purchase_orders 'matched' imputés au Code projet + facture liée + PDF
+--  * 3 factures « Pas de BdC » (semi-auto) -> supplier_invoices SANS BdC + PDF ; fournisseurs is_po_exempt
+--  * lignes exclues: À créer=Non, sans code, ou antérieures à déc. 2025
 -- Notes: aucune mention « backfill ». Dry-run: COMMIT -> ROLLBACK.
 -- ============================================================
 BEGIN;
@@ -21,7 +20,7 @@ END $$;
 DO $$
 DECLARE missing text;
 BEGIN
-  SELECT string_agg(code,', ') INTO missing FROM (VALUES ('GA26-001'), ('GA26-002'), ('GA26-003'), ('PR26-001'), ('PR26-002'), ('PR26-003')) v(code)
+  SELECT string_agg(code,', ') INTO missing FROM (VALUES ('GA26-001'), ('GA26-002'), ('PR26-001'), ('PR26-002'), ('PR26-003')) v(code)
     WHERE NOT EXISTS (SELECT 1 FROM public.budgets b,_ctx c WHERE b.organization_id=c.org_id AND b.code=v.code);
   IF missing IS NOT NULL THEN RAISE EXCEPTION 'Budgets absents (créer d''abord): %', missing; END IF;
 END $$;
@@ -42,15 +41,6 @@ WHERE s.organization_id=c.org_id AND (
 
 CREATE TEMP TABLE _po (match text, invnum text, invdate date, sent date, ht numeric, vat numeric, rate numeric, objet text, code text, pdf text) ON COMMIT DROP;
 INSERT INTO _po VALUES
-  ('%Touchard', '2025-012', DATE '2024-12-02', DATE '2024-12-01', 1000.00, 200.00, 20.0, 'Enregistrement et production podcast Fleuron (2 sessions nov 2024)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2025-010_Fowm.pdf'),
-  ('%Touchard', '2025-021', DATE '2025-01-14', DATE '2025-01-13', 1000.00, 200.00, 20.0, 'Enregistrement et production podcast Fleuron (2 sessions)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2025-021_Fowm_140125__1_.pdf'),
-  ('Pauline Lagarde', '2025F02-056', DATE '2025-02-24', DATE '2025-02-23', 250.00, 50.00, 20.0, 'Conception de newsletters Fleuron (Fevrier-Mars)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/2025F02-056_PAULINE_LAGARDE.pdf'),
-  ('Champagne Dremont-Marroy', 'F251388', DATE '2025-03-03', DATE '2025-03-02', 412.50, 82.50, 20.0, 'Champagne Carte Noire x18 + Carte Rouge x12 (75cl AOC Champagne)', 'GA26-003', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/IMG_4331.jpg'),
-  ('Pauline Lagarde', '2025F03-058', DATE '2025-03-07', DATE '2025-03-06', 640.00, 128.00, 20.0, 'Newsletters Animation Mars FOWM', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/2025F03-058_PAULINE_LAGARDE.pdf'),
-  ('Celine LE BRAS', 'Laga25-001', DATE '2025-04-01', DATE '2025-03-31', 300.00, 0.00, 0.0, 'Enregistrement et prod video (TVA non applicable art 293B)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_Laga25-001_Cyrielle_Domerg.pdf'),
-  ('%Touchard', '2025-030', DATE '2025-04-08', DATE '2025-04-07', 1000.00, 200.00, 20.0, 'Enregistrement et production podcast Fleuron (2 sessions)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2025-030_Fowm_080425__1_.pdf'),
-  ('%Touchard', '2025-035', DATE '2025-05-12', DATE '2025-05-11', 1500.00, 300.00, 20.0, 'Enregistrement et production podcast Fleuron (3 sessions)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2025-035_Fowm_120525.pdf'),
-  ('Pauline Lagarde', 'F202511-21', DATE '2025-11-12', DATE '2025-11-11', 1080.67, 216.13, 20.0, 'Accompagnement Marketing - video courte + support webinar + deplacement', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture-F202511-21.pdf'),
   ('%Touchard', '2025-059', DATE '2025-12-01', DATE '2025-11-30', 500.00, 100.00, 20.0, 'Enregistrement et production podcast Fleuron (1 session)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2025-059_Fowm_011225.pdf'),
   ('Pauline Lagarde', 'F202512-64', DATE '2025-12-17', DATE '2025-12-16', 550.00, 110.00, 20.0, 'Forfait jour accompagnement marketing et communication', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture-F202512-64.pdf'),
   ('%Touchard', '2026-002', DATE '2025-12-19', DATE '2025-12-18', 500.00, 100.00, 20.0, 'Enregistrement et production podcast Fleuron (1 session)', 'GA26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_2026-002_Fowm_191225.pdf'),
@@ -117,17 +107,6 @@ JOIN public.suppliers s ON s.id=r.supplier_id CROSS JOIN _ctx c;
 
 CREATE TEMP TABLE _inv (match text, invnum text, invdate date, ht numeric, vat numeric, rate numeric, objet text, code text, pdf text) ON COMMIT DROP;
 INSERT INTO _inv VALUES
-  ('COPY-TOP%', '86597', NULL, 0.00, 0.00, 0.0, 'Impression / reprographie (OCR very garbled - amounts unreliable; line items approx 29.03/7.15)', 'PR26-001', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/IMG_9187.jpg'),
-  ('m3 Hospitality Ferney', '46190', DATE '2024-11-03', 361.36, 34.94, 9.7, 'Sejour hotel (Cyrielle Domerg, 31/10-03/11/2024, chambre classique)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Facture_46190.pdf'),
-  ('FNAC%', 'Ticket', DATE '2024-11-14', 21.66, 4.33, 20.0, 'Cable Apple USB-C -> US (accessoire)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/2024-11-14_-_FNAC_TERNES_-__25_99.pdf'),
-  ('Sosh%', '9264654460', DATE '2025-04-24', 17.49, 6.00, 34.3, 'Forfait mobile Sosh 20,99 + tiers (ticket transport) - ligne 0750490177', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/facture_9011275593_2025-04-24.pdf'),
-  ('Sosh%', '9300450903', DATE '2025-09-24', 17.49, 11.00, 62.9, 'Forfait mobile Sosh 20,99 150Go 5G + tiers (tickets transport)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/facture_9011275593_2025-09-24.pdf'),
-  ('SNCF', '3453759071', DATE '2025-10-17', 68.00, 0.00, 0.0, 'Billets train Paris Gare du Nord - Compiegne A/R', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/20251019_0958_JustificatifAchat_SNCFCONNECT.pdf'),
-  ('Sosh%', '9307670498', DATE '2025-10-24', 17.49, 23.50, 134.4, 'Forfait mobile Sosh 20,99 150Go 5G + tiers (don SMS Institut Pasteur 20 EUR)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/facture_9011275593_2025-10-24__1_.pdf'),
-  ('espoir-tech', '240902210200', DATE '2025-10-29', 76.82, 15.36, 20.0, 'Ecouteurs sans fil sport SUUNTO Sonic', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/25102922300NK7J.pdf'),
-  ('SNCF', 'e-billet', DATE '2025-11-08', 84.00, 0.00, 0.0, 'Billets TGV Paris Est-Reims A/R (48 EUR + 36 EUR)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/PARIS_EST-REIMS_08-11-25_DOMERG_CYRIELLE_HMH9C8_2FNGiMr4hKSDeNyqFYob.pdf'),
-  ('Sosh%', '9314889782', DATE '2025-11-25', 17.49, 6.00, 34.3, 'Forfait mobile Sosh 20,99 150Go 5G + tiers (ticket transport)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/facture_9011275593_2025-11-25.pdf'),
-  ('Google Cloud France', 'GCFRD0011101858', DATE '2025-11-30', 0.77, 0.15, 19.5, 'Google Cloud - frais novembre 2025 (SIREN 881721583)', 'GA26-002', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/GCFRD0011101858.pdf'),
   ('Sosh%', '9322130297', DATE '2025-12-24', 17.49, 3.50, 20.0, 'Forfait mobile Sosh 20,99 150Go 5G (decembre 2025)', '', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/facture_9011275593_2025-12-24.pdf'),
   ('Google Cloud France', 'GCFRD0011390185', DATE '2025-12-31', 48.07, 9.61, 20.0, 'Google Workspace Business Standard (domaine fowm.io) decembre 2025', 'GA26-002', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/GCFRD0011390185.pdf'),
   ('Lovable Labs', '6774745F-0017', DATE '2026-01-05', 25.00, 0.00, 0.0, 'Lovable Pro subscription (Jan 5 - Feb 5 2026), reverse charge', 'GA26-002', '9d9f9f6c-ab05-4bc3-acdc-60d335523731/factures-fournisseurs/Invoice-6774745F-0017.pdf');
@@ -151,8 +130,8 @@ SELECT c.org_id,c.user_id,r.supplier_id,s.name,NULL,NULL,NULLIF(r.code,''),
 FROM _invr r JOIN public.suppliers s ON s.id=r.supplier_id CROSS JOIN _ctx c;
 
 SELECT 'BdC v1 restants (attendu 0)' l, count(*)::text v FROM public.purchase_orders WHERE notes LIKE 'Backfill facture %'
-UNION ALL SELECT 'BdC v3 (attendu 31)', count(*)::text FROM public.supplier_invoices WHERE purchase_order_id IS NOT NULL AND invoice_number IN (SELECT invnum FROM _po)
-UNION ALL SELECT 'Factures seules (attendu 14)', count(*)::text FROM public.supplier_invoices WHERE purchase_order_id IS NULL AND invoice_number IN (SELECT invnum FROM _inv)
+UNION ALL SELECT 'BdC v3 (attendu 22)', count(*)::text FROM public.supplier_invoices WHERE purchase_order_id IS NOT NULL AND invoice_number IN (SELECT invnum FROM _po)
+UNION ALL SELECT 'Factures seules (attendu 3)', count(*)::text FROM public.supplier_invoices WHERE purchase_order_id IS NULL AND invoice_number IN (SELECT invnum FROM _inv)
 UNION ALL SELECT 'Total HT BdC v3', round(sum(total_amount),2)::text FROM public.purchase_orders po WHERE po.id IN (SELECT purchase_order_id FROM public.supplier_invoices WHERE invoice_number IN (SELECT invnum FROM _po))
 UNION ALL SELECT 'Répartition budget', string_agg(code||':'||n,', ') FROM (SELECT b.code, count(*) n FROM public.purchase_orders po JOIN public.budgets b ON b.id=po.budget_id WHERE po.id IN (SELECT purchase_order_id FROM public.supplier_invoices WHERE invoice_number IN (SELECT invnum FROM _po)) GROUP BY b.code ORDER BY b.code) x;
 
