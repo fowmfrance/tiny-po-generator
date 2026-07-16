@@ -22,13 +22,12 @@ export default function Payments() {
   const filteredInvoices = useMemo(() => {
     switch (activeTab) {
       case 'to-pay':
-        return invoices.filter(inv => 
-          inv.payment_status === 'overdue' || inv.payment_status === 'due_soon'
-        );
+        // Toutes les non-payées (y compris échéance future) — l'urgence est en badge.
+        return invoices.filter(inv => inv.payment_status !== 'paid');
       case 'paid':
         return invoices.filter(inv => inv.payment_status === 'paid');
       default:
-        return invoices.filter(inv => inv.payment_status !== 'paid');
+        return invoices;
     }
   }, [invoices, activeTab]);
 
@@ -51,12 +50,17 @@ export default function Payments() {
   // Auto-select overdue/due_soon when switching to "to-pay" tab
   React.useEffect(() => {
     if (activeTab === 'to-pay') {
-      const toPayIds = new Set(filteredInvoices.map(inv => inv.id));
-      setSelectedIds(toPayIds);
+      // Pré-sélectionne seulement les urgentes (échues / échéance proche).
+      const urgent = new Set(
+        invoices
+          .filter(inv => inv.payment_status === 'overdue' || inv.payment_status === 'due_soon')
+          .map(inv => inv.id)
+      );
+      setSelectedIds(urgent);
     } else {
       setSelectedIds(new Set());
     }
-  }, [activeTab, filteredInvoices]);
+  }, [activeTab, invoices]);
 
   const handleSelectionChange = (id: string, selected: boolean) => {
     const newSet = new Set(selectedIds);
@@ -156,13 +160,13 @@ export default function Payments() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="all">
-                  Toutes ({invoices.filter(i => i.payment_status !== 'paid').length})
+                  Toutes ({invoices.length})
                 </TabsTrigger>
                 <TabsTrigger value="to-pay" className="text-red-600">
-                  À payer ({stats.countOverdue + stats.countDueSoon})
+                  À payer ({stats.countUnpaid})
                 </TabsTrigger>
                 <TabsTrigger value="paid">
-                  Payées
+                  Payées ({invoices.length - stats.countUnpaid})
                 </TabsTrigger>
               </TabsList>
 
