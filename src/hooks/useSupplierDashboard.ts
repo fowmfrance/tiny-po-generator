@@ -127,14 +127,23 @@ function buildAggregation(
   const monthMap = new Map<string, { projet: number; horsProjet: number; byTrade: Record<string, number>; budgetVentes: number; chargesExternes: number }>();
   const uniqueSuppliers = new Set<string>();
 
+  // « Projet » = rattaché à un budget de type Project (les budgets G&A comme
+  // « Visibilité LinkedIn » sont hors-projet, tout comme les BdC sans budget).
+  const isProjet = (budgetId: string | null | undefined) => {
+    if (!budgetId) return false;
+    const b = budgetMap.get(budgetId);
+    return !!b && b.type === 'Project';
+  };
+
   posList.forEach((p: any) => {
     const amt = Number(p.total_amount) || 0;
     const s = supplierMap.get(p.supplier_id);
     const tradeName = s?.supplier_type?.name || 'Non classé';
     const tradeColor = s?.supplier_type?.color || '#B8853A';
     const pmName = s?.payment_method?.name || 'Non défini';
+    const projet = isProjet(p.budget_id);
 
-    if (p.budget_id) projetTotal += amt; else horsProjetTotal += amt;
+    if (projet) projetTotal += amt; else horsProjetTotal += amt;
 
     const existing = tradeMap.get(tradeName) || { total: 0, color: tradeColor };
     existing.total += amt;
@@ -146,7 +155,7 @@ function buildAggregation(
     const d = new Date(p.created_at);
     const key = format(d, 'yyyy-MM');
     const entry = monthMap.get(key) || { projet: 0, horsProjet: 0, byTrade: {}, budgetVentes: 0, chargesExternes: 0 };
-    if (p.budget_id) entry.projet += amt; else entry.horsProjet += amt;
+    if (projet) entry.projet += amt; else entry.horsProjet += amt;
     entry.byTrade[tradeName] = (entry.byTrade[tradeName] || 0) + amt;
 
     // External project charges = PO-date based
@@ -252,7 +261,7 @@ export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: str
       const [posRes, suppRes, budgetsRes] = await Promise.all([
         supabase.from('purchase_orders').select('id, total_amount, budget_id, created_at, supplier_id').order('created_at'),
         supabase.from('suppliers').select('id, supplier_type_id, default_payment_method_id, supplier_type:supplier_types(name, color), payment_method:payment_methods(name)'),
-        supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date'),
+        supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date, type'),
       ]);
 
       if (posRes.error) throw posRes.error;
