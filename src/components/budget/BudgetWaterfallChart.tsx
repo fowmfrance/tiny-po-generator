@@ -17,12 +17,14 @@ const fmt = (currency: string, amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount);
 
+// Palette alignée sur les donuts (KIOSCO_CHART, cf. SupplierDashboardTab) :
+// terracotta / ocre / vert / gris chaud / brique — cohérence de marque.
 const COLORS = {
-  revenue: 'hsl(221, 83%, 53%)',
-  invoiced: 'hsl(0, 72%, 51%)',
-  committed: 'hsl(25, 95%, 53%)',
-  remaining: 'hsl(45, 93%, 47%)',
-  margin: 'hsl(142, 71%, 45%)',
+  revenue: '#D97757', // terracotta — Prix de vente / Budget (barre d'en-tête)
+  invoiced: '#9B3B2A', // brique — coût facturé (déduction)
+  committed: '#B8853A', // ocre — BdC en attente / engagé
+  remaining: '#6B6860', // gris chaud — budget non alloué (neutre)
+  margin: '#4A7C59', // vert — marge brute (résultat positif)
 };
 
 interface WaterfallStep {
