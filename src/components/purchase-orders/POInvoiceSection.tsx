@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, Download } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, Download, Banknote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,9 @@ import { formatCurrency } from '@/utils/paymentUtils';
 import { downloadSingleAttachment } from '@/lib/bulk-download';
 import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
 import { InvoicePaymentsSection } from '@/components/payments/InvoicePaymentsSection';
+import { POInvoiceUploadDialog, type InvoiceUploadInput } from './POInvoiceUploadDialog';
+import { POGroupPaymentDialog } from './POGroupPaymentDialog';
+import { usePOInvoiceLines, usePOGroupPayment } from '@/hooks/usePOInvoicing';
 
 interface POInvoiceSectionProps {
   poId: string;
@@ -20,9 +23,14 @@ interface POInvoiceSectionProps {
   supplierName: string;
   currency: string;
   totalAmount: number;
+  /** Montants du BdC (total_amount = HT ; amount_ttc si renseigné). */
+  amountHt?: number | null;
+  amountTtc?: number | null;
   expectedDeliveryDate: string | null;
   poStatus: string;
 }
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'En attente de validation', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
@@ -77,14 +85,20 @@ export function POInvoiceSection({
   supplierName,
   currency,
   totalAmount,
+  amountHt,
+  amountTtc,
   expectedDeliveryDate,
   poStatus,
 }: POInvoiceSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isCreating, setIsCreating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [groupPaymentOpen, setGroupPaymentOpen] = useState(false);
+
+  const { lines: paymentLines } = usePOInvoiceLines(poId);
+  const { addGroupPayment } = usePOGroupPayment(poId);
 
   const isDeliveryPassed = expectedDeliveryDate
     ? new Date(expectedDeliveryDate) <= new Date()
@@ -104,7 +118,7 @@ export function POInvoiceSection({
   });
 
   const createInvoiceMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, input }: { file: File; input: InvoiceUploadInput }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
@@ -118,9 +132,9 @@ export function POInvoiceSection({
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const invoiceNumber = `FAC-${poNumber}-${(invoices.length + 1).toString().padStart(2, '0')}`;
       const today = new Date().toISOString().split('T')[0];
       const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const ht = round2(input.ttc - (input.vat ?? 0));
 
       const { data, error } = await supabase
         .from('supplier_invoices')
@@ -130,15 +144,20 @@ export function POInvoiceSection({
           supplier_id: supplierId,
           purchase_order_id: poId,
           po_number: poNumber,
-          invoice_number: invoiceNumber,
-          amount: totalAmount,
+          invoice_number: input.invoiceNumber,
+          // Convention app : amount = TTC ; HT/TTC explicites pour le contrôle cumulé
+          amount: input.ttc,
+          amount_ttc: input.ttc,
+          amount_ht: ht,
+          vat_amount: input.vat,
           currency,
-          invoice_date: today,
+          invoice_date: input.invoiceDate,
           due_date: dueDate,
           received_date: today,
           status: 'pending',
           attachment_url: filePath,
-        })
+          notes: input.nature,
+        } as any)
         .select()
         .single();
 
@@ -148,8 +167,9 @@ export function POInvoiceSection({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['po-invoices', poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] });
+      queryClient.invalidateQueries({ queryKey: ['po-invoicing-summaries'] });
       toast({ title: 'Facture créée', description: 'La facture a été enregistrée et est en attente de validation.' });
-      setIsCreating(false);
+      setPendingFile(null);
     },
     onError: (error: any) => {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -158,9 +178,22 @@ export function POInvoiceSection({
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    createInvoiceMutation.mutate(file);
+    setPendingFile(file);
   };
+
+  // Cumuls facturés vs montants du BdC (contrôle acompte / intermédiaire / solde)
+  const activeInvoices = invoices.filter((i: any) => i.status !== 'cancelled' && i.status !== 'rejected');
+  const invoicedTtc = round2(activeInvoices.reduce((s: number, i: any) => s + Number(i.amount_ttc ?? i.amount ?? 0), 0));
+  const invoicedHt = round2(activeInvoices.reduce(
+    (s: number, i: any) => s + Number(i.amount_ht ?? round2(Number(i.amount ?? 0) - Number(i.vat_amount ?? 0))), 0));
+  const poHt = Number(amountHt ?? totalAmount);
+  const poTtc = amountTtc != null ? Number(amountTtc) : null;
+  const invoicedPct = poHt > 0 ? Math.round((invoicedHt / poHt) * 100) : 0;
+  const overInvoiced = invoicedHt > poHt + 0.005;
+  const remainingToInvoiceTtc = Math.max(0, round2((poTtc ?? poHt) - invoicedTtc));
+  const hasPayable = paymentLines.some((l) => l.remaining > 0.005);
 
   const isDraft = poStatus === 'draft';
   if (isDraft) return null;
@@ -179,15 +212,59 @@ export function POInvoiceSection({
               Factures associées à ce bon de commande
             </CardDescription>
           </div>
-          {!isDeliveryPassed && expectedDeliveryDate && (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-              <Clock className="h-3 w-3 mr-1" />
-              Upload disponible après le {new Date(expectedDeliveryDate).toLocaleDateString('fr-FR')}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {hasPayable && (
+              <Button size="sm" variant="outline" onClick={() => setGroupPaymentOpen(true)}>
+                <Banknote className="h-4 w-4 mr-1.5" />
+                Paiement groupé
+              </Button>
+            )}
+            {!isDeliveryPassed && expectedDeliveryDate && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                <Clock className="h-3 w-3 mr-1" />
+                Upload disponible après le {new Date(expectedDeliveryDate).toLocaleDateString('fr-FR')}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Cumul facturé vs BdC : contrôle des montants soumis (acompte / intermédiaire / solde) */}
+        {activeInvoices.length > 0 && (
+          <div className="rounded-lg border bg-muted/30 px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <p className="text-[11px] text-muted-foreground">Facturé HT</p>
+              <p className="text-sm font-semibold">{formatCurrency(invoicedHt, currency)}</p>
+              <p className="text-[11px] text-muted-foreground">BdC : {formatCurrency(poHt, currency)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Facturé TTC</p>
+              <p className="text-sm font-semibold">{formatCurrency(invoicedTtc, currency)}</p>
+              {poTtc != null && (
+                <p className="text-[11px] text-muted-foreground">BdC : {formatCurrency(poTtc, currency)}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Avancement facturation</p>
+              <p className={`text-sm font-semibold ${
+                overInvoiced ? 'text-red-600' : invoicedPct >= 100 ? 'text-green-700' : 'text-amber-600'
+              }`}>
+                {invoicedPct}%
+              </p>
+              {overInvoiced && (
+                <p className="text-[11px] text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Dépassement de {formatCurrency(round2(invoicedHt - poHt), currency)} HT
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Reste à facturer (TTC)</p>
+              <p className="text-sm font-semibold">{formatCurrency(remainingToInvoiceTtc, currency)}</p>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Chargement des factures...</p>
         ) : invoices.length > 0 ? (
@@ -197,7 +274,8 @@ export function POInvoiceSection({
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">N° Facture</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Date</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Montant</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Montant HT</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Montant TTC</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Statut</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Pièce jointe</th>
                 </tr>
@@ -208,12 +286,20 @@ export function POInvoiceSection({
                   return (
                     <React.Fragment key={invoice.id}>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium">{invoice.invoice_number}</td>
+                      <td className="px-4 py-3 text-sm font-medium">
+                        {invoice.invoice_number}
+                        {invoice.notes && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">{invoice.notes}</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         {new Date(invoice.invoice_date).toLocaleDateString('fr-FR')}
                       </td>
+                      <td className="px-4 py-3 text-sm text-right">
+                        {formatCurrency(Number(invoice.amount_ht ?? round2(Number(invoice.amount ?? 0) - Number(invoice.vat_amount ?? 0))), invoice.currency)}
+                      </td>
                       <td className="px-4 py-3 text-sm text-right font-medium">
-                        {formatCurrency(Number(invoice.amount), invoice.currency)}
+                        {formatCurrency(Number(invoice.amount_ttc ?? invoice.amount), invoice.currency)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="outline" className={status.color}>
@@ -232,7 +318,7 @@ export function POInvoiceSection({
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={5} className="px-4 pb-3 bg-muted/10">
+                      <td colSpan={6} className="px-4 pb-3 bg-muted/10">
                         <InvoicePaymentsSection
                           invoiceId={invoice.id}
                           invoiceTtc={Number(invoice.amount)}
@@ -296,6 +382,28 @@ export function POInvoiceSection({
         onOpenChange={(open) => !open && setPreviewUrl(null)}
         attachmentUrl={previewUrl}
         title={previewTitle}
+      />
+
+      <POInvoiceUploadDialog
+        open={!!pendingFile}
+        onOpenChange={(open) => !open && setPendingFile(null)}
+        fileName={pendingFile?.name || ''}
+        currency={currency}
+        defaultInvoiceNumber={`FAC-${poNumber}-${(invoices.length + 1).toString().padStart(2, '0')}`}
+        suggestedTtc={remainingToInvoiceTtc}
+        isSubmitting={createInvoiceMutation.isPending}
+        onSubmit={(input) => {
+          if (pendingFile) createInvoiceMutation.mutate({ file: pendingFile, input });
+        }}
+      />
+
+      <POGroupPaymentDialog
+        open={groupPaymentOpen}
+        onOpenChange={setGroupPaymentOpen}
+        currency={currency}
+        lines={paymentLines}
+        isSubmitting={addGroupPayment.isPending}
+        onSubmit={(input) => addGroupPayment.mutate(input, { onSuccess: () => setGroupPaymentOpen(false) })}
       />
     </>
   );

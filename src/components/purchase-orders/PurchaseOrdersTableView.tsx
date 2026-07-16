@@ -66,6 +66,8 @@ export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = (
             <TableHead>N° BC</TableHead>
             <TableHead>Fournisseur</TableHead>
             <TableHead className="text-right">Montant</TableHead>
+            <TableHead className="text-right">Facturé</TableHead>
+            <TableHead className="text-right">Payé</TableHead>
             <TableHead className="text-center">Date</TableHead>
             <TableHead className="text-center">Statut</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -86,6 +88,21 @@ export const PurchaseOrdersTableView: React.FC<PurchaseOrdersTableViewProps> = (
               </TableCell>
               <TableCell className="text-right">
                 {po.currency} {po.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </TableCell>
+              <TableCell className="text-right">
+                {(po.invoiceCount ?? 0) > 0 ? (
+                  <span className={
+                    (po.invoicedPct ?? 0) > 100 ? 'text-red-600' :
+                    (po.invoicedPct ?? 0) >= 100 ? 'text-emerald-600' : 'text-amber-600'
+                  }>
+                    {(po.invoicedTtc ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({po.invoicedPct}%)
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                {(po.paymentProgress ?? 0) > 0 ? `${po.paymentProgress}%` : <span className="text-muted-foreground">—</span>}
               </TableCell>
               <TableCell className="text-center">{po.date}</TableCell>
               <TableCell className="text-center">

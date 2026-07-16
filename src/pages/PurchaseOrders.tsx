@@ -4,6 +4,7 @@ import { PurchaseOrdersCardView } from '@/components/purchase-orders/PurchaseOrd
 import { PurchaseOrdersTableView } from '@/components/purchase-orders/PurchaseOrdersTableView';
 import CreatePOButton from '@/components/CreatePOButton';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { usePOInvoicingSummaries } from '@/hooks/usePOInvoicing';
 
 export type PurchaseOrderStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'sent' | 'matched' | 'paid';
 
@@ -16,27 +17,43 @@ export interface PurchaseOrder {
   currency: string;
   date: string;
   status: PurchaseOrderStatus;
+  /** % réellement payé (paiements réglés / TTC de référence). */
   paymentProgress?: number;
+  /** Cumul TTC des factures reçues face au BdC. */
+  invoicedTtc?: number;
+  /** % facturé (cumul HT factures / HT du BdC). */
+  invoicedPct?: number;
+  invoiceCount?: number;
 }
 
 const PurchaseOrders = () => {
   const { purchaseOrders, isLoading } = usePurchaseOrders();
+  const { summaries } = usePOInvoicingSummaries();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   // Map DB purchase orders to the display format
-  const displayPOs: PurchaseOrder[] = purchaseOrders.map(po => ({
-    id: po.id,
-    poNumber: po.po_number,
-    vendor: po.supplier?.name || 'Fournisseur inconnu',
-    vendorId: po.supplier_id,
-    amount: Number(po.total_amount),
-    currency: po.currency,
-    date: new Date(po.created_at).toLocaleDateString('fr-FR'),
-    status: po.status as PurchaseOrderStatus,
-    paymentProgress: po.status === 'paid' ? 100 : po.status === 'matched' ? 60 : 0,
-  }));
+  const displayPOs: PurchaseOrder[] = purchaseOrders.map(po => {
+    const totals = summaries.get(po.id);
+    const poHt = Number((po as any).amount_ht ?? po.total_amount);
+    // TTC de référence pour le % payé : TTC du BdC, sinon cumul TTC facturé, sinon HT
+    const ttcBase = Number((po as any).amount_ttc ?? 0) || totals?.invoicedTtc || poHt;
+    return {
+      id: po.id,
+      poNumber: po.po_number,
+      vendor: po.supplier?.name || 'Fournisseur inconnu',
+      vendorId: po.supplier_id,
+      amount: Number(po.total_amount),
+      currency: po.currency,
+      date: new Date(po.created_at).toLocaleDateString('fr-FR'),
+      status: po.status as PurchaseOrderStatus,
+      paymentProgress: totals && ttcBase > 0 ? Math.round((totals.paidTtc / ttcBase) * 100) : 0,
+      invoicedTtc: totals?.invoicedTtc ?? 0,
+      invoicedPct: totals && poHt > 0 ? Math.round((totals.invoicedHt / poHt) * 100) : 0,
+      invoiceCount: totals?.invoiceCount ?? 0,
+    };
+  });
 
   const filteredPOs = displayPOs.filter(po => {
     const matchesSearch = 

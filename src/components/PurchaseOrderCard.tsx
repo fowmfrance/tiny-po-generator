@@ -14,6 +14,9 @@ interface PurchaseOrderCardProps {
   date: string;
   status: PurchaseOrderStatus;
   paymentProgress?: number;
+  invoicedTtc?: number;
+  invoicedPct?: number;
+  invoiceCount?: number;
 }
 
 const formatCurrency = (amount: number) =>
@@ -37,11 +40,16 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   date,
   status,
   paymentProgress = 0,
+  invoicedTtc = 0,
+  invoicedPct = 0,
+  invoiceCount = 0,
 }) => {
   const navigate = useNavigate();
   const mono = getMonogramColor(vendor);
   const meta = STATUS_META[status] ?? STATUS_META.approved;
-  const showProgress = status === 'approved' || status === 'matched' || status === 'paid';
+  const showProgress = status === 'approved' || status === 'sent' || status === 'matched' || status === 'paid';
+  const invoicedColor =
+    invoicedPct > 100 ? 'text-red-600' : invoicedPct >= 100 ? 'text-emerald-600' : 'text-amber-600';
 
   return (
     <Card
@@ -71,15 +79,29 @@ const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
       </div>
 
       {showProgress && (
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
-            <div
-              className={`h-full rounded-full ${paymentProgress >= 100 ? 'bg-emerald-500' : 'bg-brand'}`}
-              style={{ width: `${Math.min(paymentProgress, 100)}%` }}
-            />
+        <>
+          <div className="mt-3 flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">
+              Facturé {invoiceCount > 1 ? `(${invoiceCount})` : ''}
+            </span>
+            {invoiceCount > 0 ? (
+              <span className={`font-medium ${invoicedColor}`}>
+                {formatCurrency(invoicedTtc)} · {invoicedPct}%
+              </span>
+            ) : (
+              <span className="text-muted-foreground/60">aucune facture</span>
+            )}
           </div>
-          <span className="text-[11px] text-muted-foreground shrink-0">{paymentProgress}% payé</span>
-        </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div
+                className={`h-full rounded-full ${paymentProgress >= 100 ? 'bg-emerald-500' : 'bg-brand'}`}
+                style={{ width: `${Math.min(paymentProgress, 100)}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-muted-foreground shrink-0">{paymentProgress}% payé</span>
+          </div>
+        </>
       )}
 
       <div className="mt-2 text-[11px] text-muted-foreground/80 flex items-center gap-1.5">

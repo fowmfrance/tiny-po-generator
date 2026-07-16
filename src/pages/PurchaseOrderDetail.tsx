@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { usePurchaseOrder, usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { usePOInvoicingSummaries } from '@/hooks/usePOInvoicing';
 import { formatCurrency } from '@/utils/paymentUtils';
 import {
   AlertDialog,
@@ -36,6 +37,7 @@ const PurchaseOrderDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: po, isLoading } = usePurchaseOrder(id);
+  const { summaries } = usePOInvoicingSummaries();
   const { updatePOStatus, deletePO } = usePurchaseOrders();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -92,7 +94,13 @@ const PurchaseOrderDetail = () => {
     );
   }
 
-  const paymentProgress = po.status === 'paid' ? 100 : po.status === 'matched' ? 60 : 0;
+  // Avancement réel : cumul des factures reçues et des paiements réglés face au BdC
+  const totals = summaries.get(po.id);
+  const poHt = Number((po as any).amount_ht ?? po.total_amount);
+  const poTtc = (po as any).amount_ttc != null ? Number((po as any).amount_ttc) : null;
+  const ttcBase = poTtc || totals?.invoicedTtc || poHt;
+  const paymentProgress = totals && ttcBase > 0 ? Math.round((totals.paidTtc / ttcBase) * 100) : 0;
+  const invoicedPct = totals && poHt > 0 ? Math.round((totals.invoicedHt / poHt) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -144,14 +152,25 @@ const PurchaseOrderDetail = () => {
             ) : (
               <p className="text-sm text-muted-foreground">Aucun budget associé</p>
             )}
-            {(['approved', 'matched', 'paid'].includes(po.status)) && (
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Avancement paiement</span>
-                  <span>{paymentProgress}%</span>
+            {(['approved', 'sent', 'matched', 'paid'].includes(po.status)) && (
+              <div className="mt-4 pt-4 border-t space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Facturé</span>
+                  <span className={
+                    invoicedPct > 100 ? 'text-red-600 font-medium' :
+                    invoicedPct >= 100 ? 'text-emerald-600 font-medium' : ''
+                  }>
+                    {invoicedPct}%
+                  </span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${paymentProgress}%` }} />
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Payé</span>
+                    <span>{paymentProgress}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-muted rounded overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(paymentProgress, 100)}%` }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -178,7 +197,10 @@ const PurchaseOrderDetail = () => {
         <Card>
           <CardHeader><CardTitle>Montant</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(Number(po.total_amount), po.currency)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(Number(po.total_amount), po.currency)} <span className="text-sm font-normal text-muted-foreground">HT</span></p>
+            {poTtc != null && (
+              <p className="text-sm text-muted-foreground">{formatCurrency(poTtc, po.currency)} TTC</p>
+            )}
             {po.expected_delivery_date && (
               <p className="text-sm text-muted-foreground mt-2">
                 Livraison prévue : {new Date(po.expected_delivery_date).toLocaleDateString('fr-FR')}
@@ -241,6 +263,8 @@ const PurchaseOrderDetail = () => {
         supplierName={po.supplier?.name || 'Inconnu'}
         currency={po.currency}
         totalAmount={Number(po.total_amount)}
+        amountHt={(po as any).amount_ht != null ? Number((po as any).amount_ht) : null}
+        amountTtc={(po as any).amount_ttc != null ? Number((po as any).amount_ttc) : null}
         expectedDeliveryDate={po.expected_delivery_date}
         poStatus={po.status}
       />
