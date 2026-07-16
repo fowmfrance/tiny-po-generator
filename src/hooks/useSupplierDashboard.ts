@@ -132,7 +132,7 @@ function buildAggregation(
   const isProjet = (budgetId: string | null | undefined) => {
     if (!budgetId) return false;
     const b = budgetMap.get(budgetId);
-    return !!b && b.type === 'Project';
+    return !!b && b.budget_type_id === 'project';
   };
 
   posList.forEach((p: any) => {
@@ -271,7 +271,7 @@ export function useSupplierDashboard(
         supabase.from('purchase_orders').select('id, total_amount, amount_ht, amount_ttc, budget_id, created_at, supplier_id').order('created_at'),
         supabase.from('supplier_invoices').select('id, amount, amount_ht, amount_ttc, vat_amount, supplier_id, invoice_date, purchase_order_id, status'),
         supabase.from('suppliers').select('id, supplier_type_id, default_payment_method_id, supplier_type:supplier_types(name, color), payment_method:payment_methods(name)'),
-        supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date, type'),
+        supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date, budget_type_id'),
       ]);
 
       if (posRes.error) throw posRes.error;
