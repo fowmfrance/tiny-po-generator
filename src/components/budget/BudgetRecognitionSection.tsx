@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Flag, Pencil, CheckCircle2, Clock, Target } from 'lucide-react';
+import { Flag, Pencil, CheckCircle2, Clock, Target, Lock, ArrowLeftRight } from 'lucide-react';
 import { MilestoneTimelineDialog, Milestone } from '@/components/budget/MilestoneTimelineDialog';
+import { ChangeRecognitionMethodDialog } from '@/components/budget/ChangeRecognitionMethodDialog';
 import { MilestoneMode } from '@/models/Budget';
 import { Progress } from '@/components/ui/progress';
 
@@ -33,27 +34,39 @@ interface MilestoneData {
 }
 
 interface BudgetRecognitionSectionProps {
+  budgetId: string;
   recognitionMethod: RecognitionMethod | null;
   milestones: MilestoneData[];
   milestoneMode: string | null;
   budgetStartDate: string | null;
   budgetEndDate: string | null;
+  /** true dès qu'une première écriture (CA ou charge) a été reconnue sur le budget */
+  recognitionStarted: boolean;
+  isAdmin: boolean;
   onMilestonesUpdated: () => void;
+  onMethodChanged: () => void;
 }
 
 export function BudgetRecognitionSection({
+  budgetId,
   recognitionMethod,
   milestones,
   milestoneMode,
   budgetStartDate,
   budgetEndDate,
+  recognitionStarted,
+  isAdmin,
   onMilestonesUpdated,
+  onMethodChanged,
 }: BudgetRecognitionSectionProps) {
   const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
+  const [isMethodDialogOpen, setIsMethodDialogOpen] = useState(false);
 
-  if (!recognitionMethod) return null;
+  // Verrou : méthode figée dès la première écriture reconnue, sauf pour un admin
+  const methodLocked = recognitionStarted && !isAdmin;
 
-  const isMilestoneMethod = recognitionMethod.trigger_type === 'milestone' || recognitionMethod.code === 'milestone';
+  const isMilestoneMethod = !!recognitionMethod
+    && (recognitionMethod.trigger_type === 'milestone' || recognitionMethod.code === 'milestone');
   const sortedMilestones = [...milestones].sort((a, b) => a.order_index - b.order_index);
 
   const dialogMilestones: Milestone[] = sortedMilestones.map((m) => ({
@@ -85,27 +98,63 @@ export function BudgetRecognitionSection({
             <CardTitle className="text-base flex items-center gap-2">
               <Target className="w-4 h-4" />
               Méthode de reconnaissance
+              {methodLocked && (
+                <Badge variant="outline" className="text-[10px] font-normal flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Verrouillée
+                </Badge>
+              )}
             </CardTitle>
-            {isMilestoneMethod && milestones.length > 0 && (
+            <div className="flex items-center gap-2">
+              {isMilestoneMethod && milestones.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMilestoneDialogOpen(true)}
+                  className="flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Modifier les jalons
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsMilestoneDialogOpen(true)}
+                disabled={methodLocked}
+                onClick={() => setIsMethodDialogOpen(true)}
                 className="flex items-center gap-1.5"
+                title={
+                  methodLocked
+                    ? 'Méthode verrouillée : des montants ont déjà été reconnus sur ce budget. Seul un administrateur peut la modifier.'
+                    : undefined
+                }
               >
-                <Pencil className="w-3.5 h-3.5" />
-                Modifier les jalons
+                {methodLocked ? <Lock className="w-3.5 h-3.5" /> : <ArrowLeftRight className="w-3.5 h-3.5" />}
+                {recognitionMethod ? 'Changer de méthode' : 'Choisir une méthode'}
               </Button>
-            )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="text-xs">
-              {recognitionMethod.name_expense}
-            </Badge>
-            <span className="text-sm text-muted-foreground">{recognitionMethod.description}</span>
-          </div>
+          {recognitionMethod ? (
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-xs">
+                {recognitionMethod.name_expense}
+              </Badge>
+              <span className="text-sm text-muted-foreground">{recognitionMethod.description}</span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucune méthode de reconnaissance définie pour ce budget.
+            </p>
+          )}
+          {methodLocked && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Lock className="w-3 h-3 shrink-0" />
+              Des montants ont déjà été reconnus : la méthode ne peut plus être modifiée que par un
+              administrateur (les montants reconnus seraient recalculés).
+            </p>
+          )}
 
           {isMilestoneMethod && milestones.length > 0 && (
             <div className="space-y-3">
@@ -177,6 +226,15 @@ export function BudgetRecognitionSection({
         projectStartDate={budgetStartDate ? new Date(budgetStartDate) : undefined}
         projectEndDate={budgetEndDate ? new Date(budgetEndDate) : undefined}
         milestoneMode={(milestoneMode as MilestoneMode) || 'global'}
+      />
+
+      <ChangeRecognitionMethodDialog
+        open={isMethodDialogOpen}
+        onOpenChange={setIsMethodDialogOpen}
+        budgetId={budgetId}
+        currentMethodId={recognitionMethod?.id || null}
+        recognitionStarted={recognitionStarted}
+        onSaved={onMethodChanged}
       />
     </>
   );

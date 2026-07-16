@@ -304,13 +304,21 @@ const BudgetDetails = () => {
 
       {/* Recognition method & milestones section */}
       <BudgetRecognitionSection
+        budgetId={budget.id}
         recognitionMethod={recognitionMethod}
         milestones={milestones}
         milestoneMode={budget.milestone_mode}
         budgetStartDate={budget.start_date}
         budgetEndDate={budget.end_date}
+        recognitionStarted={recognitionStarted}
+        isAdmin={isAdmin}
         onMilestonesUpdated={() => {
           queryClient.invalidateQueries({ queryKey: ['budget-details', id] });
+        }}
+        onMethodChanged={() => {
+          queryClient.invalidateQueries({ queryKey: ['budget-details', id] });
+          queryClient.invalidateQueries({ queryKey: ['budget-recognition-started', id] });
+          queryClient.invalidateQueries({ queryKey: ['budgets'] });
         }}
       />
 
