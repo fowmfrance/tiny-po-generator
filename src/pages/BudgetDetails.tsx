@@ -91,7 +91,7 @@ const BudgetDetails = () => {
       const [poRes, milestonesRes] = await Promise.all([
         supabase
           .from('purchase_orders')
-          .select('id, po_number, supplier_id, total_amount, currency, status, created_at, supplier:suppliers(name, is_active)')
+          .select('id, po_number, supplier_id, total_amount, amount_ht, currency, status, created_at, supplier:suppliers(name, is_active)')
           .eq('budget_id', budget.id)
           .order('created_at', { ascending: false }),
         supabase
@@ -111,17 +111,22 @@ const BudgetDetails = () => {
       if (poIds.length > 0) {
         const { data: invoices, error: invoicesError } = await supabase
           .from('supplier_invoices')
-          .select('purchase_order_id, amount, status')
+          .select('purchase_order_id, amount, amount_ht, vat_amount, status')
           .in('purchase_order_id', poIds)
           .neq('status', 'rejected');
 
         if (invoicesError) throw invoicesError;
-        receivedAmount = (invoices || []).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+        // Vision économique (défaut) : HT. Fallback amount - TVA avant migration.
+        receivedAmount = (invoices || []).reduce(
+          (sum, invoice: any) =>
+            sum + Number(invoice.amount_ht ?? (Number(invoice.amount || 0) - Number(invoice.vat_amount || 0))),
+          0,
+        );
       }
 
       const sentAmount = poList
         .filter((po) => po.status !== 'rejected')
-        .reduce((sum, po) => sum + Number(po.total_amount || 0), 0);
+        .reduce((sum, po: any) => sum + Number(po.amount_ht ?? po.total_amount ?? 0), 0);
 
       const initial = Number(budget.initial_amount || 0);
       const availableAmount = initial - sentAmount;
