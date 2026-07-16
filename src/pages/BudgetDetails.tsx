@@ -39,6 +39,34 @@ const BudgetDetails = () => {
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ['current-user-is-admin'],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return false;
+      const { data: isAdm } = await supabase.rpc('has_role', {
+        _user_id: userData.user.id,
+        _role: 'admin',
+      });
+      return !!isAdm;
+    },
+  });
+
+  const { data: recognitionStarted = false } = useQuery({
+    queryKey: ['budget-recognition-started', id],
+    enabled: !!id,
+    queryFn: async () => {
+      // RPC absente tant que la migration 20260716210000 n'a pas été exécutée
+      // (Lovable Cloud, SQL manuel) : dans ce cas, pas de verrou (comportement actuel).
+      const { data: started, error } = await (supabase.rpc as any)(
+        'budget_recognition_started',
+        { _budget_id: id },
+      );
+      if (error) return false;
+      return !!started;
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['budget-details', id],
     enabled: !!id,
@@ -173,6 +201,29 @@ const BudgetDetails = () => {
             </CardDescription>
           </div>
           <div className="pt-2">
+            {/* Lecture claire de l'enveloppe de dépenses (provision de charges) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {budget.resale_price ? (
+                <div className="rounded-lg bg-muted/50 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">CA initial (prix de vente)</p>
+                  <p className="text-sm font-medium">{formatMoney(budget.currency, Number(budget.resale_price))}</p>
+                </div>
+              ) : null}
+              <div className="rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">Provision de charges</p>
+                <p className="text-sm font-medium">{formatMoney(budget.currency, metrics.initialAmount)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">Engagé (BdC)</p>
+                <p className="text-sm font-medium">{formatMoney(budget.currency, metrics.sentAmount)}</p>
+              </div>
+              <div className="rounded-lg bg-brand/10 border border-brand/30 px-3 py-2">
+                <p className="text-[11px] text-brand">Disponible pour dépenses</p>
+                <p className={`text-sm font-semibold ${metrics.availableAmount < 0 ? 'text-red-600' : 'text-brand'}`}>
+                  {formatMoney(budget.currency, metrics.availableAmount)}
+                </p>
+              </div>
+            </div>
             <BudgetWaterfallChart
               currency={budget.currency}
               initialAmount={metrics.initialAmount}
