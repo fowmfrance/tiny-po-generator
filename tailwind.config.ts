@@ -53,6 +53,9 @@ export default {
           foreground: 'hsl(var(--brand-foreground))',
           subtle: 'hsl(var(--brand-subtle))'
         },
+        // Alias legacy : d'anciens composants utilisent bg-po-blue / text-po-blue
+        // (jamais défini → rendu invisible). On l'aligne sur l'accent terracotta.
+        'po-blue': 'hsl(var(--brand))',
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))'

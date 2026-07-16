@@ -321,7 +321,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
             <Button type="button" variant="outline" onClick={() => (embedded && onCancel ? onCancel() : navigate('/budgets'))} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-po-blue hover:bg-blue-600" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
