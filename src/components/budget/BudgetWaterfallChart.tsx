@@ -56,11 +56,10 @@ export function BudgetWaterfallChart({
   const steps: WaterfallStep[] = useMemo(() => {
     if (hasResale) {
       const sale = resalePrice!;
-      const margin = sale - initialAmount;
-
+      // Bridge RÉEL/ENGAGÉ cohérent : CA − factures reçues − BdC engagé = marge à date.
+      // (La provision de charges = budget prévisionnel, montrée à part dans le bandeau.)
       const lvl1 = sale - invoicedAmount;
-      const lvl2 = lvl1 - committedAmount;
-      const lvl3 = lvl2 - unallocated; // = margin
+      const projMargin = lvl1 - committedAmount; // = sale - sentAmount, les barres se réconcilient
 
       return [
         {
@@ -82,31 +81,22 @@ export function BudgetWaterfallChart({
           label: invoicedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, invoicedAmount)}`,
         },
         {
-          name: 'BdC en attente',
+          name: 'BdC engagé',
           type: committedAmount === 0 ? 'zero-change' : 'change',
           from: lvl1,
-          to: lvl2,
+          to: projMargin,
           delta: -committedAmount,
           color: COLORS.committed,
           label: committedAmount === 0 ? fmt(currency, 0) : `−${fmt(currency, committedAmount)}`,
         },
         {
-          name: 'Budget non alloué',
-          type: unallocated === 0 ? 'zero-change' : 'change',
-          from: lvl2,
-          to: lvl3,
-          delta: -unallocated,
-          color: COLORS.remaining,
-          label: unallocated === 0 ? fmt(currency, 0) : `−${fmt(currency, unallocated)}`,
-        },
-        {
-          name: 'Marge brute',
+          name: 'Marge à date',
           type: 'total',
           from: 0,
-          to: Math.max(0, margin),
-          delta: margin,
-          color: margin >= 0 ? COLORS.margin : COLORS.invoiced,
-          label: fmt(currency, margin),
+          to: Math.max(0, projMargin),
+          delta: projMargin,
+          color: projMargin >= 0 ? COLORS.margin : COLORS.invoiced,
+          label: fmt(currency, projMargin),
         },
       ];
     }
@@ -256,17 +246,23 @@ export function BudgetWaterfallChart({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.committed }} />
-          BdC en attente
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.remaining }} />
-          Non alloué
+          BdC engagé
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.margin }} />
-          Marge brute
+          {hasResale ? 'Marge à date' : 'Restant'}
         </span>
       </div>
+
+      {hasResale && (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          Provision de charges (budget) : <span className="font-medium text-foreground">{fmt(currency, initialAmount)}</span>
+          {' · '}Coûts engagés : <span className="font-medium text-foreground">{fmt(currency, invoicedAmount + committedAmount)}</span>
+          {invoicedAmount + committedAmount > initialAmount
+            ? <span className="text-red-600 font-medium"> · dépassement {fmt(currency, invoicedAmount + committedAmount - initialAmount)}</span>
+            : <span> · reste {fmt(currency, initialAmount - invoicedAmount - committedAmount)}</span>}
+        </p>
+      )}
     </div>
   );
 }
