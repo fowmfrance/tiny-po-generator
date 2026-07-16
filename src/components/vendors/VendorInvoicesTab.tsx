@@ -13,6 +13,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { PaymentStatusBadge } from '@/components/payments/PaymentStatusBadge';
 import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
+import { InvoicePaymentsSection } from '@/components/payments/InvoicePaymentsSection';
 
 interface VendorInvoicesTabProps {
   supplierInvoices: InvoiceWithPaymentStatus[];
@@ -202,6 +203,12 @@ function VendorInvoicesTab({ supplierInvoices, supplierPOs }: VendorInvoicesTabP
               <PaymentStatusBadge status={previewInvoice.payment_status} />
             </div>
           </div>
+
+          <InvoicePaymentsSection
+            invoiceId={previewInvoice.id}
+            invoiceTtc={Number(previewInvoice.amount)}
+            currency={previewInvoice.currency}
+          />
         </AttachmentPreviewDialog>
       )}
     </>
