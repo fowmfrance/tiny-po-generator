@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 const Budgets = () => {
   const { toast } = useToast();
   const { budgets, isLoading, error, user } = useBudgetsData();
-  const [viewType, setViewType] = useState<ViewType>('list');
+  const [viewType, setViewType] = useState<ViewType>('grid');
 
   const handleViewChange = (view: ViewType) => {
     setViewType(view);
