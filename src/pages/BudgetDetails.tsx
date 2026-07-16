@@ -39,6 +39,7 @@ const BudgetDetails = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [lens, setLens] = useState<'eco' | 'treso'>('eco'); // éco = HT (produit/consommé) ; tréso = TTC (encaissé/décaissé)
 
   const { data: isAdmin = false } = useQuery({
     queryKey: ['current-user-is-admin'],
@@ -107,11 +108,12 @@ const BudgetDetails = () => {
       const poIds = poList.map((po) => po.id);
       const milestones = milestonesRes.data || [];
 
-      let receivedAmount = 0;
+      let receivedAmount = 0; // consommé HT (économique)
+      let decaisse = 0;       // décaissé TTC (trésorerie)
       if (poIds.length > 0) {
         const { data: invoices, error: invoicesError } = await supabase
           .from('supplier_invoices')
-          .select('purchase_order_id, amount, amount_ht, vat_amount, status')
+          .select('id, purchase_order_id, amount, amount_ht, vat_amount, status')
           .in('purchase_order_id', poIds)
           .neq('status', 'rejected');
 
@@ -122,6 +124,28 @@ const BudgetDetails = () => {
             sum + Number(invoice.amount_ht ?? (Number(invoice.amount || 0) - Number(invoice.vat_amount || 0))),
           0,
         );
+
+        // Décaissé (trésorerie TTC) : paiements réglés sur ces factures
+        const invoiceIds = (invoices || []).map((i: any) => i.id);
+        if (invoiceIds.length > 0) {
+          const { data: pays } = await supabase
+            .from('payment_batch_invoices')
+            .select('amount_paid, status, invoice_id')
+            .in('invoice_id', invoiceIds)
+            .eq('status', 'paid');
+          decaisse = (pays || []).reduce((s: number, p: any) => s + Number(p.amount_paid || 0), 0);
+        }
+      }
+
+      // Encaissé (trésorerie TTC) : crédits bancaires rattachés au code projet
+      let encaisse = 0;
+      {
+        const { data: credits } = await supabase
+          .from('transactions')
+          .select('qonto_amount, qonto_side, project_code')
+          .eq('qonto_side', 'credit')
+          .eq('project_code', budget.code);
+        encaisse = (credits || []).reduce((s: number, t: any) => s + Math.abs(Number(t.qonto_amount || 0)), 0);
       }
 
       const sentAmount = poList
@@ -141,6 +165,8 @@ const BudgetDetails = () => {
           sentAmount,
           receivedAmount,
           availableAmount,
+          decaisse,
+          encaisse,
           poCount: poList.length,
         },
       };
@@ -200,14 +226,51 @@ const BudgetDetails = () => {
 
       <Card>
         <CardHeader>
-          <div>
-            <CardTitle className="text-xl">{budget.name}</CardTitle>
-            <CardDescription className="mt-1">
-              Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
-            </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl">{budget.name}</CardTitle>
+              <CardDescription className="mt-1">
+                Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
+              </CardDescription>
+            </div>
+            {/* Lentille : Économique (HT, produit/consommé) vs Trésorerie (TTC, encaissé/décaissé) */}
+            <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 shrink-0">
+              {([['eco', 'Économique (HT)'], ['treso', 'Trésorerie (TTC)']] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setLens(k)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                    lens === k ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="pt-2">
-            {/* Lecture claire de l'enveloppe de dépenses (provision de charges) */}
+            {lens === 'treso' ? (
+              /* Vue trésorerie : encaissé / décaissé / solde (TTC) */
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-1">
+                <div className="rounded-lg bg-muted/50 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">Encaissé (crédits banque)</p>
+                  <p className="text-sm font-medium text-green-700">{formatMoney(budget.currency, metrics.encaisse)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">Décaissé (paiements)</p>
+                  <p className="text-sm font-medium text-red-600">{formatMoney(budget.currency, metrics.decaisse)}</p>
+                </div>
+                <div className="rounded-lg bg-brand/10 border border-brand/30 px-3 py-2">
+                  <p className="text-[11px] text-brand">Solde de trésorerie</p>
+                  <p className={`text-sm font-semibold ${metrics.encaisse - metrics.decaisse < 0 ? 'text-red-600' : 'text-brand'}`}>
+                    {formatMoney(budget.currency, metrics.encaisse - metrics.decaisse)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+            {/* Lecture claire de l'enveloppe de dépenses (provision de charges) — HT */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {budget.resale_price ? (
                 <div className="rounded-lg bg-muted/50 px-3 py-2">
@@ -238,6 +301,8 @@ const BudgetDetails = () => {
               availableAmount={metrics.availableAmount}
               resalePrice={budget.resale_price ?? undefined}
             />
+              </>
+            )}
           </div>
         </CardHeader>
 
