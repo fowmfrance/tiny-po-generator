@@ -136,7 +136,7 @@ function buildAggregation(
   };
 
   posList.forEach((p: any) => {
-    const amt = Number(p.total_amount) || 0;
+    const amt = Number(p.amt ?? p.total_amount) || 0;
     const s = supplierMap.get(p.supplier_id);
     const tradeName = s?.supplier_type?.name || 'Non classé';
     const tradeColor = s?.supplier_type?.color || '#B8853A';
@@ -245,21 +245,31 @@ function buildAggregation(
     };
   });
 
-  const total = posList.reduce((s: number, p: any) => s + (Number(p.total_amount) || 0), 0);
+  const total = posList.reduce((s: number, p: any) => s + (Number(p.amt ?? p.total_amount) || 0), 0);
   const trades = byTrade.map(t => ({ name: t.name, color: t.color }));
 
   return { projectSplit, byTrade, byPaymentMethod, monthlyData, cumulativeData, total, poCount: posList.length, supplierCount: uniqueSuppliers.size, trades };
 }
 
-export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: string, customTo?: string) {
+export type DashboardLens = 'po' | 'invoice';
+export type AmountBasis = 'ht' | 'ttc';
+
+export function useSupplierDashboard(
+  period: PeriodKey = 'YTD',
+  customFrom?: string,
+  customTo?: string,
+  lens: DashboardLens = 'po',
+  basis: AmountBasis = 'ht',
+) {
   return useQuery({
-    queryKey: ['supplier-dashboard', period, customFrom || '', customTo || ''],
+    queryKey: ['supplier-dashboard', period, customFrom || '', customTo || '', lens, basis],
     queryFn: async (): Promise<SupplierDashboardData> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
-      const [posRes, suppRes, budgetsRes] = await Promise.all([
-        supabase.from('purchase_orders').select('id, total_amount, budget_id, created_at, supplier_id').order('created_at'),
+      const [posRes, invRes, suppRes, budgetsRes] = await Promise.all([
+        supabase.from('purchase_orders').select('id, total_amount, amount_ht, amount_ttc, budget_id, created_at, supplier_id').order('created_at'),
+        supabase.from('supplier_invoices').select('id, amount, amount_ht, amount_ttc, vat_amount, supplier_id, invoice_date, purchase_order_id, status'),
         supabase.from('suppliers').select('id, supplier_type_id, default_payment_method_id, supplier_type:supplier_types(name, color), payment_method:payment_methods(name)'),
         supabase.from('budgets').select('id, initial_amount, resale_price, start_date, end_date, type'),
       ]);
@@ -272,9 +282,31 @@ export function useSupplierDashboard(period: PeriodKey = 'YTD', customFrom?: str
       const budgetMap = new Map<string, any>();
       (budgetsRes.data || []).forEach((b: any) => budgetMap.set(b.id, b));
 
+      // budget_id d'une facture = via son BdC (les factures ne portent pas budget_id)
+      const poBudget = new Map<string, string | null>();
+      (posRes.data || []).forEach((p: any) => poBudget.set(p.id, p.budget_id ?? null));
+
+      // Normalise chaque source en lignes { supplier_id, budget_id, created_at, amt }
+      const poAmt = (p: any) => (basis === 'ttc' ? (p.amount_ttc ?? p.total_amount) : (p.amount_ht ?? p.total_amount));
+      const invAmt = (i: any) => (basis === 'ttc'
+        ? (i.amount_ttc ?? i.amount)
+        : (i.amount_ht ?? (Number(i.amount || 0) - Number(i.vat_amount || 0))));
+
+      const num = (x: any) => Number(x) || 0;
+      const rows: any[] = lens === 'invoice'
+        ? (invRes.data || [])
+            .filter((i: any) => i.status !== 'cancelled')
+            .map((i: any) => ({
+              supplier_id: i.supplier_id,
+              budget_id: i.purchase_order_id ? (poBudget.get(i.purchase_order_id) ?? null) : null,
+              created_at: i.invoice_date,
+              amt: num(invAmt(i)),
+            }))
+        : (posRes.data || []).map((p: any) => ({ ...p, amt: num(poAmt(p)) }));
+
       const { start, end, prevStart, prevEnd, comparable } = getDateRange(period, customFrom, customTo);
 
-      const allPos = posRes.data || [];
+      const allPos = rows;
       const posN = allPos.filter((p: any) => {
         const d = new Date(p.created_at);
         return d >= start && d <= end;

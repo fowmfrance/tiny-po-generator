@@ -186,7 +186,9 @@ const SupplierDashboardTab: React.FC = () => {
   const [period, setPeriod] = useState<PeriodKey>('YTD');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const { data, isLoading } = useSupplierDashboard(period, customFrom, customTo);
+  const [lens, setLens] = useState<'po' | 'invoice'>('po');
+  const [basis, setBasis] = useState<'ht' | 'ttc'>('ht');
+  const { data, isLoading } = useSupplierDashboard(period, customFrom, customTo, lens, basis);
   const [showByTrade, setShowByTrade] = useState(false);
 
   if (isLoading || !data) {
@@ -221,11 +223,44 @@ const SupplierDashboardTab: React.FC = () => {
           customFrom={customFrom} customTo={customTo}
           onCustomFromChange={setCustomFrom} onCustomToChange={setCustomTo}
         />
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Lentille : BdC envoyé (engagement) vs Factures reçues (réalisé) */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+            {([['po', 'BdC envoyé'], ['invoice', 'Factures reçues']] as const).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setLens(k)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  lens === k ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Base : HT (P&L) vs TTC (tréso) */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+            {([['ht', 'HT'], ['ttc', 'TTC']] as const).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setBasis(k)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  basis === k ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted'
+                }`}
+                title={k === 'ht' ? 'Hors taxes (CA & charges)' : 'TTC (trésorerie)'}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard
-          title={`Dépenses ${periodLabel}`}
+          title={`${lens === 'po' ? 'BdC envoyé' : 'Factures reçues'} ${basis.toUpperCase()} · ${periodLabel}`}
           value={fmtE(data.totalN)}
           subtitle={data.hasComparison ? `N-1 : ${fmtE(data.totalPrev)}` : undefined}
           icon={TrendingUp}
@@ -233,7 +268,7 @@ const SupplierDashboardTab: React.FC = () => {
           trend={variation !== null ? { value: variation, label: 'vs N-1' } : undefined}
         />
         <KPICard
-          title="Bons de commande"
+          title={lens === 'po' ? 'Bons de commande' : 'Factures reçues'}
           value={String(data.poCountN)}
           subtitle={data.hasComparison ? `N-1 : ${data.poCountPrev}` : undefined}
           icon={FileText}
