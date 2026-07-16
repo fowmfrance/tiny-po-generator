@@ -55,7 +55,7 @@ export function useBudgetsData() {
           .order('created_at', { ascending: false }),
         supabase
           .from('purchase_orders')
-          .select('id, budget_id, total_amount, status')
+          .select('id, budget_id, total_amount, amount_ht, status')
           .eq('user_id', user.id)
           .not('budget_id', 'is', null),
       ]);
@@ -79,7 +79,8 @@ export function useBudgetsData() {
         poBudgetMap.set(po.id, budgetId);
 
         if (po.status !== 'rejected') {
-          existing.sent += Number(po.total_amount || 0);
+          // Budget = charges -> HT (fallback total_amount avant migration)
+          existing.sent += Number((po as any).amount_ht ?? po.total_amount ?? 0);
         }
 
         poMetricsByBudget.set(budgetId, existing);
@@ -91,7 +92,7 @@ export function useBudgetsData() {
       if (allPoIds.length > 0) {
         const { data: invoices, error: invoicesError } = await supabase
           .from('supplier_invoices')
-          .select('purchase_order_id, amount, status')
+          .select('purchase_order_id, amount, amount_ht, vat_amount, status')
           .in('purchase_order_id', allPoIds)
           .neq('status', 'rejected');
 
@@ -102,9 +103,11 @@ export function useBudgetsData() {
           const budgetId = poBudgetMap.get(invoice.purchase_order_id);
           if (!budgetId) continue;
 
+          // Reçu = charge -> HT (fallback amount - TVA avant migration)
+          const ht = (invoice as any).amount_ht ?? (Number(invoice.amount || 0) - Number((invoice as any).vat_amount || 0));
           receivedByBudget.set(
             budgetId,
-            (receivedByBudget.get(budgetId) || 0) + Number(invoice.amount || 0)
+            (receivedByBudget.get(budgetId) || 0) + Number(ht || 0)
           );
         }
       }

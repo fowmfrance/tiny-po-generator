@@ -53,7 +53,7 @@ export function useSupplierInvoices() {
           ...invoice,
           user_id: user.id,
           organization_id: organizationId,
-        })
+        } as any)
         .select()
         .single();
 

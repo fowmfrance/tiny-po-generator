@@ -66,6 +66,9 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
       purchase_order_id: null,
       project_code: formData.project_code || null,
       amount: parseFloat(formData.amount),
+      // Montants explicites HT/TTC (cohérence permanente : TTC = tréso, HT = P&L)
+      amount_ttc: parseFloat(formData.amount),
+      amount_ht: Math.round((parseFloat(formData.amount) - (formData.vat_amount ? parseFloat(formData.vat_amount) : 0)) * 100) / 100,
       currency: formData.currency,
       vat_amount: formData.vat_amount ? parseFloat(formData.vat_amount) : null,
       vat_rate: formData.vat_rate ? parseFloat(formData.vat_rate) : null,

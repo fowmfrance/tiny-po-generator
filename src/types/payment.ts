@@ -6,7 +6,9 @@ export interface SupplierInvoice {
   po_number: string | null;
   purchase_order_id: string | null;
   project_code: string | null;
-  amount: number;
+  amount: number; // = TTC (convention app), conservé pour compat
+  amount_ht?: number | null;
+  amount_ttc?: number | null;
   currency: string;
   vat_amount: number | null;
   vat_rate: number | null;
@@ -14,7 +16,7 @@ export interface SupplierInvoice {
   received_date: string;
   due_date: string;
   paid_date: string | null;
-  status: 'pending' | 'approved' | 'paid' | 'cancelled';
+  status: 'pending' | 'approved' | 'partial' | 'paid' | 'cancelled';
   notes: string | null;
   attachment_url: string | null;
   created_at: string;

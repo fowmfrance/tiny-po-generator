@@ -140,10 +140,14 @@ export function usePurchaseOrders() {
           po_number: params.po_number,
           currency: params.currency,
           total_amount,
+          // BdC = engagement HT ; le TTC se précise à réception de la facture
+          amount_ht: total_amount,
+          amount_ttc: total_amount,
+          vat_amount: 0,
           notes: params.notes || null,
           expected_delivery_date: params.expected_delivery_date || null,
           status: 'draft',
-        })
+        } as any)
         .select()
         .single();
 
