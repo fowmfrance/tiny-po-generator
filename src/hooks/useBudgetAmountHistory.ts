@@ -24,7 +24,8 @@ export function useBudgetAmountHistory(budgetId: string | undefined) {
     queryKey: ['budget-amount-history', budgetId],
     enabled: !!budgetId,
     queryFn: async (): Promise<BudgetAmountChange[]> => {
-      const { data, error } = await supabase
+      // budget_amount_changes pas encore dans les types générés (migration SQL manuelle)
+      const { data, error } = await (supabase as any)
         .from('budget_amount_changes')
         .select('id, budget_id, field, old_value, new_value, delta, reason, changed_by, created_at')
         .eq('budget_id', budgetId!)
