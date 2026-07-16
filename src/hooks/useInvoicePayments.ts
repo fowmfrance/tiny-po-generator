@@ -88,7 +88,7 @@ export function useInvoicePayments(invoiceId: string | undefined, invoiceTtc: nu
           currency: 'EUR',
           total_amount: input.amount,
           invoice_count: 1,
-          status: input.status === 'paid' ? 'executed' : 'draft',
+          status: input.status === 'paid' ? 'processed' : 'draft',
         })
         .select('id')
         .single();

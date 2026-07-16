@@ -14,7 +14,7 @@ BEGIN
 
   INSERT INTO public.payment_batches
     (organization_id, user_id, batch_reference, currency, total_amount, invoice_count, status)
-  VALUES ('c636ddb8-725d-45d2-b43b-5d41704dcf62', '9d9f9f6c-ab05-4bc3-acdc-60d335523731', 'PAY-BACKFILL-20260716', 'EUR', 22704.64, 24, 'executed')
+  VALUES ('c636ddb8-725d-45d2-b43b-5d41704dcf62', '9d9f9f6c-ab05-4bc3-acdc-60d335523731', 'PAY-BACKFILL-20260716', 'EUR', 22704.64, 24, 'processed')
   RETURNING id INTO bid;
 
   INSERT INTO public.payment_batch_invoices
