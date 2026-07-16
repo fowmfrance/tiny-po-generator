@@ -59,25 +59,59 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
             </div>
           </CardHeader>
           <CardContent className="flex-grow">
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div>
-                <p className="text-sm text-gray-500">Initial</p>
-                <p className="font-medium">{formatCurrency(budget.currency, budget.initialAmount)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Disponible</p>
-                <p className="font-medium">{formatCurrency(budget.currency, budget.availableAmount)}</p>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span>Utilisation</span>
-                <span>{Math.round((1 - budget.availableAmount / budget.initialAmount) * 100)}%</span>
-              </div>
-              <Progress value={(1 - budget.availableAmount / budget.initialAmount) * 100} className="h-2" />
-            </div>
-            
+            {(() => {
+              const initial = budget.initialAmount || 0;
+              const usagePct = initial > 0 ? Math.round((budget.sentAmount / initial) * 100) : 0;
+              const overspent = budget.availableAmount < 0;
+              const hasResale = typeof budget.resalePrice === 'number' && budget.resalePrice > 0;
+              const margin = hasResale ? (budget.resalePrice as number) - initial : 0;
+              const fmtSigned = (v: number) =>
+                `${v >= 0 ? '+' : '−'}${formatCurrency(budget.currency, Math.abs(v))}`;
+              return (
+                <>
+                  {/* Lecture 1 — consommation de l'enveloppe */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                      <p className="text-sm text-gray-500">Budget initial</p>
+                      <p className="font-medium">{formatCurrency(budget.currency, initial)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Reste enveloppe</p>
+                      <p className={`font-medium ${overspent ? 'text-red-600' : ''}`}>
+                        {formatCurrency(budget.currency, budget.availableAmount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Enveloppe consommée</span>
+                      <span className={overspent ? 'text-red-600 font-medium' : ''}>
+                        {usagePct}%{overspent ? ' · dépassée' : ''}
+                      </span>
+                    </div>
+                    <Progress value={Math.min(usagePct, 100)} className="h-2" />
+                  </div>
+
+                  {/* Lecture 2 — rentabilité du projet (si prix de vente défini) */}
+                  {hasResale && (
+                    <div className="grid grid-cols-2 gap-2 mb-4 pt-3 border-t">
+                      <div>
+                        <p className="text-sm text-gray-500">Prix de vente</p>
+                        <p className="font-medium">{formatCurrency(budget.currency, budget.resalePrice as number)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Marge</p>
+                        <p className={`font-medium ${margin >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                          {fmtSigned(margin)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
             <div className="flex items-center text-xs text-gray-500">
               <CalendarRange className="h-3.5 w-3.5 mr-1" />
               {budget.startDate && budget.endDate ? (
