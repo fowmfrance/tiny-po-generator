@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/paymentUtils';
 import { downloadSingleAttachment } from '@/lib/bulk-download';
 import { AttachmentPreviewDialog } from '@/components/payments/AttachmentPreviewDialog';
+import { InvoicePaymentsSection } from '@/components/payments/InvoicePaymentsSection';
 
 interface POInvoiceSectionProps {
   poId: string;
@@ -205,7 +206,8 @@ export function POInvoiceSection({
                 {invoices.map((invoice: any) => {
                   const status = statusLabels[invoice.status] || statusLabels.pending;
                   return (
-                    <tr key={invoice.id}>
+                    <React.Fragment key={invoice.id}>
+                    <tr>
                       <td className="px-4 py-3 text-sm font-medium">{invoice.invoice_number}</td>
                       <td className="px-4 py-3 text-sm">
                         {new Date(invoice.invoice_date).toLocaleDateString('fr-FR')}
@@ -229,6 +231,16 @@ export function POInvoiceSection({
                         )}
                       </td>
                     </tr>
+                    <tr>
+                      <td colSpan={5} className="px-4 pb-3 bg-muted/10">
+                        <InvoicePaymentsSection
+                          invoiceId={invoice.id}
+                          invoiceTtc={Number(invoice.amount)}
+                          currency={invoice.currency}
+                        />
+                      </td>
+                    </tr>
+                    </React.Fragment>
                   );
                 })}
               </tbody>

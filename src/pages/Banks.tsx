@@ -502,6 +502,44 @@ const Banks = () => {
     }
   };
 
+  // Navigation A→Z : opération bancaire -> paiement rapproché -> facture -> BdC
+  const goToPaymentChain = async (tx: Transaction) => {
+    // 1) lien direct : paiement rapproché à cette opération
+    const { data: pay } = await supabase
+      .from('payment_batch_invoices')
+      .select('invoice_id')
+      .eq('transaction_id', tx.id)
+      .limit(1)
+      .maybeSingle();
+    let invoiceId: string | undefined = (pay as any)?.invoice_id;
+
+    // 2) fallback : rapprochement par tiers + montant (si pas encore rattaché)
+    if (!invoiceId && tx.supplier_id) {
+      const amt = Math.abs(Number(tx.qonto_amount));
+      const { data: inv } = await supabase
+        .from('supplier_invoices')
+        .select('id')
+        .eq('supplier_id', tx.supplier_id)
+        .gte('amount', amt - 0.5)
+        .lte('amount', amt + 0.5)
+        .limit(1)
+        .maybeSingle();
+      invoiceId = (inv as any)?.id;
+    }
+
+    if (invoiceId) {
+      const { data: inv } = await supabase
+        .from('supplier_invoices')
+        .select('purchase_order_id, supplier_id')
+        .eq('id', invoiceId)
+        .maybeSingle();
+      if ((inv as any)?.purchase_order_id) { navigate(`/purchase-orders/${(inv as any).purchase_order_id}`); return; }
+      if ((inv as any)?.supplier_id) { navigate(`/vendors/${(inv as any).supplier_id}`); return; }
+    }
+    if (tx.supplier_id) { navigate(`/vendors/${tx.supplier_id}`); return; }
+    toast({ title: 'Aucun paiement rattaché', description: "Cette opération n'est liée à aucune facture / bon de commande." });
+  };
+
   const updateTransaction = async (transactionId: string, field: 'sapajoo_category_id' | 'project_code' | 'supplier_id', value: string | null) => {
     const { error } = await supabase
       .from('transactions')
@@ -1284,10 +1322,17 @@ const Banks = () => {
                                   {tx.qonto_status}
                                 </span>
                               </TableCell>
-                              <TableCell className={`text-right font-medium ${
-                                tx.qonto_side === 'credit' ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {formatAmount(tx.qonto_amount, tx.qonto_currency, tx.qonto_side || '')}
+                              <TableCell className="text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => goToPaymentChain(tx)}
+                                  title="Voir le paiement / la facture / le bon de commande liés"
+                                  className={`font-medium hover:underline underline-offset-2 ${
+                                    tx.qonto_side === 'credit' ? 'text-green-600' : 'text-red-600'
+                                  }`}
+                                >
+                                  {formatAmount(tx.qonto_amount, tx.qonto_currency, tx.qonto_side || '')}
+                                </button>
                               </TableCell>
                             </TableRow>
                           ))}
