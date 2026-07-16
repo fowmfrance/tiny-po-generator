@@ -16,6 +16,8 @@ import { FinancialDetailsCard } from '@/components/create-budget/FinancialDetail
 import { ExpenseTypesCard } from '@/components/create-budget/ExpenseTypesCard';
 import { RecognitionMethodCard } from '@/components/create-budget/RecognitionMethodCard';
 import { FormValues, BUDGET_TYPES, MILESTONE_METHOD_CODE, formatBudgetCode } from '@/components/create-budget/types';
+import { WizardSelection } from '@/components/create-budget/RecognitionWizardDialog';
+import { logWizardEvent } from '@/components/create-budget/recognitionWizardAnalytics';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
 
 // Préfixe d'un format de code (ex 'PR{YY}-{NNN}' -> 'PR26-') pour l'année courante
@@ -44,6 +46,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
   const { budgets: existingBudgets } = useBudgetsData();
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [wizardSelection, setWizardSelection] = useState<WizardSelection | null>(null);
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
   const [milestoneMode, setMilestoneMode] = useState<MilestoneMode>('global');
   const [supplierBlocks, setSupplierBlocks] = useState<SupplierBlock[]>([]);
@@ -152,6 +155,34 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
         .single();
 
       if (budgetError) throw budgetError;
+
+      // Traçabilité du choix de méthode : voie utilisée (picklist vs wizard),
+      // parcours, et modification manuelle après le wizard. Best-effort.
+      const wizardMethod = wizardSelection
+        ? recognitionMethods.find(m => m.code === wizardSelection.methodCode)
+        : null;
+      const keptWizardChoice = !!wizardMethod && wizardMethod.id === data.recognitionMethodId;
+      logWizardEvent('budget_created', {
+        budget_id: budget.id,
+        recognition_method_id: data.recognitionMethodId || null,
+        source: wizardSelection ? 'wizard' : 'picklist',
+        wizard_path: wizardSelection?.path ?? null,
+        modified_after_wizard: wizardSelection ? !keptWizardChoice : null,
+      });
+
+      // Option avancée R6 : étalement des coûts d'acquisition (commissions, pub)
+      // sur la durée du contrat. Colonne ajoutée par migration à exécuter
+      // manuellement → update séparé et tolérant pour ne jamais bloquer la création.
+      if (keptWizardChoice && wizardSelection?.cacSpread) {
+        try {
+          await (supabase as any)
+            .from('budgets')
+            .update({ cac_capitalization: true })
+            .eq('id', budget.id);
+        } catch {
+          // Colonne absente : l'option sera ignorée jusqu'à l'exécution de la migration.
+        }
+      }
 
       if (isMilestoneMethod) {
         let milestonesData: any[] = [];
@@ -314,6 +345,7 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
               isMilestoneMethod={isMilestoneMethod}
               milestones={milestones}
               onOpenMilestoneDialog={() => setMilestoneDialogOpen(true)}
+              onWizardSelection={setWizardSelection}
             />
           </div>
 

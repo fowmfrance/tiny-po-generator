@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Flag, HelpCircle } from 'lucide-react';
+import { Flag, HelpCircle, Wand2 } from 'lucide-react';
 import { Milestone } from '@/components/budget/MilestoneTimelineDialog';
 import { FormValues } from './types';
+import { RecognitionWizardDialog, WizardSelection } from './RecognitionWizardDialog';
+import { METHOD_FRIENDLY_LABELS } from './recognitionWizardContent';
+import { logWizardEvent } from './recognitionWizardAnalytics';
 
 interface RecognitionMethod {
   id: string;
@@ -17,6 +21,13 @@ interface RecognitionMethod {
   code: string;
 }
 
+// Libellé picklist : « Libellé courant — Nom technique » pour rester cohérent
+// avec le wizard (les deux voies mènent aux mêmes valeurs).
+const methodLabel = (method: RecognitionMethod) => {
+  const friendly = METHOD_FRIENDLY_LABELS[method.code];
+  return friendly ? `${friendly.friendly} — ${friendly.technical}` : method.name_expense;
+};
+
 interface RecognitionMethodCardProps {
   form: UseFormReturn<FormValues>;
   recognitionMethods: RecognitionMethod[];
@@ -24,6 +35,7 @@ interface RecognitionMethodCardProps {
   isMilestoneMethod: boolean;
   milestones: Milestone[];
   onOpenMilestoneDialog: () => void;
+  onWizardSelection?: (selection: WizardSelection) => void;
 }
 
 export function RecognitionMethodCard({
@@ -33,7 +45,20 @@ export function RecognitionMethodCard({
   isMilestoneMethod,
   milestones,
   onOpenMilestoneDialog,
+  onWizardSelection,
 }: RecognitionMethodCardProps) {
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const handleWizardValidate = (selection: WizardSelection) => {
+    const method = recognitionMethods.find(m => m.code === selection.methodCode);
+    if (method) {
+      // Pré-sélectionne dans la picklist : l'utilisateur peut encore modifier
+      // manuellement avant d'enregistrer le budget.
+      form.setValue('recognitionMethodId', method.id, { shouldValidate: true, shouldDirty: true });
+    }
+    onWizardSelection?.(selection);
+  };
+
   return (
     <Card className="md:col-span-2">
       <CardHeader>
@@ -69,20 +94,34 @@ export function RecognitionMethodCard({
                   </TooltipProvider>
                 )}
               </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || undefined}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une méthode" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {recognitionMethods.map(method => (
-                    <SelectItem key={method.id} value={method.id}>
-                      {method.name_expense}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                  <FormControl>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Sélectionnez une méthode" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {recognitionMethods.map(method => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {methodLabel(method)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    logWizardEvent('wizard_opened', {});
+                    setWizardOpen(true);
+                  }}
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Aidez-moi à choisir
+                </Button>
+              </div>
               <FormDescription>
                 Détermine comment les charges sont réparties dans le temps
               </FormDescription>
@@ -93,7 +132,7 @@ export function RecognitionMethodCard({
 
         {selectedMethod && (
           <div className="bg-muted/50 p-4 rounded-md border">
-            <h4 className="text-sm font-medium mb-2">{selectedMethod.name_expense}</h4>
+            <h4 className="text-sm font-medium mb-2">{methodLabel(selectedMethod)}</h4>
             <p className="text-sm text-muted-foreground">{selectedMethod.description}</p>
             {selectedMethod.use_cases && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -164,6 +203,12 @@ export function RecognitionMethodCard({
           </div>
         )}
       </CardContent>
+
+      <RecognitionWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onValidate={handleWizardValidate}
+      />
     </Card>
   );
 }
