@@ -53,26 +53,36 @@ function groupByActivity(vendors: Vendor[]) {
     });
 }
 
-// Regroupement PAR NATURE DE BUDGET : Projets / Admin / Mixte, dérivé du métier.
+// Regroupement PAR NATURE DE BUDGET : famille de dépenses du type de prestation
+// par défaut (Projets / Frais de structure / Investissements), « Mixte » si les
+// BdC du fournisseur touchent plusieurs familles. Fallback heuristique métier
+// tant que le fournisseur n'a pas de type de prestation.
 const ADMIN_CATEGORIES = ['Services généraux', 'IT', 'Juridique & Comptabilité', 'Voyage'];
-const BUDGET_ORDER = ['Projets', 'Admin', 'Mixte'];
-const budgetBucket = (category: string) => {
-  if (ADMIN_CATEGORIES.includes(category)) return 'Admin';
-  if (!category || category === 'Non classé') return 'Mixte';
+const BUDGET_ORDER = ['Projets', 'Frais de structure', 'Investissements', 'Mixte', 'À classer'];
+const budgetBucket = (v: Vendor) => {
+  if (v.isMixed) return 'Mixte';
+  if (v.expenseFamilyName) return v.expenseFamilyName;
+  // Heuristique legacy sur le métier
+  if (ADMIN_CATEGORIES.includes(v.category)) return 'Frais de structure';
+  if (!v.category || v.category === 'Non classé') return 'À classer';
   return 'Projets';
 };
 
 function groupByBudget(vendors: Vendor[]) {
   const map = new Map<string, Vendor[]>();
   vendors.forEach((v) => {
-    const key = budgetBucket(v.category);
+    const key = budgetBucket(v);
     const arr = map.get(key) || [];
     arr.push(v);
     map.set(key, arr);
   });
   return Array.from(map.entries())
     .map(([category, items]) => ({ category, items, icon: undefined as string | undefined }))
-    .sort((a, b) => BUDGET_ORDER.indexOf(a.category) - BUDGET_ORDER.indexOf(b.category));
+    .sort((a, b) => {
+      const ia = BUDGET_ORDER.indexOf(a.category);
+      const ib = BUDGET_ORDER.indexOf(b.category);
+      return (ia === -1 ? BUDGET_ORDER.length : ia) - (ib === -1 ? BUDGET_ORDER.length : ib);
+    });
 }
 
 const formatCurrency = (amount: number) =>

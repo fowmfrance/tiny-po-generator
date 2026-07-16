@@ -39,11 +39,11 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !name) {
+    if (!name) {
       toast({
         variant: "destructive",
         title: "Informations requises",
-        description: "Veuillez remplir tous les champs obligatoires.",
+        description: "Le nom du fournisseur est obligatoire.",
       });
       return;
     }
@@ -54,23 +54,27 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       // Create the supplier in the database
       await createSupplier.mutateAsync({
         name,
-        email,
+        email: email || null,
         phone: phone || undefined,
       });
 
-      // Send the invitation via notification (best-effort)
-      try {
-        await notifyVendorInvited(
-          { email, name },
-          { email: 'current.user@company.com', name: 'Current User' }
-        );
-      } catch {
-        // Notification failure is non-blocking
+      // Send the invitation via notification (best-effort, seulement si email fourni)
+      if (email) {
+        try {
+          await notifyVendorInvited(
+            { email, name },
+            { email: 'current.user@company.com', name: 'Current User' }
+          );
+        } catch {
+          // Notification failure is non-blocking
+        }
       }
 
       toast({
-        title: "Invitation envoyée",
-        description: `L'invitation a été envoyée à ${name} (${email})`,
+        title: email ? "Invitation envoyée" : "Fournisseur créé",
+        description: email
+          ? `L'invitation a été envoyée à ${name} (${email})`
+          : `${name} a été créé sans email — l'invitation pourra être envoyée plus tard.`,
       });
       
       onOpenChange(false);
@@ -124,8 +128,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-8"
-                  placeholder="email@fournisseur.com"
-                  required
+                  placeholder="email@fournisseur.com (optionnel)"
                 />
               </div>
             </div>

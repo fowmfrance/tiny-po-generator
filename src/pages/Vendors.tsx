@@ -21,7 +21,7 @@ function supplierToVendor(s: Supplier): Vendor {
     id: s.id,
     name: s.name,
     category: s.supplier_type?.name || 'Non classé',
-    email: s.email,
+    email: s.email || '',
     phone: s.phone || '',
     status: s.is_active ? 'active' : 'inactive',
     totalPOs: s.po_count || 0,
@@ -40,6 +40,9 @@ function supplierToVendor(s: Supplier): Vendor {
     paymentModalityName: s.payment_modality?.name || undefined,
     ytdAmount: s.ytd_amount || 0,
     prevYearAmount: s.prev_year_amount || 0,
+    serviceTypeName: s.service_type?.name || undefined,
+    expenseFamilyName: s.expense_family_name || undefined,
+    isMixed: s.is_mixed || false,
   };
 }
 
@@ -91,7 +94,7 @@ const Vendors = () => {
     const matchesSearch = 
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (vendor.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (vendor.specialty?.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(vendor.category);

@@ -19,8 +19,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase, ShieldCheck } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase, ShieldCheck, Layers } from 'lucide-react';
 import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
+import ServiceTypesTab from '@/components/settings/ServiceTypesTab';
 import NumberingTab from '@/components/settings/NumberingTab';
 import BankMappingTab from '@/components/settings/BankMappingTab';
 import SupplierCatalogTab from '@/components/settings/SupplierCatalogTab';
@@ -114,6 +115,10 @@ const Settings = () => {
             <Briefcase className="h-4 w-4 mr-2" />
             Fournisseurs & Prestations
           </TabsTrigger>
+          <TabsTrigger value="service-types">
+            <Layers className="h-4 w-4 mr-2" />
+            Prestations & P&L
+          </TabsTrigger>
           <TabsTrigger value="kyc">
             <ShieldCheck className="h-4 w-4 mr-2" />
             KYC
@@ -146,6 +151,10 @@ const Settings = () => {
         
         <TabsContent value="supplier-catalog" className="mt-6">
           <SupplierCatalogTab />
+        </TabsContent>
+
+        <TabsContent value="service-types" className="mt-6">
+          <ServiceTypesTab />
         </TabsContent>
 
         <TabsContent value="kyc" className="mt-6">

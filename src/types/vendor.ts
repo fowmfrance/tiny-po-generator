@@ -23,6 +23,10 @@ export interface Vendor {
   paymentModalityName?: string;
   ytdAmount?: number;
   prevYearAmount?: number;
+  // Type de prestation par défaut → famille de dépenses P&L
+  serviceTypeName?: string;
+  expenseFamilyName?: string;
+  isMixed?: boolean; // BdC répartis sur plusieurs familles de dépenses
 }
 
 export interface SupplierType {

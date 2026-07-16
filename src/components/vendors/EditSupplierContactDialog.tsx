@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Supplier } from '@/hooks/useSuppliers';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { useServiceTypes } from '@/hooks/useServiceTypes';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import { ShieldOff } from 'lucide-react';
 
 interface EditSupplierContactDialogProps {
@@ -22,6 +24,7 @@ interface EditSupplierContactDialogProps {
 
 export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave, isPending, isAdmin }: EditSupplierContactDialogProps) {
   const { methods, getModalitiesForMethod } = usePaymentMethods();
+  const { serviceTypes } = useServiceTypes();
   const [supplierTypes, setSupplierTypes] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
     is_po_exempt: false,
     default_payment_method_id: '' as string,
     default_payment_modality_id: '' as string,
+    default_service_type_id: '' as string,
   });
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
         is_po_exempt: supplier.is_po_exempt || false,
         default_payment_method_id: supplier.default_payment_method_id || '',
         default_payment_modality_id: supplier.default_payment_modality_id || '',
+        default_service_type_id: supplier.default_service_type_id || '',
       });
     }
   }, [open, supplier]);
@@ -77,7 +82,8 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
     onSave({
       id: supplier.id,
       name: form.name,
-      email: form.email,
+      // '' = « pas d'email » (colonne NOT NULL en base)
+      email: form.email.trim(),
       phone: form.phone || null,
       address: form.address || null,
       city: form.city || null,
@@ -89,6 +95,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
       is_po_exempt: form.is_po_exempt,
       default_payment_method_id: form.default_payment_method_id || null,
       default_payment_modality_id: form.default_payment_modality_id || null,
+      default_service_type_id: form.default_service_type_id || null,
     } as any);
   };
 
@@ -105,7 +112,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
               <Input id="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
             </div>
           </div>
@@ -164,6 +171,40 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
           </div>
 
           <Separator />
+
+          {/* Type de prestation par défaut → famille de dépenses P&L */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Type de prestation (défaut)</Label>
+              <Select
+                value={form.default_service_type_id || 'none'}
+                onValueChange={v => setForm(f => ({ ...f, default_service_type_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non défini</SelectItem>
+                  {serviceTypes.filter(t => t.is_active).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Famille de dépenses</Label>
+              <div className="flex items-center h-10">
+                {(() => {
+                  const selected = serviceTypes.find(t => t.id === form.default_service_type_id);
+                  return selected?.expense_family ? (
+                    <Badge variant="secondary">{selected.expense_family.name}</Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Dérivée du type de prestation</span>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
 
           {/* PO Exempt toggle - admin only */}
           <div className="space-y-4">
@@ -229,7 +270,7 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button onClick={handleSave} disabled={isPending || !form.name || !form.email}>
+          <Button onClick={handleSave} disabled={isPending || !form.name}>
             {isPending ? 'Enregistrement…' : 'Enregistrer'}
           </Button>
         </DialogFooter>

@@ -218,7 +218,8 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
             variant="default"
             className="flex items-center gap-2"
             onClick={() => id && sendMagicLink.mutate(id)}
-            disabled={sendMagicLink.isPending}
+            disabled={sendMagicLink.isPending || !supplier.email}
+            title={!supplier.email ? "Renseigner d'abord un email sur la fiche" : undefined}
           >
             <Send className="w-4 h-4" /> Envoyer le lien par email
           </Button>
@@ -237,7 +238,14 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
                 </Button>
               </div>
               <p className="text-muted-foreground">{supplier.supplier_type?.name || 'Non classé'}</p>
-              {supplier.specialty && <Badge variant="secondary" className="mt-1">{supplier.specialty}</Badge>}
+              <div className="flex flex-wrap items-center gap-1 mt-1">
+                {supplier.specialty && <Badge variant="secondary">{supplier.specialty}</Badge>}
+                {supplier.service_type && <Badge variant="secondary">{supplier.service_type.name}</Badge>}
+                {supplier.expense_family_name && <Badge variant="outline">{supplier.expense_family_name}</Badge>}
+                {supplier.is_mixed && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">Mixte</Badge>
+                )}
+              </div>
               <div className="mt-2">
                 <SupplierEnrichment supplier={supplier} />
               </div>
@@ -260,7 +268,7 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center text-sm">
               <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>{supplier.email}</span>
+              <span>{supplier.email || <span className="text-muted-foreground italic">Pas d'email</span>}</span>
             </div>
             {supplier.phone && (
               <div className="flex items-center text-sm">
