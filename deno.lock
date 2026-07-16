@@ -49,7 +49,7 @@
         "npm:@types/react@^18.3.3",
         "npm:@vitejs/plugin-react-swc@^3.5.0",
         "npm:autoprefixer@^10.4.20",
-        "npm:axios@^1.9.0",
+        "npm:axios@^1.12.0",
         "npm:class-variance-authority@~0.7.1",
         "npm:clsx@^2.1.1",
         "npm:cmdk@1",

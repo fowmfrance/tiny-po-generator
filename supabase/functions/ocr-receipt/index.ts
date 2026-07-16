@@ -1,8 +1,10 @@
-// ocr-receipt — OCR d'un reçu photo (canal perso) → dépense (§4.5).
+// ocr-receipt — OCR d'un reçu photo (canal perso du module Notes de frais) → frais (§4.5).
 // Fork du pipeline analyze-invoice, mais VISION (photo, pas PDF texte) : on envoie
 // l'image au gateway Lovable (google/gemini-2.5-flash) en multimodal.
+// ⚠️ Reçus/tickets du module Frais (bucket te-receipts) — PAS les factures
+// fournisseurs (analyze-invoice / invoice-attachments).
 // verify_jwt = false : appelée après upload (front avec JWT, ou trigger storage).
-// Corps : { receipt_id }  (la ligne receipts existe déjà, statut ocr pending).
+// Corps : { receipt_id }  (la ligne te_receipts existe déjà, statut ocr pending).
 import { corsHeaders, json, adminClient, userClient, env } from '../_shared/google.ts';
 
 const OCR_TOOL = [{
@@ -17,6 +19,11 @@ const OCR_TOOL = [{
         amount: { type: 'number', description: 'Montant total TTC payé' },
         vat: { type: 'number', description: 'Montant de TVA (si présent)' },
         date: { type: 'string', description: 'Date du reçu au format YYYY-MM-DD' },
+        category: {
+          type: 'string',
+          enum: ['restaurant', 'transport', 'hebergement', 'autre'],
+          description: 'Type de frais déduit du reçu',
+        },
       },
       required: ['merchant', 'amount', 'date'],
       additionalProperties: false,
@@ -31,7 +38,7 @@ async function ocrImage(dataUrl: string, apiKey: string) {
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, montant TTC, TVA et date. Date au format YYYY-MM-DD. Si un champ est absent, ne l'invente pas." },
+        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, montant TTC, TVA, date et type de frais (restaurant, transport, hebergement, autre). Date au format YYYY-MM-DD. Si un champ est absent, ne l'invente pas." },
         {
           role: 'user',
           content: [
@@ -61,12 +68,12 @@ Deno.serve(async (req) => {
     if (!receipt_id) return json({ error: 'receipt_id requis' }, 400);
 
     const sb = adminClient();
-    const { data: receipt, error } = await sb.from('receipts').select('*').eq('id', receipt_id).single();
+    const { data: receipt, error } = await sb.from('te_receipts').select('*').eq('id', receipt_id).single();
     if (error || !receipt) return json({ error: 'reçu introuvable' }, 404);
 
     // Télécharge l'image depuis le bucket privé.
-    const { data: file, error: dlErr } = await sb.storage.from('receipts').download(
-      receipt.storage_path.replace(/^receipts\//, ''),
+    const { data: file, error: dlErr } = await sb.storage.from('te-receipts').download(
+      receipt.storage_path.replace(/^te-receipts\//, ''),
     );
     if (dlErr || !file) throw new Error(`download reçu: ${dlErr?.message}`);
 
@@ -82,7 +89,7 @@ Deno.serve(async (req) => {
 
     const res = await ocrImage(dataUrl, apiKey);
     if (!res.ok) {
-      await sb.from('receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
+      await sb.from('te_receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
       if (res.status === 429) return json({ error: 'Limite de requêtes atteinte.' }, 429);
       if (res.status === 402) return json({ error: 'Crédits AI épuisés.' }, 402);
       return json({ error: "Erreur d'analyse OCR" }, 500);
@@ -91,12 +98,12 @@ Deno.serve(async (req) => {
     const out = await res.json();
     const args = out.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!args) {
-      await sb.from('receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
+      await sb.from('te_receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
       return json({ error: "L'AI n'a pas pu lire le reçu" }, 422);
     }
     const ex = JSON.parse(args);
 
-    await sb.from('receipts').update({
+    await sb.from('te_receipts').update({
       ocr_status: 'done',
       ocr_merchant: ex.merchant ?? null,
       ocr_amount: ex.amount ?? null,
@@ -105,8 +112,9 @@ Deno.serve(async (req) => {
       ocr_raw: ex,
     }).eq('id', receipt_id);
 
-    // Crée la dépense perso (source=receipt_only, reimbursable=true).
-    const { data: expense, error: expErr } = await sb.from('expense_events').insert({
+    // Crée le frais perso (source=receipt_only, reimbursable=true).
+    const validCat = ['restaurant', 'transport', 'hebergement', 'autre'];
+    const { data: expense, error: expErr } = await sb.from('te_expenses').insert({
       user_id: receipt.user_id,
       source: 'receipt_only',
       merchant_raw: ex.merchant ?? null,
@@ -114,15 +122,16 @@ Deno.serve(async (req) => {
       amount: ex.amount ?? 0,
       vat_amount: ex.vat ?? null,
       occurred_at: ex.date ? new Date(ex.date).toISOString() : new Date().toISOString(),
+      te_category: validCat.includes(ex.category) ? ex.category : null,
       reimbursable: true,
       reimbursement_status: 'pending',
       receipt_id,
       status: 'new',
       // organization_id rempli par trigger
     }).select('id').single();
-    if (expErr) throw new Error(`création dépense: ${expErr.message}`);
+    if (expErr) throw new Error(`création frais: ${expErr.message}`);
 
-    // Déclenche le matching sur la nouvelle dépense.
+    // Déclenche le matching sur le nouveau frais.
     fetch(`${env('SUPABASE_URL')}/functions/v1/match-expense`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-cron-secret': env('CRON_SECRET') },

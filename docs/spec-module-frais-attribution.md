@@ -17,6 +17,31 @@ indemnités kilométriques, multi-devises, cartes émises en propre.
 
 ---
 
+## 0. Renommage anti-confusion (décision 2026-07-16)
+
+Exigence produit : **aucune ambiguïté** entre les notes de frais (T&E) et le reste
+de Sapajoo (BdC, factures fournisseurs, budgets, transactions). Conséquences :
+
+| Spec source | Nom retenu | Pourquoi |
+|---|---|---|
+| `expense_events` | **`te_expenses`** | préfixe `te_` (Travel & Expenses) = namespace du module ; évite la collision mentale avec `expense_categories`/`expense_families` (cœur budget) |
+| `expense_matches` | **`te_expense_matches`** | idem |
+| `receipts` (+ bucket) | **`te_receipts`** (+ bucket `te-receipts`) | un reçu de frais ≠ une pièce jointe de facture fournisseur (`invoice-attachments`) |
+| `calendar_events` | **`te_calendar_events`** | namespace module |
+| `category text` | **`te_category`** (restaurant/transport/hebergement/autre) **+ `expense_category_id`** (FK `expense_categories`) | 2 notions distinctes : type de frais (vocabulaire fermé → matching/UI) vs catégorie budgétaire (export compta). Le matching ne dépend plus des noms libres de `expense_categories` |
+| — | `integration_connections` (inchangé, sans préfixe) | infra partagée (CRM Sprint 3), pas propre au module |
+
+Chaque table porte un `COMMENT ON TABLE` qui rappelle la frontière. Côté UI :
+le module s'appelle « **Notes de frais** » (route `/frais`, entrée sidebar séparée
+par un divider), le mot « dépense » seul est évité (réservé au vocabulaire budget).
+
+Ajout du même cru : snapshot `matched_event_title/starts_at` sur
+`te_expense_matches`, posé par trigger **uniquement** au passage
+confirmed/auto_confirmed → la vue DAF n'a jamais besoin de lire
+`te_calendar_events` (minimisation), et le snapshot survit à la purge 15 mois.
+
+---
+
 ## 1. État existant — les briques déjà là (à NE PAS reconstruire)
 
 Le spec est écrit comme un greenfield. Il ne l'est pas. Ce qui existe déjà dans le repo :

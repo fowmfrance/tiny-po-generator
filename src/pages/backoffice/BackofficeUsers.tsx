@@ -132,6 +132,7 @@ const BackofficeUsers: React.FC = () => {
     if (role === 'admin-sapajoo') return 'destructive';
     if (role === 'admin') return 'default';
     if (role === 'manager') return 'secondary';
+    if (role === 'finance') return 'secondary';
     return 'outline';
   };
 
@@ -205,6 +206,7 @@ const BackofficeUsers: React.FC = () => {
                         <SelectContent>
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BudgetWaterfallChart } from '@/components/budget/BudgetWaterfallChart';
 import { BudgetRecognitionSection } from '@/components/budget/BudgetRecognitionSection';
+import { BudgetAmountsSection } from '@/components/budget/BudgetAmountsSection';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -299,6 +300,22 @@ const BudgetDetails = () => {
               <p className="text-muted-foreground">Aucun bon de commande trouvé pour ce budget.</p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Montants du budget (CA initial / provision de charges) + historique */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Montants du budget & historique</CardTitle>
+          <CardDescription>Évolution du CA initial et de la provision de charges (journalisée).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BudgetAmountsSection
+            budgetId={budget.id}
+            currency={budget.currency}
+            initialAmount={metrics.initialAmount}
+            resalePrice={budget.resale_price ?? null}
+          />
         </CardContent>
       </Card>
 

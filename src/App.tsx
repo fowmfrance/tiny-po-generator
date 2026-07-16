@@ -9,6 +9,7 @@ import MentionsLegales from './pages/MentionsLegales';
 import CutOffSimulator from './pages/CutOffSimulator';
 import CutOffClosing from './pages/CutOffClosing';
 import Banks from './pages/Banks';
+import Frais from './pages/Frais';
 import Budgets from './pages/Budgets';
 import CreateBudget from './pages/CreateBudget';
 import BudgetDetails from './pages/BudgetDetails';
@@ -54,6 +55,7 @@ function App() {
         <Route path="/cloture" element={<ProtectedRoute><Layout><CutOffClosing /></Layout></ProtectedRoute>} />
         <Route path="/banques" element={<ProtectedRoute><Layout><Banks /></Layout></ProtectedRoute>} />
         <Route path="/banks" element={<Navigate to="/banques" replace />} />
+        <Route path="/frais" element={<ProtectedRoute><Layout><Frais /></Layout></ProtectedRoute>} />
         <Route path="/budgets" element={<ProtectedRoute><Layout><Budgets /></Layout></ProtectedRoute>} />
         <Route path="/budgets/create" element={<ProtectedRoute><Layout><CreateBudget /></Layout></ProtectedRoute>} />
         <Route path="/budgets/:id" element={<ProtectedRoute><Layout><BudgetDetails /></Layout></ProtectedRoute>} />

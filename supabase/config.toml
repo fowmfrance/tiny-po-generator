@@ -42,3 +42,6 @@ verify_jwt = false   # trigger DB / cron OU JWT user
 
 [functions.ocr-receipt]
 verify_jwt = false   # appelé après upload (JWT user) ou trigger storage
+
+[functions.calendar-watch-renew]
+verify_jwt = false   # appelé par pg_cron (x-cron-secret) uniquement

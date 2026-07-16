@@ -44,13 +44,13 @@ async function syncConnection(sb: any, connectionId: string) {
 
     for (const ev of page.items ?? []) {
       if (ev.status === 'cancelled') {
-        await sb.from('calendar_events').delete()
+        await sb.from('te_calendar_events').delete()
           .eq('connection_id', connectionId).eq('external_event_id', ev.id);
         continue;
       }
       if (!keep(ev)) continue;
 
-      await sb.from('calendar_events').upsert({
+      await sb.from('te_calendar_events').upsert({
         user_id: conn.user_id,
         connection_id: connectionId,
         external_event_id: ev.id,
