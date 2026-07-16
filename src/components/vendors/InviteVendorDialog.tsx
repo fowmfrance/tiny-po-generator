@@ -13,10 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { AtSign, Phone, Send } from 'lucide-react';
+import { AtSign, Building2, Phone, Search, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyVendorInvited } from '@/services/notificationService';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { SireneSearchDialog } from '@/components/vendors/SireneSearchDialog';
+import { SirenePrefill, formatSiren } from '@/hooks/useSireneSearch';
 
 interface InviteVendorDialogProps {
   isOpen: boolean;
@@ -33,6 +35,8 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
   const [message, setMessage] = useState("");
   const [sendCopy, setSendCopy] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSireneOpen, setIsSireneOpen] = useState(false);
+  const [sirene, setSirene] = useState<SirenePrefill | null>(null);
   const { toast } = useToast();
   const { createSupplier } = useSuppliers();
 
@@ -56,6 +60,14 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
         name,
         email: email || null,
         phone: phone || undefined,
+        // Infos légales issues du registre SIRENE (si fiche liée)
+        ...(sirene ? {
+          siren: sirene.siren,
+          vat_number: sirene.vat_number || undefined,
+          address: sirene.address || undefined,
+          city: sirene.city || undefined,
+          country: sirene.country,
+        } : {}),
       });
 
       // Send the invitation via notification (best-effort, seulement si email fourni)
@@ -83,6 +95,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       setPhone("");
       setMessage("");
       setSendCopy(false);
+      setSirene(null);
     } catch (error) {
       // Error handled by mutation's onError
     } finally {
@@ -102,6 +115,16 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-muted-foreground"
+              onClick={() => setIsSireneOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+              Rechercher dans le registre SIRENE (nom, SIREN ou SIRET)
+            </Button>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Nom
@@ -115,7 +138,36 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                 required
               />
             </div>
-            
+
+            {sirene && (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <div></div>
+                <div className="col-span-3 flex items-start gap-2 rounded-md border bg-muted/50 p-2.5 text-xs">
+                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">Fiche SIRENE liée</p>
+                    <p className="text-muted-foreground">
+                      SIREN {formatSiren(sirene.siren)}
+                      {sirene.vat_number && <> · TVA {sirene.vat_number}</>}
+                    </p>
+                    {(sirene.address || sirene.city) && (
+                      <p className="text-muted-foreground truncate">
+                        {[sirene.address, sirene.city].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => setSirene(null)}
+                    aria-label="Retirer la fiche SIRENE"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">
                 Email
@@ -196,6 +248,16 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <SireneSearchDialog
+        open={isSireneOpen}
+        onOpenChange={setIsSireneOpen}
+        initialQuery={name}
+        onSelect={(prefill) => {
+          setName(prefill.name);
+          setSirene(prefill);
+        }}
+      />
     </Dialog>
   );
 };

@@ -156,6 +156,8 @@ export function useSuppliers() {
       address?: string;
       city?: string;
       country?: string;
+      siren?: string;
+      vat_number?: string;
       specialty?: string;
       supplier_type_id?: string;
     }) => {

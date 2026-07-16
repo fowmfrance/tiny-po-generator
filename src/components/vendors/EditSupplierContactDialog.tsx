@@ -11,7 +11,9 @@ import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useServiceTypes } from '@/hooks/useServiceTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { ShieldOff } from 'lucide-react';
+import { Search, ShieldOff } from 'lucide-react';
+import { SireneSearchDialog } from '@/components/vendors/SireneSearchDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditSupplierContactDialogProps {
   supplier: Supplier;
@@ -25,7 +27,9 @@ interface EditSupplierContactDialogProps {
 export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave, isPending, isAdmin }: EditSupplierContactDialogProps) {
   const { methods, getModalitiesForMethod } = usePaymentMethods();
   const { serviceTypes } = useServiceTypes();
+  const { toast } = useToast();
   const [supplierTypes, setSupplierTypes] = useState<{ id: string; name: string }[]>([]);
+  const [isSireneOpen, setIsSireneOpen] = useState(false);
 
   useEffect(() => {
     supabase
@@ -130,6 +134,18 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
             <div className="space-y-2">
               <Label htmlFor="siren">SIREN</Label>
               <Input id="siren" placeholder="ex: 823383260" value={form.siren} onChange={e => setForm(f => ({ ...f, siren: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Registre SIRENE (INSEE)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-muted-foreground font-normal"
+                onClick={() => setIsSireneOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+                Compléter via SIRENE
+              </Button>
             </div>
           </div>
           <div className="space-y-2">
@@ -275,6 +291,27 @@ export function EditSupplierContactDialog({ supplier, open, onOpenChange, onSave
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <SireneSearchDialog
+        open={isSireneOpen}
+        onOpenChange={setIsSireneOpen}
+        initialQuery={form.siren || form.name}
+        onSelect={(prefill) => {
+          setForm(f => ({
+            ...f,
+            name: prefill.name || f.name,
+            siren: prefill.siren,
+            vat_number: prefill.vat_number || f.vat_number,
+            address: prefill.address || f.address,
+            city: prefill.city || f.city,
+            country: prefill.country || f.country,
+          }));
+          toast({
+            title: 'Fiche complétée depuis SIRENE',
+            description: 'Vérifiez les champs avant d\'enregistrer.',
+          });
+        }}
+      />
     </Dialog>
   );
 }

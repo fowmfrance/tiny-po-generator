@@ -6,10 +6,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AtSign, Phone, Send, Building2, Loader2, ShieldCheck } from 'lucide-react';
+import { AtSign, Phone, Send, Building2, Loader2, Search, ShieldCheck, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyVendorInvited } from '@/services/notificationService';
+import { SireneSearchDialog } from '@/components/vendors/SireneSearchDialog';
+import { SirenePrefill, formatSiren } from '@/hooks/useSireneSearch';
 
 interface CreatedVendor {
   id: string;
@@ -41,6 +43,8 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
   const [kycLevels, setKycLevels] = useState<KycLevelOption[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSireneOpen, setIsSireneOpen] = useState(false);
+  const [sirene, setSirene] = useState<SirenePrefill | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,6 +71,7 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
   const resetForm = () => {
     setName(''); setEmail(''); setPhone('');
     setSupplierTypeId('other'); setKycLevelId('none');
+    setSirene(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,6 +102,14 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
         kyc_level_id: kycLevelId === 'none' ? null : kycLevelId,
         kyc_status: kycLevelId === 'none' ? 'approved' : 'pending',
         is_active: kycLevelId === 'none',
+        // Infos légales issues du registre SIRENE (si fiche liée)
+        ...(sirene ? {
+          siren: sirene.siren,
+          vat_number: sirene.vat_number || null,
+          address: sirene.address || null,
+          city: sirene.city || null,
+          country: sirene.country,
+        } : {}),
       };
 
       const { data: createdSupplier, error } = await supabase
@@ -156,6 +169,16 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-muted-foreground"
+              onClick={() => setIsSireneOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+              Rechercher dans le registre SIRENE (nom, SIREN ou SIRET)
+            </Button>
+
             <div className="space-y-2">
               <Label htmlFor="vendor-name">Raison sociale *</Label>
               <div className="relative">
@@ -163,6 +186,32 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
                 <Input id="vendor-name" value={name} onChange={(e) => setName(e.target.value)} className="pl-10" placeholder="Nom de l'entreprise" required />
               </div>
             </div>
+
+            {sirene && (
+              <div className="flex items-start gap-2 rounded-md border bg-muted/50 p-2.5 text-xs">
+                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">Fiche SIRENE liée</p>
+                  <p className="text-muted-foreground">
+                    SIREN {formatSiren(sirene.siren)}
+                    {sirene.vat_number && <> · TVA {sirene.vat_number}</>}
+                  </p>
+                  {(sirene.address || sirene.city) && (
+                    <p className="text-muted-foreground truncate">
+                      {[sirene.address, sirene.city].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSirene(null)}
+                  aria-label="Retirer la fiche SIRENE"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="supplier-type">Type de fournisseur *</Label>
@@ -221,6 +270,16 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <SireneSearchDialog
+        open={isSireneOpen}
+        onOpenChange={setIsSireneOpen}
+        initialQuery={name}
+        onSelect={(prefill) => {
+          setName(prefill.name);
+          setSirene(prefill);
+        }}
+      />
     </Dialog>
   );
 };
