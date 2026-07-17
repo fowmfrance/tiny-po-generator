@@ -55,7 +55,17 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
       }
       if (!keep(ev)) continue;
 
-      await sb.from('te_calendar_events').upsert({
+      // Lieu → sous-objet te_places (réutilisable ; géocodage plus tard).
+      let placeId: string | null = null;
+      if (ev.location) {
+        const { data: place } = await sb.from('te_places').upsert(
+          { user_id: conn.user_id, label: ev.location },
+          { onConflict: 'user_id,label' },
+        ).select('id').single();
+        placeId = place?.id ?? null;
+      }
+
+      const { data: row } = await sb.from('te_calendar_events').upsert({
         user_id: conn.user_id,
         connection_id: connectionId,
         external_event_id: ev.id,
@@ -63,6 +73,8 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
         title: ev.summary ?? null,
         description: ev.description ?? null,
         location_raw: ev.location ?? null,
+        place_id: placeId,
+        recurring_event_id: ev.recurringEventId ?? null,
         starts_at: ev.start?.dateTime ?? ev.start?.date,
         ends_at: ev.end?.dateTime ?? ev.end?.date,
         attendees: ev.attendees ?? [],
@@ -70,10 +82,41 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
         organizer_email: ev.organizer?.email ?? null,
         google_status: ev.status ?? null,
         raw: ev,
-        // organization_id rempli par trigger
-      }, { onConflict: 'connection_id,external_event_id' });
+        // organization_id rempli par trigger.
+        // ⚠️ kanban_bucket JAMAIS écrit ici : le classement utilisateur survit aux resynchros.
+      }, { onConflict: 'connection_id,external_event_id' }).select('id').single();
       upserts++;
-      // TODO : géocodage async de location_raw (§4.1).
+
+      // Participants → sous-objets te_contacts + lien te_event_attendees
+      // (clé de résolution CRM = email ; salles/ressources et soi-même exclus).
+      if (row?.id && Array.isArray(ev.attendees)) {
+        for (const a of ev.attendees) {
+          const email = (a?.email ?? '').toLowerCase();
+          if (!email || a?.self || a?.resource) continue;
+          const dn: string | null = a.displayName ?? null;
+          const parts = (dn ?? '').split(' ').filter(Boolean);
+          const dom = email.split('@')[1] ?? null;
+          const external = !!(tenantDomain && dom && dom !== tenantDomain.toLowerCase());
+          const { data: contact } = await sb.from('te_contacts').upsert({
+            user_id: conn.user_id,
+            email,
+            display_name: dn,
+            first_name: parts[0] ?? null,
+            last_name: parts.length > 1 ? parts.slice(1).join(' ') : null,
+            company_domain: external ? dom : null,
+          }, { onConflict: 'user_id,email' }).select('id').single();
+          if (contact?.id) {
+            await sb.from('te_event_attendees').upsert({
+              user_id: conn.user_id,
+              event_id: row.id,
+              contact_id: contact.id,
+              response_status: a.responseStatus ?? null,
+              is_external: external,
+            }, { onConflict: 'event_id,contact_id' });
+          }
+        }
+      }
+      // TODO : géocodage async des te_places (§4.1).
       // TODO : déclencher match-expense en sens inverse (capture proactive, §5.3).
     }
 

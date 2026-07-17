@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
   Utensils, CarTaxiFront, BedDouble, ReceiptText, Loader2, Sparkles,
+  Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -70,6 +71,8 @@ interface AgendaEvent {
   ends_at: string;
   is_external: boolean;
   attendees: unknown[] | null;
+  kanban_bucket: AgendaBucket | null;
+  recurring_event_id: string | null;
 }
 
 const SYNC_WINDOWS = [
@@ -79,40 +82,68 @@ const SYNC_WINDOWS = [
 ];
 
 // ---- Kanban agenda : classement des RDV par créneau frais ----
-// L'analyse du libellé prime sur l'heure (« faire déclaration d'impôts » posé
-// sur un créneau déjeuner = perso, pas un RDV frais).
+// Ordre de résolution : classement manuel (drag & drop, persistant) > règle de
+// série récurrente > auto. L'auto : visio d'abord (jamais une NDF), puis libellé
+// (mots ENTIERS — « Cafetex » ne matche pas « café »), validé par l'heure, puis
+// invités, puis créneau horaire.
 type AgendaBucket = 'cafes' | 'dejeuners' | 'diners' | 'perso';
 
-const KW = {
-  perso: ['impôt', 'impot', 'déclaration', 'declaration', 'médecin', 'medecin', 'dentiste',
-    'kiné', 'kine', 'ostéo', 'osteo', 'coiffeur', 'anniversaire', 'vacances', 'congés', 'conges',
-    'école', 'ecole', 'crèche', 'creche', 'urssaf', 'banque', 'perso', 'sport', 'yoga', 'footing', 'course'],
-  cafes: ['café', 'cafe', 'coffee', 'petit-déj', 'petit déj', 'petit dej'],
-  dejeuners: ['déjeuner', 'dejeuner', 'déj ', 'dej ', 'lunch', 'restaurant', 'resto'],
-  diners: ['dîner', 'diner', 'dinner', 'soirée', 'soiree'],
+const KW: Record<'perso' | 'visio' | 'cafes' | 'dejeuners' | 'diners', string[]> = {
+  perso: ['impôts?', 'impots?', 'déclaration', 'declaration', 'deadline', 'échéance', 'echeance',
+    'rappel', 'todo', 'à faire', 'médecin', 'medecin', 'docteur', 'dr', 'pédiatre', 'pediatre',
+    'dentiste', 'ophtalmo', 'dermato', 'kiné', 'kine', 'ostéo', 'osteo', 'pharmacie',
+    'vétérinaire', 'veterinaire', 'garage', 'contrôle technique', 'controle technique',
+    'coiffeur', 'anniversaire', 'vacances', 'congés', 'conges', 'école', 'ecole', 'crèche', 'creche',
+    'urssaf', 'banque', 'mairie', 'préfecture', 'prefecture', 'perso', 'sport', 'yoga', 'footing'],
+  visio: ['teams', 'microsoft teams', 'zoom', 'google meet', 'meet', 'visio', 'webex', 'hangout', 'call'],
+  cafes: ['café', 'cafe', 'coffee', 'petit-déj', 'petit déj', 'petit dej', 'petit-déjeuner', 'petit déjeuner'],
+  dejeuners: ['déjeuner', 'dejeuner', 'déj', 'dej', 'lunch', 'restaurant', 'resto'],
+  diners: ['dîner', 'diner', 'dinner', 'soirée', 'soiree', 'apéro', 'apero', 'drink', 'drinks'],
 };
 
+// Mots entiers uniquement (bordures non alphabétiques) — insensible à la casse.
+const kwRegex = (kws: string[]) =>
+  new RegExp(`(^|[^\\p{L}])(${kws.join('|')})([^\\p{L}]|$)`, 'iu');
+const RX = {
+  perso: kwRegex(KW.perso),
+  visio: kwRegex(KW.visio),
+  cafes: kwRegex(KW.cafes),
+  dejeuners: kwRegex(KW.dejeuners),
+  diners: kwRegex(KW.diners),
+};
+
+function isVisio(ev: AgendaEvent): boolean {
+  return RX.visio.test(ev.title ?? '') || RX.visio.test(ev.location_raw ?? '');
+}
+
 function classifyEvent(ev: AgendaEvent): AgendaBucket {
-  const title = (ev.title ?? '').toLowerCase();
-  if (KW.perso.some((k) => title.includes(k))) return 'perso';
-  if (KW.diners.some((k) => title.includes(k))) return 'diners';
-  if (KW.dejeuners.some((k) => title.includes(k))) return 'dejeuners';
-  if (KW.cafes.some((k) => title.includes(k))) return 'cafes';
-  // Sans invités → perso / à confirmer
-  if (!Array.isArray(ev.attendees) || ev.attendees.length === 0) return 'perso';
+  const title = ev.title ?? '';
   const start = new Date(ev.starts_at);
   const h = start.getHours() + start.getMinutes() / 60;
-  if (h >= 8 && h < 10.5) return 'cafes';
-  if (h >= 11.5 && h < 15) return 'dejeuners';
+
+  // 1. Visio (Teams/Zoom/Meet…) : pas de frais possible → à confirmer.
+  if (isVisio(ev)) return 'perso';
+  // 2. Libellé perso (deadline, pédiatre, impôts…) prime sur tout.
+  if (RX.perso.test(title)) return 'perso';
+  // 3. Libellé repas, validé par une heure PLAUSIBLE (un « resto » à 20 h ira
+  //    en dîner par l'heure ; un « café » à 16 h n'est pas un café).
+  if (RX.diners.test(title) && h >= 17 && h < 24) return 'diners';
+  if (RX.dejeuners.test(title) && h >= 11 && h < 15.5) return 'dejeuners';
+  if (RX.cafes.test(title) && h >= 7 && h < 11.5) return 'cafes';
+  // 4. Sans invités → perso / à confirmer.
+  if (!Array.isArray(ev.attendees) || ev.attendees.length === 0) return 'perso';
+  // 5. Créneau horaire.
+  if (h >= 7.5 && h < 10.5) return 'cafes';
+  if (h >= 11.75 && h < 14.25) return 'dejeuners';
   if (h >= 18.5 && h < 23) return 'diners';
   return 'perso';
 }
 
-const BUCKETS: { key: AgendaBucket; label: string; hint: string }[] = [
-  { key: 'cafes', label: '☕ Cafés', hint: '8 h – 10 h' },
-  { key: 'dejeuners', label: '🍽 Déjeuners', hint: '12 h – 14 h' },
-  { key: 'diners', label: '🌙 Dîners', hint: '19 h – 22 h' },
-  { key: 'perso', label: 'Perso / à confirmer', hint: 'sans invités ou hors créneaux' },
+const BUCKETS: { key: AgendaBucket; label: string; hint: string; icon: React.ElementType }[] = [
+  { key: 'cafes', label: 'Cafés', hint: '8 h – 10 h', icon: Coffee },
+  { key: 'dejeuners', label: 'Déjeuners', hint: '12 h – 14 h', icon: UtensilsCrossed },
+  { key: 'diners', label: 'Dîners', hint: '19 h – 22 h', icon: Moon },
+  { key: 'perso', label: 'Perso / à confirmer', hint: 'visio, sans invités, hors créneaux', icon: CircleUserRound },
 ];
 
 const SOURCE_LABELS: Record<TeExpense['source'], string> = {
@@ -150,11 +181,14 @@ const Frais = () => {
   const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '' });
   const [savingManual, setSavingManual] = useState(false);
   const [agenda, setAgenda] = useState<AgendaEvent[]>([]);
+  const [rules, setRules] = useState<Record<string, AgendaBucket>>({});
   const [syncDays, setSyncDays] = useState('30');
+  // Modale « série récurrente » : événement déplacé + colonne cible en attente.
+  const [seriesMove, setSeriesMove] = useState<{ event: AgendaEvent; bucket: AgendaBucket } | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
-    const [{ data: conn }, { data: exp, error }, { data: evts }] = await Promise.all([
+    const [{ data: conn }, { data: exp, error }, { data: evts }, { data: ruleRows }] = await Promise.all([
       db.from('integration_connections')
         .select('id, status, last_synced_at')
         .eq('user_id', uid).eq('provider', 'google_calendar')
@@ -165,10 +199,13 @@ const Frais = () => {
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
       db.from('te_calendar_events')
-        .select('id, title, location_raw, starts_at, ends_at, is_external, attendees')
+        .select('id, title, location_raw, starts_at, ends_at, is_external, attendees, kanban_bucket, recurring_event_id')
         .eq('user_id', uid)
         .order('starts_at', { ascending: false })
         .limit(200),
+      db.from('te_agenda_rules')
+        .select('recurring_event_id, kanban_bucket')
+        .eq('user_id', uid),
     ]);
     if (error) {
       // Migration socle pas encore appliquée → tables absentes.
@@ -177,8 +214,59 @@ const Frais = () => {
     setConnection(conn ?? null);
     setExpenses(exp ?? []);
     setAgenda(evts ?? []);
+    setRules(Object.fromEntries((ruleRows ?? []).map((r: any) => [r.recurring_event_id, r.kanban_bucket])));
     setLoading(false);
   }, [toast]);
+
+  // Résolution du classement : manuel (persistant) > règle de série > auto.
+  const bucketOf = useCallback((ev: AgendaEvent): AgendaBucket => {
+    if (ev.kanban_bucket) return ev.kanban_bucket;
+    if (ev.recurring_event_id && rules[ev.recurring_event_id]) return rules[ev.recurring_event_id];
+    return classifyEvent(ev);
+  }, [rules]);
+
+  // Applique un classement (un épisode, ou toute la série via te_agenda_rules).
+  const applyBucket = async (ev: AgendaEvent, bucket: AgendaBucket, scope: 'single' | 'series') => {
+    if (!userId) return;
+    if (scope === 'series' && ev.recurring_event_id) {
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        db.from('te_agenda_rules').upsert(
+          { user_id: userId, recurring_event_id: ev.recurring_event_id, kanban_bucket: bucket },
+          { onConflict: 'user_id,recurring_event_id' },
+        ),
+        db.from('te_calendar_events')
+          .update({ kanban_bucket: bucket })
+          .eq('user_id', userId)
+          .eq('recurring_event_id', ev.recurring_event_id),
+      ]);
+      if (e1 || e2) {
+        toast({ title: 'Erreur', description: (e1 ?? e2)?.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Série reclassée', description: 'Tous les épisodes (passés et à venir) suivront ce classement.' });
+    } else {
+      const { error } = await db.from('te_calendar_events')
+        .update({ kanban_bucket: bucket })
+        .eq('id', ev.id);
+      if (error) {
+        toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+        return;
+      }
+    }
+    loadData(userId);
+  };
+
+  const handleDrop = (bucket: AgendaBucket) => (e: React.DragEvent) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const ev = agenda.find((a) => a.id === id);
+    if (!ev || bucketOf(ev) === bucket) return;
+    if (ev.recurring_event_id) {
+      setSeriesMove({ event: ev, bucket });
+    } else {
+      applyBucket(ev, bucket, 'single');
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -502,31 +590,56 @@ const Frais = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                 {BUCKETS.map((bucket) => {
-                  const items = agenda.filter((ev) => classifyEvent(ev) === bucket.key);
+                  const items = agenda.filter((ev) => bucketOf(ev) === bucket.key);
+                  const BucketIcon = bucket.icon;
                   return (
-                    <div key={bucket.key} className="rounded-lg border bg-muted/30">
+                    <div
+                      key={bucket.key}
+                      className="rounded-lg border bg-muted/30"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleDrop(bucket.key)}
+                    >
                       <div className="px-3 py-2 border-b">
-                        <div className="text-sm font-semibold">
+                        <div className="text-sm font-semibold flex items-center gap-1.5">
+                          <BucketIcon className="h-4 w-4 text-muted-foreground" />
                           {bucket.label}
-                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">({items.length})</span>
+                          <span className="text-xs font-normal text-muted-foreground">({items.length})</span>
                         </div>
                         <div className="text-[10px] text-muted-foreground">{bucket.hint}</div>
                       </div>
                       <div className="p-2 space-y-2 max-h-[420px] overflow-y-auto">
                         {items.length === 0 ? (
-                          <div className="text-xs text-muted-foreground text-center py-4">—</div>
-                        ) : items.map((ev) => (
-                          <div key={ev.id} className="rounded-md border bg-background p-2">
-                            <div className="text-sm font-medium leading-tight">{ev.title ?? '(sans titre)'}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
-                              {ev.location_raw && ` · ${ev.location_raw}`}
+                          <div className="text-xs text-muted-foreground text-center py-4">Glissez un RDV ici</div>
+                        ) : items.map((ev) => {
+                          const guests = Array.isArray(ev.attendees) ? ev.attendees.length : 0;
+                          return (
+                            <div
+                              key={ev.id}
+                              draggable
+                              onDragStart={(e) => e.dataTransfer.setData('text/plain', ev.id)}
+                              className="rounded-md border bg-background p-2 cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="text-sm font-medium leading-tight">{ev.title ?? '(sans titre)'}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground min-w-0">
+                                {isVisio(ev) && (
+                                  <span className="flex items-center gap-0.5 shrink-0"><Video className="h-3 w-3" /> visio</span>
+                                )}
+                                {ev.location_raw && !isVisio(ev) && (
+                                  <span className="flex items-center gap-0.5 truncate"><MapPin className="h-3 w-3 shrink-0" /> {ev.location_raw}</span>
+                                )}
+                                {guests > 0 && (
+                                  <span className="flex items-center gap-0.5 shrink-0"><Users className="h-3 w-3" /> {guests}</span>
+                                )}
+                                {ev.is_external && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">Externe</Badge>
+                                )}
+                              </div>
                             </div>
-                            {ev.is_external && (
-                              <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0">Externe</Badge>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -534,13 +647,46 @@ const Frais = () => {
               </div>
             )}
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Classement automatique par libellé puis créneau (un RDV sans invités part en
-              « Perso / à confirmer »). Ces RDV servent au rattachement de vos frais — personne
-              d'autre n'y a accès.
+              Classement auto (visio et libellés perso écartés, mots-clés repas validés par l'heure,
+              RDV sans invités à confirmer) — corrigez par glisser-déposer, c'est mémorisé même après
+              resynchronisation. Ces RDV servent au rattachement de vos frais, personne d'autre n'y a accès.
             </p>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Événement récurrent déplacé : un épisode ou toute la série ? */}
+      <Dialog open={!!seriesMove} onOpenChange={(o) => !o && setSeriesMove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Événement récurrent</DialogTitle>
+            <DialogDescription>
+              « {seriesMove?.event.title ?? '(sans titre)'} » fait partie d'une série.
+              Classer tous les épisodes (passés et à venir) en
+              « {BUCKETS.find((b) => b.key === seriesMove?.bucket)?.label} », ou seulement celui-ci ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (seriesMove) applyBucket(seriesMove.event, seriesMove.bucket, 'single');
+                setSeriesMove(null);
+              }}
+            >
+              Juste celui-ci
+            </Button>
+            <Button
+              onClick={() => {
+                if (seriesMove) applyBucket(seriesMove.event, seriesMove.bucket, 'series');
+                setSeriesMove(null);
+              }}
+            >
+              Toute la série
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Saisie manuelle */}
       <Dialog open={manualOpen} onOpenChange={setManualOpen}>
