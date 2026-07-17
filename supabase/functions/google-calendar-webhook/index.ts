@@ -2,7 +2,7 @@
 // verify_jwt = false : Google appelle sans JWT. Le payload NE contient PAS les
 // données : on identifie la connexion via X-Goog-Channel-Id (= watch_channel_id)
 // puis on déclenche une sync incrémentale.
-import { corsHeaders, json, adminClient, env } from '../_shared/google.ts';
+import { corsHeaders, json, adminClient, env, background } from '../_shared/google.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -21,11 +21,11 @@ Deno.serve(async (req) => {
     if (!conn) return json({ error: 'channel inconnu' }, 404);
 
     // Déclenche la sync (fire-and-forget) via sync-calendar avec le secret cron.
-    fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
+    background(fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-cron-secret': env('CRON_SECRET') },
       body: JSON.stringify({ connection_id: conn.id }),
-    }).catch((e) => console.error('trigger sync-calendar:', e));
+    }).catch((e) => console.error('trigger sync-calendar:', e)));
 
     return new Response(null, { status: 200 }); // Google attend un 2xx rapide
   } catch (e) {

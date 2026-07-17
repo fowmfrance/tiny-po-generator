@@ -6,7 +6,7 @@
 //      sécurité si un push s'est perdu).
 // verify_jwt = false : appelée par pg_cron avec x-cron-secret uniquement.
 import {
-  corsHeaders, json, adminClient, env, getFreshAccessToken, watchCalendar,
+  corsHeaders, json, adminClient, env, getFreshAccessToken, watchCalendar, background,
 } from '../_shared/google.ts';
 
 const CRON_SECRET = env('CRON_SECRET');
@@ -42,11 +42,11 @@ Deno.serve(async (req) => {
           renewed++;
         }
         // Sync filet de sécurité (fire-and-forget).
-        fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
+        background(fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-cron-secret': CRON_SECRET },
           body: JSON.stringify({ connection_id: conn.id }),
-        }).catch((e) => console.error('trigger sync-calendar:', e));
+        }).catch((e) => console.error('trigger sync-calendar:', e)));
         synced++;
       } catch (e) {
         failed++;

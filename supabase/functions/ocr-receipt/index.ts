@@ -5,7 +5,7 @@
 // fournisseurs (analyze-invoice / invoice-attachments).
 // verify_jwt = false : appelée après upload (front avec JWT, ou trigger storage).
 // Corps : { receipt_id }  (la ligne te_receipts existe déjà, statut ocr pending).
-import { corsHeaders, json, adminClient, userClient, env } from '../_shared/google.ts';
+import { corsHeaders, json, adminClient, userClient, env, background } from '../_shared/google.ts';
 
 const OCR_TOOL = [{
   type: 'function' as const,
@@ -132,11 +132,11 @@ Deno.serve(async (req) => {
     if (expErr) throw new Error(`création frais: ${expErr.message}`);
 
     // Déclenche le matching sur le nouveau frais.
-    fetch(`${env('SUPABASE_URL')}/functions/v1/match-expense`, {
+    background(fetch(`${env('SUPABASE_URL')}/functions/v1/match-expense`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-cron-secret': env('CRON_SECRET') },
       body: JSON.stringify({ expense_id: expense.id }),
-    }).catch((e) => console.error('trigger match-expense:', e));
+    }).catch((e) => console.error('trigger match-expense:', e)));
 
     return json({ ok: true, receipt_id, expense_id: expense.id, extracted: ex });
   } catch (e) {

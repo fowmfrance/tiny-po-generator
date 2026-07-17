@@ -52,11 +52,20 @@ export async function encryptToken(sb: SupabaseClient, plain: string): Promise<s
 }
 
 export async function decryptToken(sb: SupabaseClient, cipher: string): Promise<string> {
+  // ⚠️ decrypt_credential(encrypted_text, encryption_key) : 2 args seulement
+  // (contrairement à encrypt_credential qui prend un iv) — un 3e arg → 404 PostgREST.
   const { data, error } = await sb.rpc('decrypt_credential', {
-    encrypted_text: cipher, encryption_key: ENC_KEY(), iv: '',
+    encrypted_text: cipher, encryption_key: ENC_KEY(),
   });
   if (error) throw new Error(`decrypt_credential: ${error.message}`);
   return data as string;
+}
+
+// Prolonge la vie d'une promesse au-delà de la réponse HTTP (fire-and-forget
+// réel : sans waitUntil, le runtime tue le fetch dès que la function répond).
+export function background(p: Promise<unknown>): void {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
 }
 
 // ---- OAuth ----

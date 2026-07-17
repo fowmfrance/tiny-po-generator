@@ -1,7 +1,7 @@
 // google-oauth-callback — échange code → tokens, crée la connexion (§4.1, étape 2).
 // verify_jwt = false : Google redirige le navigateur ici sans JWT Supabase.
 // L'identité vient du `state` (user_id) posé par google-oauth-start.
-import { corsHeaders, adminClient, exchangeCode, encryptToken, watchCalendar, env } from '../_shared/google.ts';
+import { corsHeaders, adminClient, exchangeCode, encryptToken, watchCalendar, env, background } from '../_shared/google.ts';
 
 const APP_URL = Deno.env.get('APP_URL') ?? '/';
 
@@ -63,11 +63,11 @@ Deno.serve(async (req) => {
     }
 
     // Première sync en tâche de fond (fire-and-forget).
-    fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
+    background(fetch(`${env('SUPABASE_URL')}/functions/v1/sync-calendar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-cron-secret': env('CRON_SECRET') },
       body: JSON.stringify({ connection_id: conn.id }),
-    }).catch((e) => console.error('trigger sync-calendar:', e));
+    }).catch((e) => console.error('trigger sync-calendar:', e)));
 
     return redirect(`/frais?connexion=ok`);
   } catch (e) {
