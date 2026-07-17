@@ -69,12 +69,50 @@ interface AgendaEvent {
   starts_at: string;
   ends_at: string;
   is_external: boolean;
+  attendees: unknown[] | null;
 }
 
 const SYNC_WINDOWS = [
   { value: '30', label: '30 derniers jours' },
   { value: '60', label: '60 derniers jours' },
   { value: '90', label: '90 derniers jours' },
+];
+
+// ---- Kanban agenda : classement des RDV par créneau frais ----
+// L'analyse du libellé prime sur l'heure (« faire déclaration d'impôts » posé
+// sur un créneau déjeuner = perso, pas un RDV frais).
+type AgendaBucket = 'cafes' | 'dejeuners' | 'diners' | 'perso';
+
+const KW = {
+  perso: ['impôt', 'impot', 'déclaration', 'declaration', 'médecin', 'medecin', 'dentiste',
+    'kiné', 'kine', 'ostéo', 'osteo', 'coiffeur', 'anniversaire', 'vacances', 'congés', 'conges',
+    'école', 'ecole', 'crèche', 'creche', 'urssaf', 'banque', 'perso', 'sport', 'yoga', 'footing', 'course'],
+  cafes: ['café', 'cafe', 'coffee', 'petit-déj', 'petit déj', 'petit dej'],
+  dejeuners: ['déjeuner', 'dejeuner', 'déj ', 'dej ', 'lunch', 'restaurant', 'resto'],
+  diners: ['dîner', 'diner', 'dinner', 'soirée', 'soiree'],
+};
+
+function classifyEvent(ev: AgendaEvent): AgendaBucket {
+  const title = (ev.title ?? '').toLowerCase();
+  if (KW.perso.some((k) => title.includes(k))) return 'perso';
+  if (KW.diners.some((k) => title.includes(k))) return 'diners';
+  if (KW.dejeuners.some((k) => title.includes(k))) return 'dejeuners';
+  if (KW.cafes.some((k) => title.includes(k))) return 'cafes';
+  // Sans invités → perso / à confirmer
+  if (!Array.isArray(ev.attendees) || ev.attendees.length === 0) return 'perso';
+  const start = new Date(ev.starts_at);
+  const h = start.getHours() + start.getMinutes() / 60;
+  if (h >= 8 && h < 10.5) return 'cafes';
+  if (h >= 11.5 && h < 15) return 'dejeuners';
+  if (h >= 18.5 && h < 23) return 'diners';
+  return 'perso';
+}
+
+const BUCKETS: { key: AgendaBucket; label: string; hint: string }[] = [
+  { key: 'cafes', label: '☕ Cafés', hint: '8 h – 10 h' },
+  { key: 'dejeuners', label: '🍽 Déjeuners', hint: '12 h – 14 h' },
+  { key: 'diners', label: '🌙 Dîners', hint: '19 h – 22 h' },
+  { key: 'perso', label: 'Perso / à confirmer', hint: 'sans invités ou hors créneaux' },
 ];
 
 const SOURCE_LABELS: Record<TeExpense['source'], string> = {
@@ -127,7 +165,7 @@ const Frais = () => {
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
       db.from('te_calendar_events')
-        .select('id, title, location_raw, starts_at, ends_at, is_external')
+        .select('id, title, location_raw, starts_at, ends_at, is_external, attendees')
         .eq('user_id', uid)
         .order('starts_at', { ascending: false })
         .limit(200),
@@ -432,15 +470,15 @@ const Frais = () => {
         </Card>
 
         {/* Listes */}
-        <Tabs defaultValue="pending">
+        <Tabs defaultValue="agenda">
           <TabsList>
+            <TabsTrigger value="agenda">
+              Agenda{agenda.length > 0 && ` (${agenda.length})`}
+            </TabsTrigger>
             <TabsTrigger value="pending">
               À traiter{pending.length > 0 && ` (${pending.length})`}
             </TabsTrigger>
             <TabsTrigger value="done">Traités</TabsTrigger>
-            <TabsTrigger value="agenda">
-              Agenda{agenda.length > 0 && ` (${agenda.length})`}
-            </TabsTrigger>
           </TabsList>
           <TabsContent value="pending" className="space-y-3 mt-4">
             {loading ? (
@@ -462,27 +500,43 @@ const Frais = () => {
                 Aucun RDV synchronisé. Connectez votre agenda ou lancez une synchronisation.
               </div>
             ) : (
-              <Card>
-                <CardContent className="pt-2 pb-2 divide-y">
-                  {agenda.map((ev) => (
-                    <div key={ev.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{ev.title ?? '(sans titre)'}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
-                          {'–'}{format(new Date(ev.ends_at), 'HH:mm', { locale: fr })}
-                          {ev.location_raw && ` · ${ev.location_raw}`}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+                {BUCKETS.map((bucket) => {
+                  const items = agenda.filter((ev) => classifyEvent(ev) === bucket.key);
+                  return (
+                    <div key={bucket.key} className="rounded-lg border bg-muted/30">
+                      <div className="px-3 py-2 border-b">
+                        <div className="text-sm font-semibold">
+                          {bucket.label}
+                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">({items.length})</span>
                         </div>
+                        <div className="text-[10px] text-muted-foreground">{bucket.hint}</div>
                       </div>
-                      {ev.is_external && <Badge variant="outline" className="shrink-0">Externe</Badge>}
+                      <div className="p-2 space-y-2 max-h-[420px] overflow-y-auto">
+                        {items.length === 0 ? (
+                          <div className="text-xs text-muted-foreground text-center py-4">—</div>
+                        ) : items.map((ev) => (
+                          <div key={ev.id} className="rounded-md border bg-background p-2">
+                            <div className="text-sm font-medium leading-tight">{ev.title ?? '(sans titre)'}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
+                              {ev.location_raw && ` · ${ev.location_raw}`}
+                            </div>
+                            {ev.is_external && (
+                              <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0">Externe</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  );
+                })}
+              </div>
             )}
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Seuls les événements avec invités ou lieu sont synchronisés — ils servent au
-              rattachement de vos frais, personne d'autre n'y a accès.
+              Classement automatique par libellé puis créneau (un RDV sans invités part en
+              « Perso / à confirmer »). Ces RDV servent au rattachement de vos frais — personne
+              d'autre n'y a accès.
             </p>
           </TabsContent>
         </Tabs>

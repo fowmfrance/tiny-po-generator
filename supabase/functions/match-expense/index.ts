@@ -32,13 +32,15 @@ function minutesToSlot(t: Date, start: Date, end: Date): number {
     : (t.getTime() - pad.getTime()) / 60000;
 }
 
-function scoreEvent(exp: any, ev: any, historyHit: boolean): { total: number; signals: Signals } {
+function scoreEvent(exp: any, ev: any, historyHit: boolean, dateOnly: boolean): { total: number; signals: Signals } {
   const T = new Date(exp.occurred_at);
   const start = new Date(ev.starts_at), end = new Date(ev.ends_at);
 
-  // 1. Proximité temporelle (40) : 40 × exp(−Δt/45)
-  const dt = minutesToSlot(T, start, end);
-  const time = 40 * Math.exp(-dt / 45);
+  // 1. Proximité temporelle (40) : 40 × exp(−Δt/45).
+  //    Ticket daté sans heure (OCR) : impossible de mesurer Δt → score plat
+  //    « même journée » (25), le départage se fait sur les autres signaux.
+  const dt = dateOnly ? 0 : minutesToSlot(T, start, end);
+  const time = dateOnly ? 25 : 40 * Math.exp(-dt / 45);
 
   // 2. Proximité géographique (25) : <300 m plein, dégressif jusqu'à 2 km, 0 si pas de géoloc
   let geo = 0;
@@ -51,7 +53,8 @@ function scoreEvent(exp: any, ev: any, historyHit: boolean): { total: number; si
   //    Basé sur te_category (vocabulaire fermé du module), PAS sur les catégories
   //    budgétaires expense_categories (noms libres, non fiables pour le matching).
   let category = 0;
-  const h = T.getHours();
+  // Sans heure sur le ticket, on regarde le créneau du RDV lui-même.
+  const h = parisHour(dateOnly ? start : T);
   const isMeal = (h >= 12 && h <= 14) || (h >= 19 && h <= 22);
   const cat = exp.te_category ?? '';
   if (cat === 'restaurant' && isMeal && dt < 90) category = 15;
@@ -69,6 +72,11 @@ function scoreEvent(exp: any, ev: any, historyHit: boolean): { total: number; si
 }
 const r = (n: number) => Math.round(n * 100) / 100;
 
+// Heure locale Europe/Paris (le runtime edge est en UTC : 12 h 30 à Paris = 10 h 30 UTC,
+// sans conversion le bonus « créneau repas » ne matcherait jamais).
+const parisHour = (d: Date) =>
+  Number(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', hour12: false }).format(d));
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
@@ -84,13 +92,21 @@ Deno.serve(async (req) => {
       .select('*').eq('id', expense_id).single();
     if (!exp) return json({ error: 'frais introuvable' }, 404);
 
-    // Candidats : événements du même user dans [T−3h, T+1h] (§5.1)
+    // Ticket OCR daté sans heure → occurred_at tombe à minuit UTC pile :
+    // on préfiltre alors sur TOUTE la journée (marge ±2 h pour le fuseau Paris).
+    const dateOnly = exp.source === 'receipt_only' &&
+      new Date(exp.occurred_at).toISOString().includes('T00:00:00.000Z');
+
+    // Candidats : événements du même user dans [T−3h, T+1h], ou toute la journée
+    // si la date seule est connue (§5.1).
     const T = new Date(exp.occurred_at).getTime();
+    const from = dateOnly ? T - 2 * 3600e3 : T - 3 * 3600e3;
+    const to = dateOnly ? T + 26 * 3600e3 : T + 1 * 3600e3;
     const { data: candidates } = await sb.from('te_calendar_events')
       .select('*')
       .eq('user_id', exp.user_id)
-      .gte('starts_at', new Date(T - 3 * 3600e3).toISOString())
-      .lte('starts_at', new Date(T + 1 * 3600e3).toISOString());
+      .gte('starts_at', new Date(from).toISOString())
+      .lte('starts_at', new Date(to).toISOString());
 
     if (!candidates?.length) {
       await sb.from('te_expenses').update({ status: 'no_context' }).eq('id', expense_id);
@@ -110,7 +126,7 @@ Deno.serve(async (req) => {
 
     let best: { ev: any; total: number; signals: Signals } | null = null;
     for (const ev of candidates) {
-      const { total, signals } = scoreEvent(exp, ev, historyHit);
+      const { total, signals } = scoreEvent(exp, ev, historyHit, dateOnly);
       if (!best || total > best.total) best = { ev, total, signals };
     }
     if (!best) return json({ ok: true, best: null });

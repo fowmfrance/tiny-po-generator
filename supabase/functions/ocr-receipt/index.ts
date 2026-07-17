@@ -19,6 +19,7 @@ const OCR_TOOL = [{
         amount: { type: 'number', description: 'Montant total TTC payé' },
         vat: { type: 'number', description: 'Montant de TVA (si présent)' },
         date: { type: 'string', description: 'Date du reçu au format YYYY-MM-DD' },
+        time: { type: 'string', description: "Heure du paiement au format HH:MM (24 h) si visible sur le ticket" },
         category: {
           type: 'string',
           enum: ['restaurant', 'transport', 'hebergement', 'autre'],
@@ -38,7 +39,7 @@ async function ocrImage(dataUrl: string, apiKey: string) {
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, montant TTC, TVA, date et type de frais (restaurant, transport, hebergement, autre). Date au format YYYY-MM-DD. Si un champ est absent, ne l'invente pas." },
+        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, montant TTC, TVA, date, heure et type de frais (restaurant, transport, hebergement, autre). Date au format YYYY-MM-DD, heure au format HH:MM (24 h) si imprimée. Si un champ est absent, ne l'invente pas." },
         {
           role: 'user',
           content: [
@@ -51,6 +52,18 @@ async function ocrImage(dataUrl: string, apiKey: string) {
       tool_choice: { type: 'function', function: { name: 'extract_receipt' } },
     }),
   });
+}
+
+// Construit l'instant UTC d'une date+heure exprimée en heure de Paris (CET/CEST).
+function parisISO(date: string, time: string): string {
+  for (const off of ['+02:00', '+01:00']) {
+    const d = new Date(`${date}T${time}:00${off}`);
+    const local = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(d);
+    if (local === time) return d.toISOString();
+  }
+  return new Date(`${date}T${time}:00+01:00`).toISOString();
 }
 
 Deno.serve(async (req) => {
@@ -121,7 +134,13 @@ Deno.serve(async (req) => {
       merchant_clean: ex.merchant ?? null,
       amount: ex.amount ?? 0,
       vat_amount: ex.vat ?? null,
-      occurred_at: ex.date ? new Date(ex.date).toISOString() : new Date().toISOString(),
+      // Heure imprimée sur le ticket → matching précis (±3 h) ; sinon minuit UTC
+      // pile = marqueur « date seule » que match-expense élargit à la journée.
+      occurred_at: ex.date
+        ? (ex.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(ex.time)
+            ? parisISO(ex.date, ex.time)
+            : new Date(ex.date).toISOString())
+        : new Date().toISOString(),
       te_category: validCat.includes(ex.category) ? ex.category : null,
       reimbursable: true,
       reimbursement_status: 'pending',
