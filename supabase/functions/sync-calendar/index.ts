@@ -91,10 +91,15 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
 
       // Participants → sous-objets te_contacts + lien te_event_attendees
       // (clé de résolution CRM = email ; salles/ressources et soi-même exclus).
+      console.log('evt', ev.id, 'row?', !!row?.id,
+        'att:', Array.isArray(ev.attendees) ? ev.attendees.length : typeof ev.attendees);
       if (row?.id && Array.isArray(ev.attendees)) {
         for (const a of ev.attendees) {
           const email = (a?.email ?? '').toLowerCase();
-          if (!email || a?.self || a?.resource) continue;
+          if (!email || a?.self || a?.resource) {
+            console.log('skip attendee', JSON.stringify({ email, self: a?.self, resource: a?.resource }));
+            continue;
+          }
           const dn: string | null = a.displayName ?? null;
           const parts = (dn ?? '').split(' ').filter(Boolean);
           const dom = email.split('@')[1] ?? null;
