@@ -202,8 +202,20 @@ la « transaction » côté réconciliation = ligne `transactions` existante, et
 **Sprint 2 — sources de paiement** : brancher matching sur `transactions` (Qonto déjà
 là) ; réconciliation ticket↔transaction ; capture proactive (pg_cron 9 h) ; puis Bridge/Powens.
 
-**Sprint 3 — CRM + attribution** : HubSpot, jointure par email participants, vue
+**Sprint 3 — CRM + attribution (décisions 2026-07-17)** : **Sellsy d'abord** (pas
+HubSpot — c'est le CRM testé chez nous), jointure par email participants, vue
 matérialisée `attribution_by_account`, UI Attribution, fallback compte dérivé du domaine.
+
+Pipeline cible : RDV agenda → **objet contact lié** (`te_event_contacts` : prénom,
+nom, email extraits de `attendees`) → résolution par email dans le CRM (Sellsy API ;
+LinkedIn écarté : API trop fermée) → entreprise → **démarche** (prospection / suivi
+de projet / autre) → le frais rattaché au RDV remonte à l'entreprise → **CAC par
+entreprise**. Les contacts non résolus restent locaux (« contact léger ») et
+pourront être synchronisés vers le CRM.
+
+Référentiel TVA/catégories : cf. [referentiel-tva-frais.md](referentiel-tva-frais.md)
+(veille open source 2026-07-17 — Dolibarr pour les codes catégories + PCG, CSV
+CC BY 4.0 pour le barème IK, tableau récupérabilité TVA à encoder nous-mêmes).
 
 **Critère de succès pilote** : ≥ 70 % des dépenses T&E auto-rattachées sans intervention,
 et un rapport d'attribution qui fait réagir un DAF en démo.
