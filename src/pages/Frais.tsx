@@ -62,6 +62,21 @@ interface Connection {
   last_synced_at: string | null;
 }
 
+interface AgendaEvent {
+  id: string;
+  title: string | null;
+  location_raw: string | null;
+  starts_at: string;
+  ends_at: string;
+  is_external: boolean;
+}
+
+const SYNC_WINDOWS = [
+  { value: '30', label: '30 derniers jours' },
+  { value: '60', label: '60 derniers jours' },
+  { value: '90', label: '90 derniers jours' },
+];
+
 const SOURCE_LABELS: Record<TeExpense['source'], string> = {
   bank_feed: 'Import banque',
   card_platform: 'Carte',
@@ -96,10 +111,12 @@ const Frais = () => {
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '' });
   const [savingManual, setSavingManual] = useState(false);
+  const [agenda, setAgenda] = useState<AgendaEvent[]>([]);
+  const [syncDays, setSyncDays] = useState('30');
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
-    const [{ data: conn }, { data: exp, error }] = await Promise.all([
+    const [{ data: conn }, { data: exp, error }, { data: evts }] = await Promise.all([
       db.from('integration_connections')
         .select('id, status, last_synced_at')
         .eq('user_id', uid).eq('provider', 'google_calendar')
@@ -109,6 +126,11 @@ const Frais = () => {
         .select('*, te_expense_matches(id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw))')
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
+      db.from('te_calendar_events')
+        .select('id, title, location_raw, starts_at, ends_at, is_external')
+        .eq('user_id', uid)
+        .order('starts_at', { ascending: false })
+        .limit(200),
     ]);
     if (error) {
       // Migration socle pas encore appliquée → tables absentes.
@@ -116,6 +138,7 @@ const Frais = () => {
     }
     setConnection(conn ?? null);
     setExpenses(exp ?? []);
+    setAgenda(evts ?? []);
     setLoading(false);
   }, [toast]);
 
@@ -152,7 +175,7 @@ const Frais = () => {
     if (!connection || !userId) return;
     setSyncing(true);
     const { data, error } = await supabase.functions.invoke('sync-calendar', {
-      body: { connection_id: connection.id },
+      body: { connection_id: connection.id, days_back: Number(syncDays) },
     });
     setSyncing(false);
     if (error) {
@@ -377,12 +400,25 @@ const Frais = () => {
               <>
                 <div className="text-sm text-muted-foreground">
                   {connection.status === 'active' ? 'Connecté' : `Statut : ${connection.status}`}
+                  {` · ${agenda.length} RDV synchronisé${agenda.length > 1 ? 's' : ''}`}
                   {connection.last_synced_at &&
                     ` · dernière synchro ${format(new Date(connection.last_synced_at), 'd MMM HH:mm', { locale: fr })}`}
                 </div>
-                <Button variant="outline" size="sm" onClick={syncCalendar} disabled={syncing}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} /> Synchroniser
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Select value={syncDays} onValueChange={setSyncDays}>
+                    <SelectTrigger className="h-8 w-[170px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SYNC_WINDOWS.map((w) => (
+                        <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={syncCalendar} disabled={syncing}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} /> Synchroniser
+                  </Button>
+                </div>
               </>
             ) : (
               <>
@@ -402,6 +438,9 @@ const Frais = () => {
               À traiter{pending.length > 0 && ` (${pending.length})`}
             </TabsTrigger>
             <TabsTrigger value="done">Traités</TabsTrigger>
+            <TabsTrigger value="agenda">
+              Agenda{agenda.length > 0 && ` (${agenda.length})`}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="pending" className="space-y-3 mt-4">
             {loading ? (
@@ -416,6 +455,35 @@ const Frais = () => {
             {done.length === 0 ? (
               <div className="text-muted-foreground text-sm py-8 text-center">Aucun frais traité pour l'instant.</div>
             ) : done.map(renderExpense)}
+          </TabsContent>
+          <TabsContent value="agenda" className="mt-4">
+            {agenda.length === 0 ? (
+              <div className="text-muted-foreground text-sm py-8 text-center">
+                Aucun RDV synchronisé. Connectez votre agenda ou lancez une synchronisation.
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="pt-2 pb-2 divide-y">
+                  {agenda.map((ev) => (
+                    <div key={ev.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{ev.title ?? '(sans titre)'}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
+                          {'–'}{format(new Date(ev.ends_at), 'HH:mm', { locale: fr })}
+                          {ev.location_raw && ` · ${ev.location_raw}`}
+                        </div>
+                      </div>
+                      {ev.is_external && <Badge variant="outline" className="shrink-0">Externe</Badge>}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Seuls les événements avec invités ou lieu sont synchronisés — ils servent au
+              rattachement de vos frais, personne d'autre n'y a accès.
+            </p>
           </TabsContent>
         </Tabs>
       </div>

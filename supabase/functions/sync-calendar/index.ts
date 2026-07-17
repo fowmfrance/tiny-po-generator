@@ -1,7 +1,10 @@
 // sync-calendar — sync incrémentale d'une connexion Google Calendar (§4.1).
 // Appelée : manuellement (front), par le webhook push, ou par cron.
 // verify_jwt = false : accepte soit un JWT user, soit un secret cron (CRON_SECRET).
-// Corps : { connection_id }.
+// Corps : { connection_id, days_back? } — days_back (défaut 30, borné 7–365) ne
+// s'applique qu'aux full sync ; s'il est passé explicitement, on force un full
+// resync pour honorer la nouvelle fenêtre (déduplication garantie par
+// UNIQUE(connection_id, external_event_id) + upsert).
 import {
   corsHeaders, json, adminClient, getFreshAccessToken, listEvents, computeIsExternal,
 } from '../_shared/google.ts';
@@ -15,7 +18,7 @@ function keep(ev: any): boolean {
   return hasAttendees || hasLocation;
 }
 
-async function syncConnection(sb: any, connectionId: string) {
+async function syncConnection(sb: any, connectionId: string, daysBack?: number) {
   const { data: conn, error } = await sb
     .from('integration_connections').select('*').eq('id', connectionId).single();
   if (error || !conn) throw new Error('connexion introuvable');
@@ -26,11 +29,13 @@ async function syncConnection(sb: any, connectionId: string) {
   const { data: profile } = await sb.from('profiles').select('email').eq('id', conn.user_id).maybeSingle();
   const tenantDomain = profile?.email?.split('@')[1] ?? null;
 
-  const timeMin = new Date(Date.now() - 90 * 864e5).toISOString(); // −90 j
-  const timeMax = new Date(Date.now() + 7 * 864e5).toISOString();  // +7 j
+  const days = Math.min(365, Math.max(7, daysBack ?? 30)); // défaut : 30 derniers jours
+  const timeMin = new Date(Date.now() - days * 864e5).toISOString();
+  const timeMax = new Date(Date.now() + 7 * 864e5).toISOString();
 
   let pageToken: string | undefined;
-  let syncToken = conn.sync_token as string | null;
+  // Fenêtre demandée explicitement → full resync (le syncToken ignorerait timeMin).
+  let syncToken = daysBack != null ? null : (conn.sync_token as string | null);
   let nextSyncToken: string | undefined;
   let upserts = 0;
 
@@ -93,10 +98,11 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader && cronHeader !== CRON_SECRET) return json({ error: 'Unauthorized' }, 401);
 
-    const { connection_id } = await req.json();
+    const { connection_id, days_back } = await req.json();
     if (!connection_id) return json({ error: 'connection_id requis' }, 400);
 
-    const count = await syncConnection(adminClient(), connection_id);
+    const count = await syncConnection(adminClient(), connection_id,
+      days_back != null ? Number(days_back) : undefined);
     return json({ ok: true, upserts: count });
   } catch (e) {
     console.error('sync-calendar:', e);
