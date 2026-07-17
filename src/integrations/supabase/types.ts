@@ -2624,6 +2624,33 @@ export type Database = {
         }
         Relationships: []
       }
+      te_agenda_rules: {
+        Row: {
+          created_at: string
+          id: string
+          kanban_bucket: string
+          organization_id: string
+          recurring_event_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kanban_bucket: string
+          organization_id: string
+          recurring_event_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kanban_bucket?: string
+          organization_id?: string
+          recurring_event_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       te_calendar_events: {
         Row: {
           attendees: Json
@@ -2636,12 +2663,15 @@ export type Database = {
           ical_uid: string | null
           id: string
           is_external: boolean
+          kanban_bucket: string | null
           location_lat: number | null
           location_lng: number | null
           location_raw: string | null
           organization_id: string
           organizer_email: string | null
+          place_id: string | null
           raw: Json | null
+          recurring_event_id: string | null
           starts_at: string
           title: string | null
           updated_at: string
@@ -2658,12 +2688,15 @@ export type Database = {
           ical_uid?: string | null
           id?: string
           is_external?: boolean
+          kanban_bucket?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_raw?: string | null
           organization_id: string
           organizer_email?: string | null
+          place_id?: string | null
           raw?: Json | null
+          recurring_event_id?: string | null
           starts_at: string
           title?: string | null
           updated_at?: string
@@ -2680,12 +2713,15 @@ export type Database = {
           ical_uid?: string | null
           id?: string
           is_external?: boolean
+          kanban_bucket?: string | null
           location_lat?: number | null
           location_lng?: number | null
           location_raw?: string | null
           organization_id?: string
           organizer_email?: string | null
+          place_id?: string | null
           raw?: Json | null
+          recurring_event_id?: string | null
           starts_at?: string
           title?: string | null
           updated_at?: string
@@ -2697,6 +2733,106 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "te_calendar_events_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "te_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      te_contacts: {
+        Row: {
+          company_domain: string | null
+          created_at: string
+          crm_ref: string | null
+          display_name: string | null
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          organization_id: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_domain?: string | null
+          created_at?: string
+          crm_ref?: string | null
+          display_name?: string | null
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          organization_id: string
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_domain?: string | null
+          created_at?: string
+          crm_ref?: string | null
+          display_name?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          organization_id?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      te_event_attendees: {
+        Row: {
+          contact_id: string
+          created_at: string
+          event_id: string
+          id: string
+          is_external: boolean
+          organization_id: string
+          response_status: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          is_external?: boolean
+          organization_id: string
+          response_status?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          is_external?: boolean
+          organization_id?: string
+          response_status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "te_event_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "te_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "te_event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "te_calendar_events"
             referencedColumns: ["id"]
           },
         ]
@@ -2898,6 +3034,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      te_places: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          lat: number | null
+          lng: number | null
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          lat?: number | null
+          lng?: number | null
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          lat?: number | null
+          lng?: number | null
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       te_receipts: {
         Row: {
