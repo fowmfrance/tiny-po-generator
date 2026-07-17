@@ -33,6 +33,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
   const timeMin = new Date(Date.now() - days * 864e5).toISOString();
   const timeMax = new Date(Date.now() + 7 * 864e5).toISOString();
 
+  let contacts = 0;
   let pageToken: string | undefined;
   // Fenêtre demandée explicitement → full resync (le syncToken ignorerait timeMin).
   let syncToken = daysBack != null ? null : (conn.sync_token as string | null);
@@ -65,7 +66,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
         placeId = place?.id ?? null;
       }
 
-      const { data: row } = await sb.from('te_calendar_events').upsert({
+      const { data: row, error: evErr } = await sb.from('te_calendar_events').upsert({
         user_id: conn.user_id,
         connection_id: connectionId,
         external_event_id: ev.id,
@@ -85,6 +86,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
         // organization_id rempli par trigger.
         // ⚠️ kanban_bucket JAMAIS écrit ici : le classement utilisateur survit aux resynchros.
       }, { onConflict: 'connection_id,external_event_id' }).select('id').single();
+      if (evErr) console.error('upsert te_calendar_events:', evErr.message);
       upserts++;
 
       // Participants → sous-objets te_contacts + lien te_event_attendees
@@ -97,7 +99,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
           const parts = (dn ?? '').split(' ').filter(Boolean);
           const dom = email.split('@')[1] ?? null;
           const external = !!(tenantDomain && dom && dom !== tenantDomain.toLowerCase());
-          const { data: contact } = await sb.from('te_contacts').upsert({
+          const { data: contact, error: cErr } = await sb.from('te_contacts').upsert({
             user_id: conn.user_id,
             email,
             display_name: dn,
@@ -105,14 +107,17 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
             last_name: parts.length > 1 ? parts.slice(1).join(' ') : null,
             company_domain: external ? dom : null,
           }, { onConflict: 'user_id,email' }).select('id').single();
+          if (cErr) console.error('upsert te_contacts:', cErr.message);
           if (contact?.id) {
-            await sb.from('te_event_attendees').upsert({
+            contacts++;
+            const { error: aErr } = await sb.from('te_event_attendees').upsert({
               user_id: conn.user_id,
               event_id: row.id,
               contact_id: contact.id,
               response_status: a.responseStatus ?? null,
               is_external: external,
             }, { onConflict: 'event_id,contact_id' });
+            if (aErr) console.error('upsert te_event_attendees:', aErr.message);
           }
         }
       }
@@ -129,7 +134,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
     last_synced_at: new Date().toISOString(),
   }).eq('id', connectionId);
 
-  return upserts;
+  return { upserts, contacts };
 }
 
 Deno.serve(async (req) => {
@@ -144,9 +149,9 @@ Deno.serve(async (req) => {
     const { connection_id, days_back } = await req.json();
     if (!connection_id) return json({ error: 'connection_id requis' }, 400);
 
-    const count = await syncConnection(adminClient(), connection_id,
+    const res = await syncConnection(adminClient(), connection_id,
       days_back != null ? Number(days_back) : undefined);
-    return json({ ok: true, upserts: count });
+    return json({ ok: true, ...res });
   } catch (e) {
     console.error('sync-calendar:', e);
     return json({ error: e instanceof Error ? e.message : 'Erreur serveur' }, 500);
