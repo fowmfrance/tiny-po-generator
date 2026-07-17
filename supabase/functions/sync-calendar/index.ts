@@ -11,11 +11,18 @@ import {
 
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
-// Filtre ingestion (§4.1) : on ignore les événements sans invités ET sans lieu.
+// Filtre ingestion (§4.1) : on ignore les événements sans invités ET sans lieu…
+// SAUF si le titre évoque un repas (déj, resto, dîner, café…) : un « Déj » noté
+// sans invité ni adresse est précisément le RDV qui génère une note de frais.
+const MEAL_TITLE = new RegExp(
+  "(^|[^\\p{L}])(d[ée]j|d[ée]jeuner|lunch|resto|restaurant|d[îi]ner|dinner|caf[ée]|coffee|petit[- ]d[ée]j\\w*|ap[ée]ro|brunch)([^\\p{L}]|$)",
+  'iu',
+);
 function keep(ev: any): boolean {
   const hasAttendees = Array.isArray(ev.attendees) && ev.attendees.length > 0;
   const hasLocation = !!ev.location;
-  return hasAttendees || hasLocation;
+  const mealTitle = MEAL_TITLE.test(ev.summary ?? '');
+  return hasAttendees || hasLocation || mealTitle;
 }
 
 async function syncConnection(sb: any, connectionId: string, daysBack?: number) {
