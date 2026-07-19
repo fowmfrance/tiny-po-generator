@@ -1,4 +1,4 @@
-// sync-calendar — sync incrémentale d'une connexion Google Calendar (§4.1).
+// sync-calendar — sync incrémentale d'une connexion Google Calendar (§4.1). (build 2c8e7ca+resync)
 // Appelée : manuellement (front), par le webhook push, ou par cron.
 // verify_jwt = false : accepte soit un JWT user, soit un secret cron (CRON_SECRET).
 // Corps : { connection_id, days_back? } — days_back (défaut 30, borné 7–365) ne
