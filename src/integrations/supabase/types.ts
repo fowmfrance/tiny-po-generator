@@ -2876,6 +2876,57 @@ export type Database = {
           },
         ]
       }
+      te_expense_guests: {
+        Row: {
+          company_name: string | null
+          contact_id: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          expense_id: string
+          id: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          contact_id?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          expense_id: string
+          id?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          contact_id?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          expense_id?: string
+          id?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "te_expense_guests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "te_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "te_expense_guests_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "te_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       te_expense_matches: {
         Row: {
           calendar_event_id: string | null
@@ -2948,6 +2999,7 @@ export type Database = {
       te_expenses: {
         Row: {
           amount: number
+          amount_ht: number | null
           booked_at: string | null
           created_at: string
           currency: string
@@ -2968,16 +3020,21 @@ export type Database = {
           source: string
           source_connection_id: string | null
           status: string
+          supplier_address: string | null
           supplier_id: string | null
+          supplier_siret: string | null
           te_category: string | null
           transaction_id: string | null
           updated_at: string
           user_id: string
           vat_amount: number | null
+          vat_breakdown: Json | null
           vat_rate: number | null
+          verified_at: string | null
         }
         Insert: {
           amount: number
+          amount_ht?: number | null
           booked_at?: string | null
           created_at?: string
           currency?: string
@@ -2998,16 +3055,21 @@ export type Database = {
           source: string
           source_connection_id?: string | null
           status?: string
+          supplier_address?: string | null
           supplier_id?: string | null
+          supplier_siret?: string | null
           te_category?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id: string
           vat_amount?: number | null
+          vat_breakdown?: Json | null
           vat_rate?: number | null
+          verified_at?: string | null
         }
         Update: {
           amount?: number
+          amount_ht?: number | null
           booked_at?: string | null
           created_at?: string
           currency?: string
@@ -3028,13 +3090,17 @@ export type Database = {
           source?: string
           source_connection_id?: string | null
           status?: string
+          supplier_address?: string | null
           supplier_id?: string | null
+          supplier_siret?: string | null
           te_category?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id?: string
           vat_amount?: number | null
+          vat_breakdown?: Json | null
           vat_rate?: number | null
+          verified_at?: string | null
         }
         Relationships: [
           {
@@ -3108,12 +3174,16 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          ocr_address: string | null
           ocr_amount: number | null
           ocr_date: string | null
           ocr_merchant: string | null
           ocr_raw: Json | null
+          ocr_siret: string | null
           ocr_status: string
+          ocr_total_ht: number | null
           ocr_vat: number | null
+          ocr_vat_breakdown: Json | null
           organization_id: string
           storage_path: string
           user_id: string
@@ -3121,12 +3191,16 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          ocr_address?: string | null
           ocr_amount?: number | null
           ocr_date?: string | null
           ocr_merchant?: string | null
           ocr_raw?: Json | null
+          ocr_siret?: string | null
           ocr_status?: string
+          ocr_total_ht?: number | null
           ocr_vat?: number | null
+          ocr_vat_breakdown?: Json | null
           organization_id: string
           storage_path: string
           user_id: string
@@ -3134,12 +3208,16 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          ocr_address?: string | null
           ocr_amount?: number | null
           ocr_date?: string | null
           ocr_merchant?: string | null
           ocr_raw?: Json | null
+          ocr_siret?: string | null
           ocr_status?: string
+          ocr_total_ht?: number | null
           ocr_vat?: number | null
+          ocr_vat_breakdown?: Json | null
           organization_id?: string
           storage_path?: string
           user_id?: string
