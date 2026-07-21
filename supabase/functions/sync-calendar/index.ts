@@ -6,7 +6,7 @@
 // resync pour honorer la nouvelle fenêtre (déduplication garantie par
 // UNIQUE(connection_id, external_event_id) + upsert).
 import {
-  corsHeaders, json, adminClient, getFreshAccessToken, listEvents, computeIsExternal,
+  corsHeaders, json, adminClient, getFreshAccessToken, listEvents, computeIsExternal, background,
 } from '../_shared/google.ts';
 
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
@@ -25,7 +25,8 @@ function keep(ev: any): boolean {
   return hasAttendees || hasLocation || mealTitle;
 }
 
-async function syncConnection(sb: any, connectionId: string, daysBack?: number) {
+async function syncConnection(sb: any, connectionId: string, daysBack?: number, debug = false) {
+  const debugInfo: any[] = [];
   const { data: conn, error } = await sb
     .from('integration_connections').select('*').eq('id', connectionId).single();
   if (error || !conn) throw new Error('connexion introuvable');
@@ -100,11 +101,19 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
       // (clé de résolution CRM = email ; salles/ressources et soi-même exclus).
       console.log('evt', ev.id, 'row?', !!row?.id,
         'att:', Array.isArray(ev.attendees) ? ev.attendees.length : typeof ev.attendees);
+      const dbgEntry: any = debug ? {
+        evt: ev.id, title: ev.summary ?? null, rowId: row?.id ?? null,
+        evErr: evErr?.message ?? null,
+        att: Array.isArray(ev.attendees) ? ev.attendees.length : String(typeof ev.attendees),
+        skips: [], cErrs: [],
+      } : null;
+      if (dbgEntry && debugInfo.length < 8) debugInfo.push(dbgEntry);
       if (row?.id && Array.isArray(ev.attendees)) {
         for (const a of ev.attendees) {
           const email = (a?.email ?? '').toLowerCase();
           if (!email || a?.self || a?.resource) {
             console.log('skip attendee', JSON.stringify({ email, self: a?.self, resource: a?.resource }));
+            dbgEntry?.skips.push({ email, self: a?.self ?? null, resource: a?.resource ?? null });
             continue;
           }
           const dn: string | null = a.displayName ?? null;
@@ -119,7 +128,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
             last_name: parts.length > 1 ? parts.slice(1).join(' ') : null,
             company_domain: external ? dom : null,
           }, { onConflict: 'user_id,email' }).select('id').single();
-          if (cErr) console.error('upsert te_contacts:', cErr.message);
+          if (cErr) { console.error('upsert te_contacts:', cErr.message); dbgEntry?.cErrs.push(cErr.message); }
           if (contact?.id) {
             contacts++;
             const { error: aErr } = await sb.from('te_event_attendees').upsert({
@@ -146,7 +155,7 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
     last_synced_at: new Date().toISOString(),
   }).eq('id', connectionId);
 
-  return { upserts, contacts };
+  return debug ? { upserts, contacts, debugInfo } : { upserts, contacts };
 }
 
 Deno.serve(async (req) => {
@@ -158,11 +167,23 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader && cronHeader !== CRON_SECRET) return json({ error: 'Unauthorized' }, 401);
 
-    const { connection_id, days_back } = await req.json();
+    const { connection_id, days_back, debug } = await req.json();
     if (!connection_id) return json({ error: 'connection_id requis' }, 400);
 
-    const res = await syncConnection(adminClient(), connection_id,
-      days_back != null ? Number(days_back) : undefined);
+    const sb = adminClient();
+    const res = await syncConnection(sb, connection_id,
+      days_back != null ? Number(days_back) : undefined, debug === true);
+
+    // Enrichissement des contacts en tâche de fond (carnet Google puis CRM).
+    const { data: conn } = await sb.from('integration_connections')
+      .select('user_id').eq('id', connection_id).maybeSingle();
+    if (conn?.user_id) {
+      background(fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/enrich-contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-cron-secret': CRON_SECRET },
+        body: JSON.stringify({ user_id: conn.user_id }),
+      }).catch((e) => console.error('trigger enrich-contacts:', e)));
+    }
     return json({ ok: true, ...res });
   } catch (e) {
     console.error('sync-calendar:', e);

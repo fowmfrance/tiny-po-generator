@@ -24,8 +24,14 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
-// Scope minimal (lecture seule des événements). cf. §4.1 du spec.
-export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+// Scopes lecture seule : événements agenda + carnet de contacts (People API).
+// ⚠️ Ajouter les scopes contacts sur l'écran de consentement GCP, puis RECONNECTER
+// l'agenda (prompt=consent) pour que le token couvre les nouveaux scopes.
+export const GOOGLE_SCOPE = [
+  'https://www.googleapis.com/auth/calendar.events.readonly',
+  'https://www.googleapis.com/auth/contacts.readonly',
+  'https://www.googleapis.com/auth/contacts.other.readonly',
+].join(' ');
 
 export const env = (k: string) => Deno.env.get(k) ?? '';
 

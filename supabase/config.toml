@@ -45,3 +45,6 @@ verify_jwt = false   # appelé après upload (JWT user) ou trigger storage
 
 [functions.calendar-watch-renew]
 verify_jwt = false   # appelé par pg_cron (x-cron-secret) uniquement
+
+[functions.enrich-contacts]
+verify_jwt = false   # appelé par sync-calendar (x-cron-secret) ou JWT user

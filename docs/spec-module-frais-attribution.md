@@ -206,12 +206,22 @@ là) ; réconciliation ticket↔transaction ; capture proactive (pg_cron 9 h) ; 
 HubSpot — c'est le CRM testé chez nous), jointure par email participants, vue
 matérialisée `attribution_by_account`, UI Attribution, fallback compte dérivé du domaine.
 
-Pipeline cible : RDV agenda → **objet contact lié** (`te_event_contacts` : prénom,
-nom, email extraits de `attendees`) → résolution par email dans le CRM (Sellsy API ;
-LinkedIn écarté : API trop fermée) → entreprise → **démarche** (prospection / suivi
-de projet / autre) → le frais rattaché au RDV remonte à l'entreprise → **CAC par
-entreprise**. Les contacts non résolus restent locaux (« contact léger ») et
-pourront être synchronisés vers le CRM.
+Pipeline cible : RDV agenda → **objet contact lié** (`te_contacts` + lien
+`te_event_attendees` : prénom, nom, email extraits de `attendees`) → **lookup en
+2 étages par email** (edge function `enrich-contacts`, décision 2026-07-19) :
+1. **carnet de contacts du compte email** — Google People API
+   (`people:searchContacts` = contacts enregistrés, `otherContacts:search` =
+   contacts d'interaction ; scopes `contacts.readonly` + `contacts.other.readonly`,
+   reconnexion agenda requise) ; Outlook/Microsoft Graph à venir derrière la même
+   interface ;
+2. **CRM tiers** — connecteur générique `lookupCrm(email)`, premier provider
+   **Sellsy** (OAuth2 client_credentials, secrets `SELLSY_CLIENT_ID/SECRET`,
+   `POST /v2/contacts/search` filtré par email) ; LinkedIn écarté (API trop fermée).
+
+→ entreprise → **démarche** (prospection / suivi de projet / autre) → le frais
+rattaché au RDV remonte à l'entreprise → **CAC par entreprise**. Les contacts non
+résolus restent locaux (`enrich_source='none'`, retentables) et pourront être
+synchronisés vers le CRM.
 
 Référentiel TVA/catégories : cf. [referentiel-tva-frais.md](referentiel-tva-frais.md)
 (veille open source 2026-07-17 — Dolibarr pour les codes catégories + PCG, CSV
