@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     // TODO : récupérer l'email du calendar (userinfo) pour external_account_id.
     const { data: conn, error } = await sb.from('integration_connections').upsert({
-      user_id: state,
+      user_id: userId,
       provider: 'google_calendar',
       external_account_id: null,
       access_token_ref: accessRef,
