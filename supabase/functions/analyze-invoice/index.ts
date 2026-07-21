@@ -246,10 +246,32 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const token = formData.get('token') as string | null;
     const purchaseOrderId = formData.get('purchase_order_id') as string | null;
+
+    const sbUrl = Deno.env.get('SUPABASE_URL')!;
+    const sbSrv = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const sbAnon = Deno.env.get('SUPABASE_ANON_KEY')!;
+    let authorized = false;
+    if (authHeader?.startsWith('Bearer ')) {
+      const client = createClient(sbUrl, sbAnon, { global: { headers: { Authorization: authHeader } } });
+      const { data: { user } } = await client.auth.getUser();
+      if (user) authorized = true;
+    }
+    if (!authorized && token) {
+      const admin = createClient(sbUrl, sbSrv);
+      const { data: tok } = await admin.from('supplier_access_tokens').select('id').eq('token', token).eq('is_active', true).maybeSingle();
+      if (tok) authorized = true;
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'Fichier requis' }), {
