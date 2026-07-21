@@ -34,11 +34,26 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Get supplier info (including kyc_level_id)
+    // Get caller profile with organization
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', caller.id)
+      .single()
+
+    if (!callerProfile?.organization_id) {
+      return new Response(JSON.stringify({ error: 'Organisation manquante' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Get supplier info (including kyc_level_id) — must belong to caller org
     const { data: supplier, error: supplierError } = await supabase
       .from('suppliers')
-      .select('id, name, email, kyc_level_id')
+      .select('id, name, email, kyc_level_id, organization_id')
       .eq('id', supplier_id)
+      .eq('organization_id', callerProfile.organization_id)
       .single()
 
     if (supplierError || !supplier) {
