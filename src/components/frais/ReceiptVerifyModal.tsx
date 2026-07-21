@@ -17,10 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Building2, Check, CheckCircle2,
-  Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Wand2, X,
+  AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarCheck2, Check, CheckCircle2,
+  Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORY_META } from './categoryMeta';
@@ -73,6 +75,16 @@ interface GuestSuggestion {
   name: string;
   email: string | null;
   company: string;
+}
+
+// Candidat RDV proposé depuis la date/heure du justificatif (écran 1).
+interface EventChoice {
+  id: string;
+  title: string | null;
+  starts_at: string;
+  ends_at: string;
+  attendees: unknown[] | null;
+  location_raw: string | null;
 }
 
 // Saisie FR tolérée (« 85,50 ») ; NaN si vide/invalide.
@@ -134,6 +146,15 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [lines, setLines] = useState<VatLineDraft[]>([]);
   const [sireneOpen, setSireneOpen] = useState(false);
 
+  // --- RDV correspondant (lookup agenda depuis la date/heure du justificatif) ---
+  // 'none' = choix explicite « aucun RDV » ; null = pas encore choisi.
+  const [eventChoices, setEventChoices] = useState<EventChoice[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string | 'none' | null>(null);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  // true dès que l'utilisateur a cliqué lui-même (on ne re-présélectionne plus).
+  const [eventChosenByUser, setEventChosenByUser] = useState(false);
+  const [existingMatchEventId, setExistingMatchEventId] = useState<string | null>(null);
+
   // --- Écran 2 : participants ---
   const [guests, setGuests] = useState<Guest[]>([]);
   const [query, setQuery] = useState('');
@@ -166,8 +187,21 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setResults([]);
     setGuests([]);
     setEventCtx(null);
+    setEventChoices([]);
+    setSelectedEventId(null);
+    setEventChosenByUser(false);
+    setExistingMatchEventId(null);
     // Fallback SIRENE : SIRET lu mais adresse manquante → lookup proposé d'office.
     setSireneOpen(!!prefill.siret && !prefill.address);
+    // Match existant (suggestion moteur ou confirmation passée) → présélection.
+    db.from('te_expense_matches')
+      .select('calendar_event_id, status')
+      .eq('expense_id', prefill.expenseId)
+      .neq('status', 'rejected')
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.calendar_event_id) setExistingMatchEventId(data.calendar_event_id);
+      });
     db.from('te_expense_guests')
       .select('contact_id, display_name, email, company_name')
       .eq('expense_id', prefill.expenseId)
@@ -202,6 +236,49 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     return () => { cancelled = true; };
   }, [open, prefill?.receiptId]);
 
+  // Lookup agenda depuis les indices du justificatif (date + heure) — même
+  // fenêtre que le moteur match-expense : chevauchement [T−5h, T+1h30], ou la
+  // journée entière si l'heure manque. Réactif : corriger la date/heure
+  // recharge les candidats. Debounce 300 ms.
+  useEffect(() => {
+    if (!open || !prefill || !date) { setEventChoices([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setEventsLoading(true);
+      const hasTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+      const T = new Date(`${date}T${hasTime ? time : '12:00'}:00`).getTime();
+      const from = hasTime ? T - 5 * 3600e3 : T - 14 * 3600e3;
+      const to = hasTime ? T + 1.5 * 3600e3 : T + 12 * 3600e3;
+      const { data } = await db.from('te_calendar_events')
+        .select('id, title, starts_at, ends_at, attendees, location_raw')
+        .eq('user_id', userId)
+        .gte('ends_at', new Date(from).toISOString())
+        .lte('starts_at', new Date(to).toISOString())
+        .order('starts_at')
+        .limit(8);
+      if (cancelled) return;
+      const sorted = ((data ?? []) as EventChoice[])
+        .sort((a, b) =>
+          Math.abs(new Date(a.starts_at).getTime() - T) - Math.abs(new Date(b.starts_at).getTime() - T))
+        .slice(0, 4);
+      setEventChoices(sorted);
+      setEventsLoading(false);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [open, prefill, date, time, userId]);
+
+  // Présélection : le match existant s'il est dans la liste, sinon le RDV le
+  // plus proche — tant que l'utilisateur n'a pas choisi lui-même.
+  useEffect(() => {
+    if (eventChosenByUser) return;
+    if (eventChoices.length === 0) { setSelectedEventId(null); return; }
+    if (existingMatchEventId && eventChoices.some((e) => e.id === existingMatchEventId)) {
+      setSelectedEventId(existingMatchEventId);
+    } else {
+      setSelectedEventId(eventChoices[0].id);
+    }
+  }, [eventChoices, existingMatchEventId, eventChosenByUser]);
+
   // À l'entrée sur l'écran 2 : RDV rattaché (pour les suggestions) + carnet.
   // Chargé à ce moment-là (pas à l'ouverture) : le matching post-OCR tourne en
   // arrière-plan et a ainsi quelques secondes de plus pour aboutir.
@@ -209,23 +286,29 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     if (!open || step !== 2 || !prefill) return;
     let cancelled = false;
     (async () => {
+      // Le RDV choisi à l'écran 1 prime ; à défaut, le match existant.
+      const chosen = selectedEventId && selectedEventId !== 'none'
+        ? eventChoices.find((e) => e.id === selectedEventId) ?? null
+        : null;
       const [{ data: m }, { data: cs }] = await Promise.all([
-        db.from('te_expense_matches')
-          .select('status, te_calendar_events(title, attendees)')
-          .eq('expense_id', prefill.expenseId)
-          .maybeSingle(),
+        chosen
+          ? Promise.resolve({ data: null })
+          : db.from('te_expense_matches')
+            .select('status, te_calendar_events(title, attendees)')
+            .eq('expense_id', prefill.expenseId)
+            .maybeSingle(),
         db.from('te_contacts')
           .select('id, email, first_name, last_name, display_name, company_name, company_domain')
           .eq('user_id', userId)
           .limit(1000),
       ]);
       if (cancelled) return;
-      const ev = m?.te_calendar_events;
+      const ev = chosen ?? (m as any)?.te_calendar_events;
       setEventCtx(ev ? { title: ev.title, attendees: Array.isArray(ev.attendees) ? ev.attendees : [] } : null);
       setContactPool(cs ?? []);
     })();
     return () => { cancelled = true; };
-  }, [open, step, prefill, userId]);
+  }, [open, step, prefill, userId, selectedEventId, eventChoices]);
 
   // Suggestions de participants : invités du RDV rattaché + prénoms du titre
   // (« Déj Régis et Lolo » → fuzzy match sur le carnet te_contacts).
@@ -439,6 +522,14 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
           tva: has(l.tva) ? num(l.tva) : null,
         }));
 
+      // Rattachement au RDV choisi à l'écran 1 : confirmation DIRECTE (l'utilisateur
+      // a vu la liste et tranché) ; « aucun » → no_context ; pas de choix possible
+      // (pas de candidats) → on laisse le moteur retenter en arrière-plan.
+      const linkedEvent = selectedEventId && selectedEventId !== 'none' ? selectedEventId : null;
+      const expenseStatus = linkedEvent ? 'confirmed'
+        : selectedEventId === 'none' ? 'no_context'
+        : undefined;
+
       const { error } = await db.from('te_expenses').update({
         merchant_raw: merchant.trim() || null,
         merchant_clean: properMerchant || null,
@@ -451,10 +542,29 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         vat_amount: has(totalTVA) ? num(totalTVA) : null,
         vat_breakdown: parsedLines.length ? parsedLines : null,
         ...(occurredAt ? { occurred_at: occurredAt.toISOString() } : {}),
+        ...(expenseStatus ? { status: expenseStatus } : {}),
         te_category: category || null,
         verified_at: new Date().toISOString(),
       }).eq('id', prefill.expenseId);
       if (error) throw error;
+
+      if (linkedEvent) {
+        const { error: mErr } = await db.from('te_expense_matches').upsert({
+          expense_id: prefill.expenseId,
+          calendar_event_id: linkedEvent,
+          confidence: 100,
+          signals: { manual: 1 },
+          status: 'confirmed',
+          decided_by: userId,
+          decided_at: new Date().toISOString(),
+          user_id: userId,
+        }, { onConflict: 'expense_id' });
+        if (mErr) throw mErr;
+      } else if (selectedEventId === 'none' && existingMatchEventId) {
+        await db.from('te_expense_matches')
+          .update({ status: 'rejected', decided_by: userId, decided_at: new Date().toISOString() })
+          .eq('expense_id', prefill.expenseId);
+      }
 
       // Invités : remplacement idempotent (la modale peut être rouverte).
       const { error: delErr } = await db.from('te_expense_guests')
@@ -484,9 +594,12 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
               .eq('id', g.contactId)),
       );
 
-      // La date/heure a pu changer → on relance le matching RDV.
-      supabase.functions.invoke('match-expense', { body: { expense_id: prefill.expenseId } })
-        .catch(() => { /* matching best-effort */ });
+      // Pas de choix explicite possible (aucun candidat affiché) : le moteur
+      // retente en arrière-plan — sinon le choix de l'écran 1 fait foi.
+      if (!linkedEvent && selectedEventId !== 'none') {
+        supabase.functions.invoke('match-expense', { body: { expense_id: prefill.expenseId } })
+          .catch(() => { /* matching best-effort */ });
+      }
 
       toast({
         title: 'Frais vérifié',
@@ -568,6 +681,67 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             </Select>
           </div>
         </div>
+
+        {/* RDV correspondant — lookup agenda depuis la date/heure du ticket */}
+        {date && (
+          <div className="rounded-lg border p-3 space-y-2">
+            <div className="text-sm font-medium flex items-center gap-1.5">
+              <CalendarCheck2 className="h-4 w-4 text-muted-foreground" /> RDV correspondant
+              {eventsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </div>
+            {eventChoices.length === 0 ? (
+              !eventsLoading && (
+                <div className="text-xs text-muted-foreground">
+                  Aucun RDV dans l'agenda autour de ce créneau — vérifiez la date/heure ou synchronisez l'agenda.
+                </div>
+              )
+            ) : (
+              <div className="space-y-1.5">
+                {eventChoices.map((ev) => {
+                  const n = Array.isArray(ev.attendees) ? ev.attendees.length : 0;
+                  const sel = selectedEventId === ev.id;
+                  return (
+                    <label
+                      key={ev.id}
+                      className={`flex items-center gap-2.5 rounded-md border p-2 cursor-pointer text-sm ${sel ? 'border-brand bg-brand/5' : 'hover:bg-muted/40'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="rv-event"
+                        className="accent-brand shrink-0"
+                        checked={sel}
+                        onChange={() => { setSelectedEventId(ev.id); setEventChosenByUser(true); }}
+                      />
+                      <span className="min-w-0 truncate">
+                        <span className="font-medium">{ev.title ?? '(sans titre)'}</span>
+                        <span className="text-muted-foreground">
+                          {' '}· {format(new Date(ev.starts_at), 'EEE d MMM · HH:mm', { locale: fr })}
+                        </span>
+                      </span>
+                      {n > 0 && (
+                        <span className="ml-auto shrink-0 text-xs text-muted-foreground flex items-center gap-1">
+                          <Users className="h-3 w-3" /> {n}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+                <label
+                  className={`flex items-center gap-2.5 rounded-md border p-2 cursor-pointer text-sm text-muted-foreground ${selectedEventId === 'none' ? 'border-brand bg-brand/5' : 'hover:bg-muted/40'}`}
+                >
+                  <input
+                    type="radio"
+                    name="rv-event"
+                    className="shrink-0"
+                    checked={selectedEventId === 'none'}
+                    onChange={() => { setSelectedEventId('none'); setEventChosenByUser(true); }}
+                  />
+                  Aucun de ces RDV
+                </label>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Ventilation TVA par taux */}
         <div className="rounded-lg border p-3 space-y-2">
