@@ -58,14 +58,30 @@ async function peopleSearch(token: string, endpoint: 'people:searchContacts' | '
 // d'interaction) — pour le lookup « Qui participe » de la modale de vérification.
 // Un invité peut être dans le carnet Gmail sans jamais avoir été dans un RDV
 // synchronisé (donc absent de te_contacts).
+// Un 403 People API a DEUX causes très différentes, à ne pas confondre :
+//   - ACCESS_TOKEN_SCOPE_INSUFFICIENT → le token n'a pas les scopes contacts
+//     (l'agenda a été connecté avant leur ajout) → RECONNECTER l'agenda.
+//   - SERVICE_DISABLED / accessNotConfigured → l'API People n'est pas activée
+//     sur le projet Google Cloud → l'activer dans la console GCP.
+type PeopleBlock = 'scope' | 'api_disabled' | 'other' | null;
+
+function classify403(body: string): PeopleBlock {
+  const b = body.toLowerCase();
+  if (b.includes('service_disabled') || b.includes('accessnotconfigured')
+    || b.includes('has not been used in project') || b.includes('is disabled')) return 'api_disabled';
+  if (b.includes('scope') || b.includes('insufficient')) return 'scope';
+  return 'other';
+}
+
 async function searchPeople(token: string, q: string):
-  Promise<{ results: { name: string; email: string | null; company: string | null; source: string }[]; noScope: boolean }> {
+  Promise<{ results: { name: string; email: string | null; company: string | null; source: string }[]; blocked: PeopleBlock; detail: string | null }> {
   const endpoints: { ep: string; mask: string; source: string }[] = [
     { ep: 'people:searchContacts', mask: 'names,emailAddresses,organizations', source: 'google_contacts' },
     { ep: 'otherContacts:search', mask: 'names,emailAddresses', source: 'other_contacts' },
   ];
   const results: { name: string; email: string | null; company: string | null; source: string }[] = [];
-  let noScope = false;
+  let blocked: PeopleBlock = null;
+  let detail: string | null = null;
   for (const { ep, mask, source } of endpoints) {
     const base = `${PEOPLE_API}/${ep}?readMask=${mask}&pageSize=6`;
     // Warmup obligatoire (cache Google), cf. peopleSearch.
@@ -73,7 +89,13 @@ async function searchPeople(token: string, q: string):
     const res = await fetch(`${base}&query=${encodeURIComponent(q)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.status === 403) { noScope = true; continue; }
+    if (res.status === 403 || res.status === 401) {
+      const body = await res.text();
+      console.error(`${ep} search ${res.status}:`, body);
+      blocked = res.status === 401 ? 'scope' : classify403(body);
+      detail = body.slice(0, 300);
+      continue;
+    }
     if (!res.ok) { console.error(`${ep} search ${res.status}:`, await res.text()); continue; }
     const out = await res.json();
     for (const r of out.results ?? []) {
@@ -85,7 +107,8 @@ async function searchPeople(token: string, q: string):
       results.push({ name, email, company: p?.organizations?.[0]?.name ?? null, source });
     }
   }
-  return { results, noScope };
+  // Un endpoint qui répond annule le blocage (otherContacts peut marcher seul).
+  return { results, blocked: results.length ? null : blocked, detail };
 }
 
 // ---- Connecteur CRM générique — provider Sellsy (v2) ----
@@ -150,9 +173,17 @@ Deno.serve(async (req) => {
         .select('*').eq('user_id', user.id).eq('provider', 'google_calendar')
         .eq('status', 'active').maybeSingle();
       const token = sconn ? await getFreshAccessToken(sb, sconn).catch(() => null) : null;
-      if (!token) return json({ ok: true, results: [], needs_reauth: !sconn });
-      const { results, noScope } = await searchPeople(token, search.trim());
-      return json({ ok: true, results, needs_reauth: noScope });
+      if (!token) {
+        return json({ ok: true, results: [], blocked: 'no_connection', needs_reauth: true });
+      }
+      const { results, blocked, detail } = await searchPeople(token, search.trim());
+      return json({
+        ok: true,
+        results,
+        blocked,                       // 'scope' | 'api_disabled' | 'other' | null
+        needs_reauth: blocked === 'scope',
+        detail,                        // extrait de l'erreur Google (debug)
+      });
     }
 
     if (!user_id) return json({ error: 'user_id requis' }, 400);

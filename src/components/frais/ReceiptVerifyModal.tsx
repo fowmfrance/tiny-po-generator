@@ -162,7 +162,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   // Carnet Gmail (People API via enrich-contacts {search}) : couvre les contacts
   // jamais invités à un RDV synchronisé, donc absents de te_contacts.
   const [googleResults, setGoogleResults] = useState<{ name: string; email: string | null; company: string | null }[]>([]);
-  const [needsReauth, setNeedsReauth] = useState(false);
+  // Pourquoi le carnet Gmail ne répond pas : 'scope' (reconnecter l'agenda),
+  // 'api_disabled' (activer People API côté Google Cloud), 'no_connection'…
+  const [blocked, setBlocked] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [eventCtx, setEventCtx] = useState<{ title: string | null; attendees: unknown[] } | null>(null);
   const [contactPool, setContactPool] = useState<ContactRow[]>([]);
@@ -377,7 +379,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
       setResults(local);
       const localEmails = new Set(local.map((c) => norm(c.email)));
       const g = (googleRes as any)?.data;
-      setNeedsReauth(!!g?.needs_reauth);
+      setBlocked(g?.blocked ?? null);
       setGoogleResults(((g?.results ?? []) as { name: string; email: string | null; company: string | null }[])
         .filter((r) => !(r.email && localEmails.has(norm(r.email))))
         .filter((r) => !guests.some((x) => (r.email && x.email && norm(x.email) === norm(r.email)) || norm(x.displayName) === norm(r.name)))
@@ -910,10 +912,13 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
                   <Loader2 className="h-3 w-3 animate-spin" /> Recherche dans le carnet Gmail…
                 </div>
               )}
-              {needsReauth && (
+              {blocked && (
                 <div className="px-3 py-1.5 text-[11px] text-amber-700 bg-amber-50 border-t">
-                  Carnet Gmail inaccessible — fermez cette fenêtre et cliquez
-                  « Reconnecter » dans le bloc Agenda Google pour accorder l'accès aux contacts.
+                  {blocked === 'api_disabled'
+                    ? "Carnet Gmail indisponible : l'API Google People n'est pas activée sur le projet Google Cloud « sapajoo » (à activer une fois dans la console GCP)."
+                    : blocked === 'no_connection'
+                      ? 'Agenda Google non connecté — connectez-le depuis la page Notes de frais.'
+                      : "Carnet Gmail inaccessible : accès aux contacts non accordé. Fermez cette fenêtre et cliquez « Reconnecter » dans le bloc Agenda Google."}
                 </div>
               )}
               {query.trim() && (
