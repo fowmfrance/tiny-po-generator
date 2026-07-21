@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Plus, LayoutGrid, List } from 'lucide-react';
 import VendorCard from './VendorCard';
 import { Vendor } from '@/types/vendor';
-import { toProperCase } from '@/utils/properCase';
 import { SupplierTypeIcon } from '@/components/ui/supplier-type-icon';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -190,7 +189,7 @@ const VendorsList = ({ vendors, viewMode: externalViewMode, groupBy = 'activity'
                               <div className="flex items-center gap-1.5">
                                 {vendor.hasNegotiatedRates && <Handshake className="h-3 w-3 text-green-600 flex-shrink-0" />}
                                 {vendor.isPOExempt && <ShieldOff className="h-3 w-3 text-amber-600 flex-shrink-0" />}
-                                <span className="truncate">{toProperCase(vendor.name)}</span>
+                                <span className="truncate">{vendor.name}</span>
                               </div>
                             </TableCell>
                             <TableCell>

@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORY_META } from './categoryMeta';
 import SireneFraisDialog, { SireneFields } from './SireneFraisDialog';
-import { toProperCase } from '@/utils/toProperCase';
+import { toProperCase } from '@/utils/properCase';
 
 const db = supabase as any;
 

@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVerifyModal';
 import FraisReporting, { ReportFilter } from '@/components/frais/FraisReporting';
 import { CATEGORY_META } from '@/components/frais/categoryMeta';
-import { toProperCase } from '@/utils/toProperCase';
+import { toProperCase } from '@/utils/properCase';
 
 // Tables te_* pas encore dans les types générés (migration appliquée à la main
 // dans Lovable, types régénérés ensuite) → client non typé, interfaces locales.

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Building2, Loader2, MapPin, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { NAF_LABELS } from './nafLabels';
-import { toProperCase } from '@/utils/toProperCase';
+import { toProperCase } from '@/utils/properCase';
 
 export interface SireneFields {
   merchant: string;
