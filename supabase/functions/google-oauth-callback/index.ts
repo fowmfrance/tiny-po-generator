@@ -21,6 +21,16 @@ Deno.serve(async (req) => {
     if (!code || !state) return redirect(`/frais?connexion=erreur`);
 
     const sb = adminClient();
+
+    // Vérifie le nonce anti-CSRF et le consomme.
+    const { data: nonceRow } = await sb.from('oauth_nonces')
+      .select('user_id, expires_at').eq('nonce', state).maybeSingle();
+    if (!nonceRow || new Date(nonceRow.expires_at) < new Date()) {
+      return redirect(`/frais?connexion=erreur`);
+    }
+    await sb.from('oauth_nonces').delete().eq('nonce', state);
+    const userId = nonceRow.user_id as string;
+
     const tokens = await exchangeCode(code);
 
     // access_type=offline + prompt=consent ⇒ refresh_token présent au 1er consentement.
