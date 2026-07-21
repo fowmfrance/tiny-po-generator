@@ -3022,6 +3022,8 @@ export type Database = {
           status: string
           supplier_address: string | null
           supplier_id: string | null
+          supplier_naf: string | null
+          supplier_naf_label: string | null
           supplier_siret: string | null
           te_category: string | null
           transaction_id: string | null
@@ -3057,6 +3059,8 @@ export type Database = {
           status?: string
           supplier_address?: string | null
           supplier_id?: string | null
+          supplier_naf?: string | null
+          supplier_naf_label?: string | null
           supplier_siret?: string | null
           te_category?: string | null
           transaction_id?: string | null
@@ -3092,6 +3096,8 @@ export type Database = {
           status?: string
           supplier_address?: string | null
           supplier_id?: string | null
+          supplier_naf?: string | null
+          supplier_naf_label?: string | null
           supplier_siret?: string | null
           te_category?: string | null
           transaction_id?: string | null
