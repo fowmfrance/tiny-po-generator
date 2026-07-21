@@ -2,7 +2,7 @@
 // Frais terrain (T&E) de l'équipe : repas, transports, hébergements.
 // ⚠️ Distinct du reste de Sapajoo : rien à voir avec les factures fournisseurs
 // (Paiements), les BdC ou les budgets. Tables dédiées préfixées te_.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVerifyModal';
+import FraisReporting, { ReportFilter } from '@/components/frais/FraisReporting';
 import { CATEGORY_META } from '@/components/frais/categoryMeta';
 import { toProperCase } from '@/utils/toProperCase';
 
@@ -268,6 +269,8 @@ const Frais = () => {
   const [disconnecting, setDisconnecting] = useState(false);
   const [eventLinks, setEventLinks] = useState<Record<string, EventLink>>({});
   const [highlight, setHighlight] = useState<string | null>(null);
+  // Filtres du reporting, pilotés aussi depuis les puces contact des cartes.
+  const [reportFilter, setReportFilter] = useState<ReportFilter>({});
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -576,6 +579,16 @@ const Frais = () => {
     setTab('agenda');
     flash(`evt-${eventId}`);
   };
+  // Un contact est un objet cliquable partout : il ouvre le reporting filtré.
+  const goToContactReport = (name: string) => {
+    setReportFilter({ contact: name });
+    setTab('reporting');
+  };
+
+  // Participants par frais — sert aux puces contact des cartes agenda.
+  const guestsByExpense = useMemo(() => Object.fromEntries(
+    expenses.map((e) => [e.id, e.te_expense_guests ?? []]),
+  ) as Record<string, TeGuest[]>, [expenses]);
 
   const renderSignals = (signals: Record<string, number>) => {
     const active = Object.entries(signals ?? {})
@@ -621,12 +634,22 @@ const Frais = () => {
                   {e.verified_at && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Vérifié</Badge>}
                 </div>
                 {(e.te_expense_guests?.length ?? 0) > 0 && (
-                  <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1.5 min-w-0">
-                    <Users className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">
-                      Avec {e.te_expense_guests!.map((g) =>
-                        g.company_name ? `${g.display_name} (${g.company_name})` : g.display_name).join(', ')}
-                    </span>
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    {e.te_expense_guests!.map((g, i) => (
+                      <button
+                        key={`${g.display_name}-${i}`}
+                        type="button"
+                        title={`Voir les frais avec ${g.display_name}`}
+                        onClick={() => goToContactReport(g.display_name)}
+                        className="rounded-full border px-2 py-0.5 text-[11px] hover:border-brand hover:text-brand transition-colors"
+                      >
+                        {g.display_name}
+                        {g.company_name && (
+                          <span className="text-muted-foreground"> · {g.company_name}</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -821,7 +844,16 @@ const Frais = () => {
               À traiter{pending.length > 0 && ` (${pending.length})`}
             </TabsTrigger>
             <TabsTrigger value="done">Traités</TabsTrigger>
+            <TabsTrigger value="reporting">Reporting</TabsTrigger>
           </TabsList>
+          <TabsContent value="reporting" className="mt-4">
+            <FraisReporting
+              expenses={expenses}
+              filter={reportFilter}
+              setFilter={setReportFilter}
+              onOpenExpense={goToExpense}
+            />
+          </TabsContent>
           <TabsContent value="pending" className="space-y-3 mt-4">
             {loading ? (
               <div className="text-muted-foreground text-sm py-8 text-center">Chargement…</div>
@@ -913,6 +945,28 @@ const Frais = () => {
                                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">Externe</Badge>
                                 )}
                               </div>
+                              {/* Participants du frais rattaché : mêmes objets
+                                  cliquables que sur la carte du frais. */}
+                              {link && (guestsByExpense[link.expenseId]?.length ?? 0) > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {guestsByExpense[link.expenseId].slice(0, 3).map((g, i) => (
+                                    <button
+                                      key={`${g.display_name}-${i}`}
+                                      type="button"
+                                      title={`Voir les frais avec ${g.display_name}`}
+                                      onClick={() => goToContactReport(g.display_name)}
+                                      className="rounded-full border bg-background px-1.5 py-0.5 text-[10px] hover:border-brand hover:text-brand transition-colors"
+                                    >
+                                      {g.display_name}
+                                    </button>
+                                  ))}
+                                  {guestsByExpense[link.expenseId].length > 3 && (
+                                    <span className="text-[10px] text-muted-foreground self-center">
+                                      +{guestsByExpense[link.expenseId].length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
