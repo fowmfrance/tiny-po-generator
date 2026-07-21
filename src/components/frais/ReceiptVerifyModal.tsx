@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarCheck2, Check, CheckCircle2,
-  Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
+  FolderKanban, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -36,6 +36,8 @@ export interface VatLineDraft { rate: string; ht: string; tva: string }
 export interface VerifyPrefill {
   expenseId: string;
   receiptId: string | null;
+  budgetId: string | null;
+  clientId: string | null;
   merchant: string;
   siret: string;
   address: string;
@@ -55,6 +57,9 @@ interface Guest {
   displayName: string;
   email: string | null;
   companyName: string;
+  // Collaborateur (même domaine que le tenant) → repas d'équipe, pas réception
+  // clients : pilote le compte PCG et la justification fiscale.
+  isInternal: boolean;
   // Entreprise du contact au moment de la sélection : si l'utilisateur la
   // corrige ici, on propage la correction dans te_contacts (carnet).
   originalCompany: string | null;
@@ -75,6 +80,15 @@ interface GuestSuggestion {
   name: string;
   email: string | null;
   company: string;
+}
+
+interface BudgetOption {
+  id: string;
+  code: string;
+  name: string;
+  client_id: string | null;
+  status: string;
+  cac_capitalization: boolean | null;
 }
 
 // Candidat RDV proposé depuis la date/heure du justificatif (écran 1).
@@ -169,6 +183,15 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [eventCtx, setEventCtx] = useState<{ title: string | null; attendees: unknown[] } | null>(null);
   const [contactPool, setContactPool] = useState<ContactRow[]>([]);
 
+  // --- Imputation analytique (écran 2) : client + budget = code projet ---
+  const [budgets, setBudgets] = useState<BudgetOption[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [budgetId, setBudgetId] = useState<string>('');
+  const [clientId, setClientId] = useState<string>('');
+  const [imputChosenByUser, setImputChosenByUser] = useState(false);
+  // Domaine du tenant, déduit de l'email du compte connecté → invité interne.
+  const [ownDomain, setOwnDomain] = useState<string | null>(null);
+
   // (Re)charge le prefill + les invités déjà enregistrés à l'ouverture.
   useEffect(() => {
     if (!open || !prefill) return;
@@ -193,6 +216,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setSelectedEventId(null);
     setEventChosenByUser(false);
     setExistingMatchEventId(null);
+    setBudgetId(prefill.budgetId ?? '');
+    setClientId(prefill.clientId ?? '');
+    setImputChosenByUser(!!prefill.budgetId);
     // Fallback SIRENE : SIRET lu mais adresse manquante → lookup proposé d'office.
     setSireneOpen(!!prefill.siret && !prefill.address);
     // Match existant (suggestion moteur ou confirmation passée) → présélection.
@@ -205,7 +231,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         if (data?.calendar_event_id) setExistingMatchEventId(data.calendar_event_id);
       });
     db.from('te_expense_guests')
-      .select('contact_id, display_name, email, company_name')
+      .select('contact_id, display_name, email, company_name, is_internal')
       .eq('expense_id', prefill.expenseId)
       .then(({ data }: any) => {
         if (data?.length) {
@@ -214,6 +240,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             displayName: g.display_name,
             email: g.email,
             companyName: g.company_name ?? '',
+            isInternal: !!g.is_internal,
             originalCompany: g.company_name ?? null,
           })));
         }
@@ -280,6 +307,69 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
       setSelectedEventId(eventChoices[0].id);
     }
   }, [eventChoices, existingMatchEventId, eventChosenByUser]);
+
+  // Référentiel d'imputation + domaine du tenant (une fois par ouverture).
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: bs }, { data: cs }, { data: auth }] = await Promise.all([
+        db.from('budgets')
+          .select('id, code, name, client_id, status, cac_capitalization')
+          .order('created_at', { ascending: false })
+          .limit(300),
+        db.from('clients').select('id, name').order('name').limit(500),
+        supabase.auth.getUser(),
+      ]);
+      if (cancelled) return;
+      setBudgets(bs ?? []);
+      setClients(cs ?? []);
+      const email = auth?.user?.email ?? '';
+      setOwnDomain(email.includes('@') ? email.split('@')[1].toLowerCase() : null);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const isInternalEmail = (email: string | null) =>
+    !!email && !!ownDomain && email.toLowerCase().endsWith(`@${ownDomain}`);
+
+  // Suggestion d'imputation : entreprise/domaine des invités externes → client
+  // Sapajoo → budgets de ce client. Tant que l'utilisateur n'a pas tranché.
+  const suggestedClientId = useMemo(() => {
+    const externals = guests.filter((g) => !g.isInternal);
+    if (!externals.length || !clients.length) return null;
+    const norms = externals.map((g) => norm(g.companyName)).filter(Boolean);
+    if (!norms.length) return null;
+    const hit = clients.find((c) => {
+      const n = norm(c.name);
+      return norms.some((g) => n === g || n.includes(g) || g.includes(n));
+    });
+    return hit?.id ?? null;
+  }, [guests, clients]);
+
+  useEffect(() => {
+    if (imputChosenByUser || !suggestedClientId) return;
+    setClientId(suggestedClientId);
+  }, [suggestedClientId, imputChosenByUser]);
+
+  // Budgets proposés : ceux du client retenu (sinon tous), actifs d'abord.
+  const budgetOptions = useMemo(() => {
+    const scoped = clientId ? budgets.filter((b) => b.client_id === clientId) : budgets;
+    const list = scoped.length ? scoped : budgets;
+    return [...list].sort((a, b) => {
+      const rank = (s: string) => (s === 'active' || s === 'en_cours' ? 0 : s === 'draft' ? 1 : 2);
+      return rank(a.status) - rank(b.status);
+    }).slice(0, 60);
+  }, [budgets, clientId]);
+
+  useEffect(() => {
+    if (imputChosenByUser || budgetId) return;
+    // Un seul budget pour ce client → imputation évidente, on la propose.
+    const scoped = clientId ? budgets.filter((b) => b.client_id === clientId) : [];
+    if (scoped.length === 1) setBudgetId(scoped[0].id);
+  }, [clientId, budgets, budgetId, imputChosenByUser]);
+
+  const selectedBudget = budgets.find((b) => b.id === budgetId) ?? null;
 
   // À l'entrée sur l'écran 2 : RDV rattaché (pour les suggestions) + carnet.
   // Chargé à ce moment-là (pas à l'ouverture) : le matching post-OCR tourne en
@@ -473,6 +563,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
       displayName: s.name,
       email: s.email,
       companyName: s.company,
+      isInternal: isInternalEmail(s.email),
       originalCompany: s.contact?.company_name ?? null,
     }]);
     setQuery('');
@@ -546,6 +637,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         ...(occurredAt ? { occurred_at: occurredAt.toISOString() } : {}),
         ...(expenseStatus ? { status: expenseStatus } : {}),
         te_category: category || null,
+        budget_id: budgetId || null,
+        client_id: clientId || null,
         verified_at: new Date().toISOString(),
       }).eq('id', prefill.expenseId);
       if (error) throw error;
@@ -581,6 +674,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             display_name: toProperCase(g.displayName),
             email: g.email ? g.email.trim().toLowerCase() : null,
             company_name: g.companyName.trim() ? toProperCase(g.companyName) : null,
+            is_internal: g.isInternal,
           })),
         );
         if (insErr) throw insErr;
@@ -966,6 +1060,73 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             ))}
           </div>
         )}
+
+        {/* Imputation analytique — placée ici car elle DÉCOULE des invités :
+            l'entreprise du participant externe désigne le client, donc le
+            budget (= code projet) et, le cas échéant, l'étalement CAC. */}
+        <div className="rounded-lg border p-3 space-y-2.5">
+          <div className="text-sm font-medium flex items-center gap-1.5">
+            <FolderKanban className="h-4 w-4 text-muted-foreground" /> Imputation
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Client</Label>
+              <Select
+                value={clientId || '__none'}
+                onValueChange={(v) => {
+                  setImputChosenByUser(true);
+                  setClientId(v === '__none' ? '' : v);
+                  setBudgetId('');
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Aucun</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Budget / code projet</Label>
+              <Select
+                value={budgetId || '__none'}
+                onValueChange={(v) => {
+                  setImputChosenByUser(true);
+                  setBudgetId(v === '__none' ? '' : v);
+                  const b = budgets.find((x) => x.id === v);
+                  if (b?.client_id) setClientId(b.client_id);
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Non imputé</SelectItem>
+                  {budgetOptions.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.code} — {b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {suggestedClientId && !imputChosenByUser && (
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-brand shrink-0" />
+              Client déduit de l'entreprise des participants — corrigez si besoin.
+            </div>
+          )}
+          {selectedBudget?.cac_capitalization && (
+            <div className="text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1">
+              Ce budget étale ses coûts d'obtention de contrat : ce frais entrera
+              dans la reconnaissance échelonnée, pas en charge immédiate.
+            </div>
+          )}
+          {guests.length > 0 && guests.every((g) => g.isInternal) && (
+            <div className="text-[11px] text-muted-foreground">
+              Tous les participants sont internes → repas d'équipe (et non réception clients).
+            </div>
+          )}
+        </div>
       </div>
 
       <DialogFooter className="gap-2 sm:gap-0">

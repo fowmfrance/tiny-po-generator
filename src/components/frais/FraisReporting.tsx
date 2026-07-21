@@ -14,12 +14,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Download, ReceiptText, UserRound, X } from 'lucide-react';
+import { Building2, Download, FolderKanban, ReceiptText, UserRound, Users, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CATEGORY_META } from './categoryMeta';
 
-export interface ReportGuest { display_name: string; company_name: string | null }
+export interface ReportGuest {
+  display_name: string;
+  company_name: string | null;
+  is_internal?: boolean;
+}
 
 export interface ReportExpense {
   id: string;
@@ -32,12 +36,16 @@ export interface ReportExpense {
   te_category: string | null;
   status: string;
   te_expense_guests: ReportGuest[] | null;
+  budgets: { code: string; name: string; cac_capitalization: boolean | null } | null;
 }
 
 export interface ReportFilter {
   company?: string;
   category?: string;
   contact?: string;
+  budget?: string;
+  /** 'externe' = réception clients, 'interne' = repas d'équipe. */
+  nature?: string;
 }
 
 const euro = (n: number) =>
@@ -117,6 +125,22 @@ const contactsOf = (e: ReportExpense) => {
   return cs.length ? [...new Set(cs)] : [NO_VALUE];
 };
 
+const budgetOf = (e: ReportExpense) => (e.budgets ? `${e.budgets.code} — ${e.budgets.name}` : 'Non imputé');
+
+// Réception clients dès qu'un participant est externe ; repas d'équipe si tous
+// sont internes (pilote le compte PCG, cf. docs/referentiel-tva-frais.md).
+const natureOf = (e: ReportExpense) => {
+  const gs = e.te_expense_guests ?? [];
+  if (!gs.length) return NO_VALUE;
+  return gs.some((g) => !g.is_internal) ? 'externe' : 'interne';
+};
+
+const NATURE_LABELS: Record<string, string> = {
+  externe: 'Réception clients',
+  interne: "Repas d'équipe",
+  [NO_VALUE]: 'Sans participant',
+};
+
 interface Props {
   expenses: ReportExpense[];
   filter: ReportFilter;
@@ -147,6 +171,8 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     if (filter.company && !companiesOf(e).includes(filter.company)) return false;
     if (filter.category && (e.te_category ?? NO_VALUE) !== filter.category) return false;
     if (filter.contact && !contactsOf(e).includes(filter.contact)) return false;
+    if (filter.budget && budgetOf(e) !== filter.budget) return false;
+    if (filter.nature && natureOf(e) !== filter.nature) return false;
     return true;
   }), [inPeriod, filter]);
 
@@ -161,6 +187,12 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
   const byCategory = useMemo(
     () => aggregate(filtered, (e) => [e.te_category ?? NO_VALUE]), [filtered]);
   const byContact = useMemo(() => aggregate(filtered, contactsOf), [filtered]);
+  const byBudget = useMemo(() => aggregate(filtered, (e) => [budgetOf(e)]), [filtered]);
+  const byNature = useMemo(() => aggregate(filtered, (e) => [natureOf(e)]), [filtered]);
+  // Part non imputée : ce qui n'atteindra aucun budget si on n'y touche pas.
+  const unallocated = useMemo(
+    () => filtered.filter((e) => !e.budgets).reduce((s, e) => s + (Number(e.amount) || 0), 0),
+    [filtered]);
 
   // Un frais multi-entreprises fausse la somme des lignes : on le dit.
   const multiCompany = filtered.filter((e) => companiesOf(e).length > 1).length;
@@ -173,14 +205,19 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     ['company', filter.company, Building2],
     ['category', filter.category, ReceiptText],
     ['contact', filter.contact, UserRound],
+    ['budget', filter.budget, FolderKanban],
+    ['nature', filter.nature, Users],
   ] as const).filter(([, v]) => !!v);
 
   const exportCsv = () => {
-    const head = ['Date', 'Fournisseur', 'Type', 'Participants', 'Entreprises', 'HT', 'TVA', 'TTC'];
+    const head = ['Date', 'Fournisseur', 'Type', 'Nature', 'Budget', 'Participants',
+      'Entreprises', 'HT', 'TVA', 'TTC'];
     const rows = filtered.map((e) => [
       e.occurred_at.slice(0, 10),
       e.merchant_clean ?? e.merchant_raw ?? '',
       e.te_category ? CATEGORY_META[e.te_category]?.label ?? e.te_category : '',
+      NATURE_LABELS[natureOf(e)] ?? '',
+      e.budgets ? `${e.budgets.code} — ${e.budgets.name}` : '',
       contactsOf(e).filter((c) => c !== NO_VALUE).join(' / '),
       companiesOf(e).filter((c) => c !== NO_VALUE).join(' / '),
       e.amount_ht ?? '',
@@ -301,7 +338,9 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
               <Icon className="h-3 w-3" />
               {field === 'category' && value
                 ? CATEGORY_META[value]?.label ?? value
-                : value}
+                : field === 'nature' && value
+                  ? NATURE_LABELS[value] ?? value
+                  : value}
               <button type="button" className="ml-0.5 rounded hover:bg-background/60"
                 onClick={() => setFilter({ ...filter, [field]: undefined })}>
                 <X className="h-3 w-3" />
@@ -332,12 +371,27 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
         ))}
       </div>
 
+      {/* Alerte imputation : un frais sans budget n'atteint pas le P&L. */}
+      {unallocated > 0 && !filter.budget && (
+        <button
+          type="button"
+          onClick={() => setFilter({ ...filter, budget: 'Non imputé' })}
+          className="w-full text-left rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs text-amber-800 hover:bg-amber-50"
+        >
+          <span className="font-medium">{euro(unallocated)}</span> de frais ne sont rattachés à aucun
+          budget sur la période — ils n'atterriront sur aucun projet. Cliquez pour les isoler.
+        </button>
+      )}
+
       {/* Axes d'analyse */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
+        {renderTable('Par budget / projet', FolderKanban, byBudget, 'budget', 0)}
         {renderTable('Par entreprise', Building2, byCompany, 'company', multiCompany)}
+        {renderTable('Par contact', UserRound, byContact, 'contact', multiContact)}
         {renderTable('Par type de frais', ReceiptText, byCategory, 'category', 0,
           (k) => CATEGORY_META[k]?.label ?? k)}
-        {renderTable('Par contact', UserRound, byContact, 'contact', multiContact)}
+        {renderTable('Par nature', Users, byNature, 'nature', 0,
+          (k) => NATURE_LABELS[k] ?? k)}
       </div>
 
       {/* Détail */}

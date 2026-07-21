@@ -60,6 +60,13 @@ interface EventLink {
 interface TeGuest {
   display_name: string;
   company_name: string | null;
+  is_internal: boolean;
+}
+
+interface TeBudget {
+  code: string;
+  name: string;
+  cac_capitalization: boolean | null;
 }
 
 interface TeExpense {
@@ -82,9 +89,12 @@ interface TeExpense {
   reimbursable: boolean;
   receipt_id: string | null;
   verified_at: string | null;
+  budget_id: string | null;
+  client_id: string | null;
   notes: string | null;
   te_expense_matches: TeMatch[] | null;
   te_expense_guests: TeGuest[] | null;
+  budgets: TeBudget | null;
 }
 
 interface Connection {
@@ -201,6 +211,8 @@ const proper = (v: unknown) => (typeof v === 'string' && v.trim() ? toProperCase
 const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | null): VerifyPrefill => ({
   expenseId,
   receiptId,
+  budgetId: null,
+  clientId: null,
   merchant: proper(ex?.merchant),
   siret: str(ex?.siret),
   address: proper(ex?.address),
@@ -225,6 +237,8 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
   return {
     expenseId: e.id,
     receiptId: e.receipt_id,
+    budgetId: e.budget_id,
+    clientId: e.client_id,
     merchant: proper(e.merchant_clean ?? e.merchant_raw),
     siret: e.supplier_siret ?? '',
     address: proper(e.supplier_address),
@@ -284,7 +298,7 @@ const Frais = () => {
         .order('created_at', { ascending: false })
         .limit(1),
       db.from('te_expenses')
-        .select('*, te_expense_matches(id, calendar_event_id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name)')
+        .select('*, te_expense_matches(id, calendar_event_id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name, is_internal), budgets(code, name, cac_capitalization)')
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
       db.from('te_calendar_events')
@@ -632,6 +646,20 @@ const Frais = () => {
                   {e.status === 'confirmed' && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Rattaché</Badge>}
                   {e.status === 'no_context' && <Badge variant="secondary">Sans RDV trouvé</Badge>}
                   {e.verified_at && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Vérifié</Badge>}
+                  {e.budgets ? (
+                    <Badge
+                      variant="outline"
+                      className="border-brand/40 text-brand"
+                      title={e.budgets.cac_capitalization
+                        ? "Budget à coûts d'obtention étalés"
+                        : `Imputé sur ${e.budgets.name}`}
+                    >
+                      {e.budgets.code}
+                      {e.budgets.cac_capitalization && ' · étalé'}
+                    </Badge>
+                  ) : e.verified_at && (
+                    <Badge variant="outline" className="border-amber-300 text-amber-700">Non imputé</Badge>
+                  )}
                 </div>
                 {(e.te_expense_guests?.length ?? 0) > 0 && (
                   <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
