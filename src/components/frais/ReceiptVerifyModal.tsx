@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORY_META } from './categoryMeta';
 import SireneFraisDialog, { SireneFields } from './SireneFraisDialog';
+import { toProperCase } from '@/utils/toProperCase';
 
 const db = supabase as any;
 
@@ -377,7 +378,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const addFreeGuest = () => {
     const name = query.trim();
     if (!name) return;
-    addGuest({ contact: null, name, email: null, company: '' });
+    addGuest({ contact: null, name: toProperCase(name), email: null, company: '' });
   };
 
   const save = async () => {
@@ -386,6 +387,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     try {
       const occurredAt = date ? new Date(`${date}T${time || '12:00'}:00`) : null;
       const cleanSiret = siret.replace(/\D/g, '');
+      // Normalisation « Proper Case » de tous les champs texte (règle fleuron).
+      const properMerchant = merchant.trim() ? toProperCase(merchant) : '';
+      const properAddress = address.trim() ? toProperCase(address) : '';
       const parsedLines = lines
         .filter((l) => has(l.rate) && (has(l.ht) || has(l.tva)))
         .map((l) => ({
@@ -395,10 +399,10 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         }));
 
       const { error } = await db.from('te_expenses').update({
-        merchant_raw: merchant || null,
-        merchant_clean: merchant || null,
+        merchant_raw: merchant.trim() || null,
+        merchant_clean: properMerchant || null,
         supplier_siret: cleanSiret || null,
-        supplier_address: address.trim() || null,
+        supplier_address: properAddress || null,
         supplier_naf: naf.trim() || null,
         supplier_naf_label: nafLabel.trim() || null,
         amount: num(totalTTC),
@@ -421,9 +425,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             user_id: userId,
             expense_id: prefill.expenseId,
             contact_id: g.contactId,
-            display_name: g.displayName,
-            email: g.email,
-            company_name: g.companyName.trim() || null,
+            display_name: toProperCase(g.displayName),
+            email: g.email ? g.email.trim().toLowerCase() : null,
+            company_name: g.companyName.trim() ? toProperCase(g.companyName) : null,
           })),
         );
         if (insErr) throw insErr;
@@ -435,7 +439,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
           .filter((g) => g.contactId && g.companyName.trim() && g.companyName.trim() !== (g.originalCompany ?? ''))
           .map((g) =>
             db.from('te_contacts')
-              .update({ company_name: g.companyName.trim() })
+              .update({ company_name: toProperCase(g.companyName) })
               .eq('id', g.contactId)),
       );
 

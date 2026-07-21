@@ -71,6 +71,14 @@ async function ocrImage(dataUrl: string, apiKey: string) {
   });
 }
 
+// Normalisation « Proper Case » (même règle que src/utils/toProperCase.ts —
+// les tickets sortent souvent en MAJUSCULES : « BISTROT DU PASSAGE »).
+const proper = (v: unknown): string | null => {
+  if (typeof v !== 'string' || !v.trim()) return null;
+  return v.trim().toLowerCase()
+    .replace(/(^|[\s\-'])(\S)/g, (_m, sep, c) => sep + c.toUpperCase());
+};
+
 // Construit l'instant UTC d'une date+heure exprimée en heure de Paris (CET/CEST).
 function parisISO(date: string, time: string): string {
   for (const off of ['+02:00', '+01:00']) {
@@ -153,9 +161,9 @@ Deno.serve(async (req) => {
 
     await sb.from('te_receipts').update({
       ocr_status: 'done',
-      ocr_merchant: ex.merchant ?? null,
+      ocr_merchant: proper(ex.merchant),
       ocr_siret: ex.siret ? String(ex.siret).replace(/\D/g, '') || null : null,
-      ocr_address: ex.address ?? null,
+      ocr_address: proper(ex.address),
       ocr_amount: ex.amount ?? null,
       ocr_total_ht: ex.total_ht ?? null,
       ocr_vat: ex.vat ?? null,
@@ -169,14 +177,14 @@ Deno.serve(async (req) => {
     const { data: expense, error: expErr } = await sb.from('te_expenses').insert({
       user_id: receipt.user_id,
       source: 'receipt_only',
-      merchant_raw: ex.merchant ?? null,
-      merchant_clean: ex.merchant ?? null,
+      merchant_raw: ex.merchant ?? null,     // brut OCR, non normalisé (trace)
+      merchant_clean: proper(ex.merchant),
       amount: ex.amount ?? 0,
       amount_ht: ex.total_ht ?? null,
       vat_amount: ex.vat ?? null,
       vat_breakdown: vatLines.length ? vatLines : null,
       supplier_siret: ex.siret ? String(ex.siret).replace(/\D/g, '') || null : null,
-      supplier_address: ex.address ?? null,
+      supplier_address: proper(ex.address),
       // Heure imprimée sur le ticket → matching précis (±3 h) ; sinon minuit UTC
       // pile = marqueur « date seule » que match-expense élargit à la journée.
       occurred_at: ex.date

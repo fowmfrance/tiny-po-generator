@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Building2, Loader2, MapPin, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { NAF_LABELS } from './nafLabels';
+import { toProperCase } from '@/utils/toProperCase';
 
 export interface SireneFields {
   merchant: string;
@@ -39,8 +40,7 @@ interface Props {
   onApply: (patch: Partial<SireneFields>) => void;
 }
 
-const cap = (s: string) =>
-  s.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (m, sep, c) => sep + c.toUpperCase());
+const cap = toProperCase;
 
 // Adresse d'un établissement (matching_etablissements[i] ou siege).
 const etabAddress = (e: any): string | null => {

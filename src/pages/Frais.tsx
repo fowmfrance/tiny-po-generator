@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVerifyModal';
 import { CATEGORY_META } from '@/components/frais/categoryMeta';
+import { toProperCase } from '@/utils/toProperCase';
 
 // Tables te_* pas encore dans les types générés (migration appliquée à la main
 // dans Lovable, types régénérés ensuite) → client non typé, interfaces locales.
@@ -184,15 +185,17 @@ const euro = (n: number) =>
 
 const VALID_CATEGORIES = ['restaurant', 'transport', 'hebergement', 'autre'];
 const str = (v: unknown) => (v == null ? '' : String(v));
+// Proper Case (règle fleuron) — les tickets OCR sortent souvent en MAJUSCULES.
+const proper = (v: unknown) => (typeof v === 'string' && v.trim() ? toProperCase(v) : '');
 
 // Prefill de la modale de vérification depuis le retour brut de l'OCR
 // (juste après l'upload : le frais vient d'être créé côté serveur).
 const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | null): VerifyPrefill => ({
   expenseId,
   receiptId,
-  merchant: str(ex?.merchant),
+  merchant: proper(ex?.merchant),
   siret: str(ex?.siret),
-  address: str(ex?.address),
+  address: proper(ex?.address),
   naf: '',
   nafLabel: '',
   date: str(ex?.date),
@@ -214,9 +217,9 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
   return {
     expenseId: e.id,
     receiptId: e.receipt_id,
-    merchant: e.merchant_clean ?? e.merchant_raw ?? '',
+    merchant: proper(e.merchant_clean ?? e.merchant_raw),
     siret: e.supplier_siret ?? '',
-    address: e.supplier_address ?? '',
+    address: proper(e.supplier_address),
     naf: e.supplier_naf ?? '',
     nafLabel: e.supplier_naf_label ?? '',
     date: dateOnly ? e.occurred_at.slice(0, 10) : format(d, 'yyyy-MM-dd'),
@@ -417,8 +420,8 @@ const Frais = () => {
       const { data: created, error } = await db.from('te_expenses').insert({
         user_id: userId,
         source: 'manual',
-        merchant_raw: manual.merchant || null,
-        merchant_clean: manual.merchant || null,
+        merchant_raw: manual.merchant.trim() || null,
+        merchant_clean: manual.merchant.trim() ? toProperCase(manual.merchant) : null,
         amount: Number(manual.amount),
         occurred_at: occurredAt.toISOString(),
         te_category: manual.category,
