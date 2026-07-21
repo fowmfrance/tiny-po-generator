@@ -16,8 +16,25 @@ const OCR_TOOL = [{
       type: 'object',
       properties: {
         merchant: { type: 'string', description: 'Nom du commerçant / enseigne' },
+        siret: { type: 'string', description: 'SIRET (14 chiffres) ou SIREN (9 chiffres) du commerçant, sans espaces, si imprimé sur le ticket' },
+        address: { type: 'string', description: "Adresse postale du commerçant telle qu'imprimée (rue, code postal, ville)" },
         amount: { type: 'number', description: 'Montant total TTC payé' },
-        vat: { type: 'number', description: 'Montant de TVA (si présent)' },
+        total_ht: { type: 'number', description: 'Montant total HT (si présent)' },
+        vat: { type: 'number', description: 'Montant total de TVA (si présent)' },
+        vat_lines: {
+          type: 'array',
+          description: "Ventilation de la TVA par taux, telle qu'imprimée (un ticket resto porte souvent 10 % nourriture + 20 % alcool). Une entrée par taux.",
+          items: {
+            type: 'object',
+            properties: {
+              rate: { type: 'number', description: 'Taux de TVA en % (ex: 10, 20, 5.5)' },
+              ht: { type: 'number', description: 'Base HT pour ce taux' },
+              tva: { type: 'number', description: 'Montant de TVA pour ce taux' },
+            },
+            required: ['rate'],
+            additionalProperties: false,
+          },
+        },
         date: { type: 'string', description: 'Date du reçu au format YYYY-MM-DD' },
         time: { type: 'string', description: "Heure du paiement au format HH:MM (24 h) si visible sur le ticket" },
         category: {
@@ -39,7 +56,7 @@ async function ocrImage(dataUrl: string, apiKey: string) {
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, montant TTC, TVA, date, heure et type de frais (restaurant, transport, hebergement, autre). Date au format YYYY-MM-DD, heure au format HH:MM (24 h) si imprimée. Si un champ est absent, ne l'invente pas." },
+        { role: 'system', content: "Tu lis des reçus/tickets de caisse français. Extrais commerçant, SIRET/SIREN, adresse, montant TTC, total HT, TVA totale, ventilation TVA par taux (rate/ht/tva par taux imprimé — un resto a souvent 10 % et 20 %), date, heure et type de frais (restaurant, transport, hebergement, autre). Date au format YYYY-MM-DD, heure au format HH:MM (24 h) si imprimée. Si un champ est absent, ne l'invente pas." },
         {
           role: 'user',
           content: [
@@ -115,12 +132,20 @@ Deno.serve(async (req) => {
       return json({ error: "L'AI n'a pas pu lire le reçu" }, 422);
     }
     const ex = JSON.parse(args);
+    // Ventilation TVA : ne garder que les lignes plausibles (taux FR).
+    const vatLines = Array.isArray(ex.vat_lines)
+      ? ex.vat_lines.filter((l: any) => typeof l?.rate === 'number' && l.rate >= 0 && l.rate <= 30)
+      : [];
 
     await sb.from('te_receipts').update({
       ocr_status: 'done',
       ocr_merchant: ex.merchant ?? null,
+      ocr_siret: ex.siret ? String(ex.siret).replace(/\D/g, '') || null : null,
+      ocr_address: ex.address ?? null,
       ocr_amount: ex.amount ?? null,
+      ocr_total_ht: ex.total_ht ?? null,
       ocr_vat: ex.vat ?? null,
+      ocr_vat_breakdown: vatLines.length ? vatLines : null,
       ocr_date: ex.date ?? null,
       ocr_raw: ex,
     }).eq('id', receipt_id);
@@ -133,7 +158,11 @@ Deno.serve(async (req) => {
       merchant_raw: ex.merchant ?? null,
       merchant_clean: ex.merchant ?? null,
       amount: ex.amount ?? 0,
+      amount_ht: ex.total_ht ?? null,
       vat_amount: ex.vat ?? null,
+      vat_breakdown: vatLines.length ? vatLines : null,
+      supplier_siret: ex.siret ? String(ex.siret).replace(/\D/g, '') || null : null,
+      supplier_address: ex.address ?? null,
       // Heure imprimée sur le ticket → matching précis (±3 h) ; sinon minuit UTC
       // pile = marqueur « date seule » que match-expense élargit à la journée.
       occurred_at: ex.date

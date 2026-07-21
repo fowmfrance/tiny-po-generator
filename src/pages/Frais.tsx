@@ -14,13 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
-  Utensils, CarTaxiFront, BedDouble, ReceiptText, Loader2, Sparkles,
+  ReceiptText, Loader2, Sparkles, Pencil,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVerifyModal';
+import { CATEGORY_META } from '@/components/frais/categoryMeta';
 
 // Tables te_* pas encore dans les types générés (migration appliquée à la main
 // dans Lovable, types régénérés ensuite) → client non typé, interfaces locales.
@@ -42,19 +44,32 @@ interface TeMatch {
   te_calendar_events: TeCalendarEvent | null;
 }
 
+interface TeGuest {
+  display_name: string;
+  company_name: string | null;
+}
+
 interface TeExpense {
   id: string;
   source: 'bank_feed' | 'card_platform' | 'receipt_only' | 'manual';
   merchant_clean: string | null;
   merchant_raw: string | null;
   amount: number;
+  amount_ht: number | null;
   currency: string;
+  vat_amount: number | null;
+  vat_breakdown: { rate: number | null; ht: number | null; tva: number | null }[] | null;
+  supplier_siret: string | null;
+  supplier_address: string | null;
   occurred_at: string;
   te_category: 'restaurant' | 'transport' | 'hebergement' | 'autre' | null;
   status: 'new' | 'suggested' | 'confirmed' | 'rejected' | 'no_context' | 'exported';
   reimbursable: boolean;
+  receipt_id: string | null;
+  verified_at: string | null;
   notes: string | null;
   te_expense_matches: TeMatch[] | null;
+  te_expense_guests: TeGuest[] | null;
 }
 
 interface Connection {
@@ -153,13 +168,6 @@ const SOURCE_LABELS: Record<TeExpense['source'], string> = {
   manual: 'Saisie manuelle',
 };
 
-const CATEGORY_META: Record<string, { label: string; icon: React.ElementType }> = {
-  restaurant: { label: 'Restaurant', icon: Utensils },
-  transport: { label: 'Transport', icon: CarTaxiFront },
-  hebergement: { label: 'Hébergement', icon: BedDouble },
-  autre: { label: 'Autre', icon: ReceiptText },
-};
-
 const SIGNAL_LABELS: Record<string, string> = {
   time: 'heure', geo: 'lieu', category: 'type de frais',
   attendees: 'participants', history: 'habitude',
@@ -167,6 +175,49 @@ const SIGNAL_LABELS: Record<string, string> = {
 
 const euro = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+
+const VALID_CATEGORIES = ['restaurant', 'transport', 'hebergement', 'autre'];
+const str = (v: unknown) => (v == null ? '' : String(v));
+
+// Prefill de la modale de vérification depuis le retour brut de l'OCR
+// (juste après l'upload : le frais vient d'être créé côté serveur).
+const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | null): VerifyPrefill => ({
+  expenseId,
+  receiptId,
+  merchant: str(ex?.merchant),
+  siret: str(ex?.siret),
+  address: str(ex?.address),
+  date: str(ex?.date),
+  time: ex?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(ex.time) ? ex.time : '',
+  category: VALID_CATEGORIES.includes(ex?.category) ? ex.category : '',
+  totalTTC: str(ex?.amount),
+  totalHT: str(ex?.total_ht),
+  totalTVA: str(ex?.vat),
+  lines: Array.isArray(ex?.vat_lines)
+    ? ex.vat_lines.map((l: any) => ({ rate: str(l?.rate), ht: str(l?.ht), tva: str(l?.tva) }))
+    : [],
+});
+
+// Prefill depuis un frais existant (réouverture via le bouton « Vérifier »).
+const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
+  // Minuit UTC pile = marqueur « date seule » posé par l'OCR → pas d'heure.
+  const dateOnly = /T00:00:00(\.000)?(Z|\+00:00)$/.test(e.occurred_at);
+  const d = new Date(e.occurred_at);
+  return {
+    expenseId: e.id,
+    receiptId: e.receipt_id,
+    merchant: e.merchant_clean ?? e.merchant_raw ?? '',
+    siret: e.supplier_siret ?? '',
+    address: e.supplier_address ?? '',
+    date: dateOnly ? e.occurred_at.slice(0, 10) : format(d, 'yyyy-MM-dd'),
+    time: dateOnly ? '' : format(d, 'HH:mm'),
+    category: e.te_category ?? '',
+    totalTTC: str(e.amount),
+    totalHT: str(e.amount_ht),
+    totalTVA: str(e.vat_amount),
+    lines: (e.vat_breakdown ?? []).map((l) => ({ rate: str(l.rate), ht: str(l.ht), tva: str(l.tva) })),
+  };
+};
 
 const Frais = () => {
   const { toast } = useToast();
@@ -185,6 +236,8 @@ const Frais = () => {
   const [syncDays, setSyncDays] = useState('30');
   // Modale « série récurrente » : événement déplacé + colonne cible en attente.
   const [seriesMove, setSeriesMove] = useState<{ event: AgendaEvent; bucket: AgendaBucket } | null>(null);
+  // Modale de vérification OCR (écran 1) + participants (écran 2).
+  const [verify, setVerify] = useState<VerifyPrefill | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -195,7 +248,7 @@ const Frais = () => {
         .neq('status', 'revoked')
         .maybeSingle(),
       db.from('te_expenses')
-        .select('*, te_expense_matches(id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw))')
+        .select('*, te_expense_matches(id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name)')
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
       db.from('te_calendar_events')
@@ -327,11 +380,12 @@ const Frais = () => {
         body: { receipt_id: receipt.id },
       });
       if (fnErr) throw fnErr;
-      const ex = data?.extracted;
-      toast({
-        title: 'Reçu analysé',
-        description: ex ? `${ex.merchant ?? '?'} — ${euro(ex.amount ?? 0)}` : 'Frais créé.',
-      });
+      // Écran de vérification : tout ce que l'OCR a lu, éditable avant validation.
+      if (data?.expense_id) {
+        setVerify(prefillFromExtracted(data.extracted ?? {}, data.expense_id, data.receipt_id ?? receipt.id));
+      } else {
+        toast({ title: 'Reçu analysé', description: 'Frais créé.' });
+      }
       loadData(userId);
     } catch (e: any) {
       toast({ title: "Échec de l'analyse du reçu", description: e.message ?? String(e), variant: 'destructive' });
@@ -427,10 +481,31 @@ const Frais = () => {
                   {e.reimbursable && <Badge variant="secondary">À rembourser</Badge>}
                   {e.status === 'confirmed' && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Rattaché</Badge>}
                   {e.status === 'no_context' && <Badge variant="secondary">Sans RDV trouvé</Badge>}
+                  {e.verified_at && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Vérifié</Badge>}
                 </div>
+                {(e.te_expense_guests?.length ?? 0) > 0 && (
+                  <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1.5 min-w-0">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">
+                      Avec {e.te_expense_guests!.map((g) =>
+                        g.company_name ? `${g.display_name} (${g.company_name})` : g.display_name).join(', ')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="text-lg font-semibold whitespace-nowrap">{euro(e.amount)}</div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="text-lg font-semibold whitespace-nowrap">{euro(e.amount)}</div>
+              {e.status !== 'exported' && (
+                <Button
+                  variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={() => setVerify(prefillFromExpense(e))}
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  {e.verified_at ? 'Modifier' : 'Vérifier'}
+                </Button>
+              )}
+            </div>
           </div>
 
           {match && match.status === 'suggested' && eventTitle != null && (
@@ -654,6 +729,17 @@ const Frais = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Vérification du justificatif (écran 1) + participants (écran 2) */}
+      {userId && (
+        <ReceiptVerifyModal
+          open={!!verify}
+          userId={userId}
+          prefill={verify}
+          onClose={() => setVerify(null)}
+          onSaved={() => loadData(userId)}
+        />
+      )}
 
       {/* Événement récurrent déplacé : un épisode ou toute la série ? */}
       <Dialog open={!!seriesMove} onOpenChange={(o) => !o && setSeriesMove(null)}>
