@@ -37,7 +37,7 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [supplierTypeId, setSupplierTypeId] = useState<string>('other');
+  const [supplierTypeId, setSupplierTypeId] = useState<string>('');
   const [kycLevelId, setKycLevelId] = useState<string>('none');
   const [supplierTypes, setSupplierTypes] = useState<SupplierTypeOption[]>([]);
   const [kycLevels, setKycLevels] = useState<KycLevelOption[]>([]);
@@ -70,7 +70,7 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
 
   const resetForm = () => {
     setName(''); setEmail(''); setPhone('');
-    setSupplierTypeId('other'); setKycLevelId('none');
+    setSupplierTypeId(''); setKycLevelId('none');
     setSirene(null);
   };
 
@@ -78,6 +78,12 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
       toast({ variant: 'destructive', title: 'Informations requises', description: "Veuillez remplir la raison sociale et l'email." });
+      return;
+    }
+    // Métier obligatoire : sans lui le fournisseur retombe en « Non classé » dans
+    // tous les reportings (dashboard, répartition par métier).
+    if (!supplierTypeId) {
+      toast({ variant: 'destructive', title: 'Type requis', description: 'Choisissez le type / métier du fournisseur.' });
       return;
     }
 
@@ -98,7 +104,7 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || null,
-        supplier_type_id: supplierTypeId === 'other' ? null : supplierTypeId,
+        supplier_type_id: supplierTypeId,
         kyc_level_id: kycLevelId === 'none' ? null : kycLevelId,
         kyc_status: kycLevelId === 'none' ? 'approved' : 'pending',
         is_active: kycLevelId === 'none',
@@ -221,7 +227,6 @@ const InviteVendorQuickDialog: React.FC<InviteVendorQuickDialogProps> = ({
                   {supplierTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                   ))}
-                  <SelectItem value="other">Autre (hors catalogue)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

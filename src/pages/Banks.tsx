@@ -693,6 +693,12 @@ const Banks = () => {
       toast({ title: 'Nom requis', description: 'Saisissez au moins le nom du fournisseur.', variant: 'destructive' });
       return;
     }
+    // Métier obligatoire : sans lui le fournisseur retombe en « Non classé » dans
+    // tous les reportings (dashboard, répartition par métier).
+    if (!newSupplierTypeId) {
+      toast({ title: 'Activité requise', description: 'Choisissez l\'activité / métier du fournisseur.', variant: 'destructive' });
+      return;
+    }
     // Garde dédup : si des fournisseurs proches existent, on les propose d'abord.
     if (!force) {
       const matches = findSupplierMatches(name, suppliers);
@@ -706,7 +712,7 @@ const Banks = () => {
       const created: any = await createSupplier.mutateAsync({
         name,
         email: newSupplierEmail.trim(), // pas de faux email : vide si non renseigné
-        supplier_type_id: newSupplierTypeId || undefined,
+        supplier_type_id: newSupplierTypeId,
       });
       const txId = createForTxId;
       if (txId && created?.id) {
@@ -1391,13 +1397,12 @@ const Banks = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Activité / métier</Label>
-              <Select value={newSupplierTypeId || 'none'} onValueChange={(v) => setNewSupplierTypeId(v === 'none' ? '' : v)}>
+              <Label>Activité / métier *</Label>
+              <Select value={newSupplierTypeId} onValueChange={setNewSupplierTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir une activité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Non renseignée</SelectItem>
                   {supplierTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       <span className="flex items-center gap-2">

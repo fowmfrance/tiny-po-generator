@@ -13,10 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AtSign, Building2, Phone, Search, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { notifyVendorInvited } from '@/services/notificationService';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useSupplierTypes } from '@/hooks/useSupplierTypes';
 import { SireneSearchDialog } from '@/components/vendors/SireneSearchDialog';
 import { SirenePrefill, formatSiren } from '@/hooks/useSireneSearch';
 
@@ -32,6 +34,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [supplierTypeId, setSupplierTypeId] = useState("");
   const [message, setMessage] = useState("");
   const [sendCopy, setSendCopy] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +42,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
   const [sirene, setSirene] = useState<SirenePrefill | null>(null);
   const { toast } = useToast();
   const { createSupplier } = useSuppliers();
+  const { supplierTypes } = useSupplierTypes();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +55,17 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       });
       return;
     }
+
+    // Métier obligatoire : sans lui le fournisseur retombe en « Non classé » dans
+    // tous les reportings (dashboard, répartition par métier).
+    if (!supplierTypeId) {
+      toast({
+        variant: "destructive",
+        title: "Activité requise",
+        description: "Choisissez l'activité / métier du fournisseur.",
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -60,6 +75,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
         name,
         email: email || null,
         phone: phone || undefined,
+        supplier_type_id: supplierTypeId,
         // Infos légales issues du registre SIRENE (si fiche liée)
         ...(sirene ? {
           siren: sirene.siren,
@@ -93,6 +109,7 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
       setEmail("");
       setName("");
       setPhone("");
+      setSupplierTypeId("");
       setMessage("");
       setSendCopy(false);
       setSirene(null);
@@ -137,6 +154,34 @@ const InviteVendorDialog: React.FC<InviteVendorDialogProps> = ({
                 placeholder="Nom du Fournisseur"
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="supplier-type" className="text-right">
+                Activité *
+              </Label>
+              <div className="col-span-3">
+                <Select value={supplierTypeId} onValueChange={setSupplierTypeId}>
+                  <SelectTrigger id="supplier-type">
+                    <SelectValue placeholder="Choisir une activité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supplierTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <span className="flex items-center gap-2">
+                          {t.color && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />}
+                          {t.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {supplierTypes.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Aucune activité définie. Créez-en dans Réglages → Catalogue fournisseurs.
+                  </p>
+                )}
+              </div>
             </div>
 
             {sirene && (
