@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
@@ -53,6 +54,32 @@ Deno.serve(async (req) => {
       }
     )
   }
+
+  // Authorization: allow either service-role internal callers, or authenticated users.
+  // Reject anonymous requests (i.e. requests bearing only the public anon key) to
+  // prevent open transactional-email abuse.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : ''
+  const isServiceRole = bearer && bearer === supabaseServiceKey
+  const isAnonKey = bearer && bearer === supabaseAnonKey
+  if (!isServiceRole) {
+    if (!bearer || isAnonKey) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const { createClient } = await import('npm:@supabase/supabase-js@2')
+    const userClient = createClient(supabaseUrl, supabaseAnonKey!, { global: { headers: { Authorization: `Bearer ${bearer}` } } })
+    const { data: { user } } = await userClient.auth.getUser()
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  }
+
 
   // Parse request body
   let templateName: string
