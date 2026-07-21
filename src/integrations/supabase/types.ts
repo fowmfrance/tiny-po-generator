@@ -1249,6 +1249,30 @@ export type Database = {
           },
         ]
       }
+      oauth_nonces: {
+        Row: {
+          created_at: string
+          expires_at: string
+          nonce: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          nonce: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          nonce?: string
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           contact_email: string | null
@@ -2747,42 +2771,57 @@ export type Database = {
       te_contacts: {
         Row: {
           company_domain: string | null
+          company_name: string | null
           created_at: string
+          crm_provider: string | null
           crm_ref: string | null
           display_name: string | null
           email: string
+          enrich_source: string | null
+          enriched_at: string | null
           first_name: string | null
           id: string
           last_name: string | null
           organization_id: string
+          phone: string | null
           source: string
           updated_at: string
           user_id: string
         }
         Insert: {
           company_domain?: string | null
+          company_name?: string | null
           created_at?: string
+          crm_provider?: string | null
           crm_ref?: string | null
           display_name?: string | null
           email: string
+          enrich_source?: string | null
+          enriched_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           organization_id: string
+          phone?: string | null
           source?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           company_domain?: string | null
+          company_name?: string | null
           created_at?: string
+          crm_provider?: string | null
           crm_ref?: string | null
           display_name?: string | null
           email?: string
+          enrich_source?: string | null
+          enriched_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           organization_id?: string
+          phone?: string | null
           source?: string
           updated_at?: string
           user_id?: string
