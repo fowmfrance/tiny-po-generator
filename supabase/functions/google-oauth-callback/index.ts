@@ -21,6 +21,16 @@ Deno.serve(async (req) => {
     if (!code || !state) return redirect(`/frais?connexion=erreur`);
 
     const sb = adminClient();
+
+    // Vérifie le nonce anti-CSRF et le consomme.
+    const { data: nonceRow } = await sb.from('oauth_nonces')
+      .select('user_id, expires_at').eq('nonce', state).maybeSingle();
+    if (!nonceRow || new Date(nonceRow.expires_at) < new Date()) {
+      return redirect(`/frais?connexion=erreur`);
+    }
+    await sb.from('oauth_nonces').delete().eq('nonce', state);
+    const userId = nonceRow.user_id as string;
+
     const tokens = await exchangeCode(code);
 
     // access_type=offline + prompt=consent ⇒ refresh_token présent au 1er consentement.
@@ -33,7 +43,7 @@ Deno.serve(async (req) => {
 
     // TODO : récupérer l'email du calendar (userinfo) pour external_account_id.
     const { data: conn, error } = await sb.from('integration_connections').upsert({
-      user_id: state,
+      user_id: userId,
       provider: 'google_calendar',
       external_account_id: null,
       access_token_ref: accessRef,

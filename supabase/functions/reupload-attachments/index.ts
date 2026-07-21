@@ -5,9 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FS_BASE = "https://ninanoten.furious-squad.com";
-const FS_USER = "anne.onyme.34631";
-const FS_PASS = "/-u5rbyC=)WBk9O";
+const FS_BASE = Deno.env.get("FS_BASE") ?? "https://ninanoten.furious-squad.com";
+const FS_USER = Deno.env.get("FS_USER") ?? "";
+const FS_PASS = Deno.env.get("FS_PASS") ?? "";
 
 async function authenticate(): Promise<string> {
   const res = await fetch(`${FS_BASE}/api/v2/auth/`, {
@@ -89,7 +89,27 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Require authenticated platform admin (admin-sapajoo)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user } } = await userClient.auth.getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin-sapajoo" });
+  if (!isAdmin) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  if (!FS_USER || !FS_PASS) {
+    return new Response(JSON.stringify({ error: "Furious Squad credentials not configured (FS_USER/FS_PASS)" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   const { items } = await req.json() as {
     items: { csv_id: number; storage_path: string }[];
@@ -97,6 +117,7 @@ Deno.serve(async (req) => {
 
   // Authenticate once
   const token = await authenticate();
+
 
   const results: { csv_id: number; status: string; error?: string; size?: number }[] = [];
 

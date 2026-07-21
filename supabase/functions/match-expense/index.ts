@@ -81,8 +81,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
     const authHeader = req.headers.get('authorization');
-    if (!authHeader && req.headers.get('x-cron-secret') !== CRON_SECRET) {
-      return json({ error: 'Unauthorized' }, 401);
+    const isCron = req.headers.get('x-cron-secret') === CRON_SECRET;
+    let callerUserId: string | null = null;
+    if (!isCron) {
+      if (!authHeader?.toLowerCase().startsWith('bearer ')) return json({ error: 'Unauthorized' }, 401);
+      const { createClient } = await import('npm:@supabase/supabase-js@2');
+      const userSb = createClient(env('SUPABASE_URL'), env('SUPABASE_ANON_KEY'), { global: { headers: { Authorization: authHeader! } } });
+      const { data: { user } } = await userSb.auth.getUser();
+      if (!user) return json({ error: 'Unauthorized' }, 401);
+      callerUserId = user.id;
     }
     const { expense_id } = await req.json();
     if (!expense_id) return json({ error: 'expense_id requis' }, 400);
@@ -91,6 +98,7 @@ Deno.serve(async (req) => {
     const { data: exp } = await sb.from('te_expenses')
       .select('*').eq('id', expense_id).single();
     if (!exp) return json({ error: 'frais introuvable' }, 404);
+    if (callerUserId && exp.user_id !== callerUserId) return json({ error: 'Forbidden' }, 403);
 
     // Ticket OCR daté sans heure → occurred_at tombe à minuit UTC pile :
     // on préfiltre alors sur TOUTE la journée (marge ±2 h pour le fuseau Paris).

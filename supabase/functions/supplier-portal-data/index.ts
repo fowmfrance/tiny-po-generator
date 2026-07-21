@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -49,36 +49,6 @@ Deno.serve(async (req) => {
       .eq('is_active', true)
       .maybeSingle();
 
-    const looksLikeLegacySupplierId = !accessToken && UUID_PATTERN.test(normalizedToken);
-
-    if (!accessToken && looksLikeLegacySupplierId) {
-      const legacyLookup = await supabase
-        .from('supplier_access_tokens')
-        .select(`
-          id,
-          token,
-          supplier_id,
-          email_verified,
-          created_by,
-          supplier:suppliers (
-            id,
-            name,
-            email,
-            city,
-            country,
-            kyc_level_id,
-            kyc_status
-          )
-        `)
-        .eq('supplier_id', normalizedToken)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      accessToken = legacyLookup.data;
-      accessTokenError = legacyLookup.error;
-    }
 
     if (accessTokenError || !accessToken?.supplier) {
       return new Response(JSON.stringify({ error: 'Lien invalide ou expiré' }), {

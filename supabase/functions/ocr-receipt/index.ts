@@ -70,9 +70,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
     const authHeader = req.headers.get('authorization');
-    if (authHeader) {
+    const isCron = req.headers.get('x-cron-secret') === env('CRON_SECRET');
+    let callerUserId: string | null = null;
+    if (!isCron) {
+      if (!authHeader) return json({ error: 'Unauthorized' }, 401);
       const { data: { user } } = await userClient(authHeader).auth.getUser();
       if (!user) return json({ error: 'Unauthorized' }, 401);
+      callerUserId = user.id;
     }
     const apiKey = env('LOVABLE_API_KEY');
     if (!apiKey) return json({ error: 'AI non configuré' }, 500);
@@ -83,6 +87,7 @@ Deno.serve(async (req) => {
     const sb = adminClient();
     const { data: receipt, error } = await sb.from('te_receipts').select('*').eq('id', receipt_id).single();
     if (error || !receipt) return json({ error: 'reçu introuvable' }, 404);
+    if (callerUserId && receipt.user_id !== callerUserId) return json({ error: 'Forbidden' }, 403);
 
     // Télécharge l'image depuis le bucket privé.
     const { data: file, error: dlErr } = await sb.storage.from('te-receipts').download(

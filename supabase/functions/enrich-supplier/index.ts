@@ -3,12 +3,24 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS });
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Non authentifié' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+    const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Non authentifié' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
     const { supplierName, supplierUrl, action } = await req.json();
 
     if (!supplierName) {
@@ -16,6 +28,20 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Validate URL to prevent SSRF
+    if (supplierUrl) {
+      try {
+        const u = new URL(supplierUrl);
+        if (!['http:', 'https:'].includes(u.protocol)) throw new Error('bad');
+        const host = u.hostname.toLowerCase();
+        if (host === 'localhost' || host.startsWith('127.') || host.startsWith('10.') || host.startsWith('192.168.') || host.startsWith('169.254.') || host.endsWith('.internal') || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
+          throw new Error('bad');
+        }
+      } catch {
+        return new Response(JSON.stringify({ error: 'URL invalide' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+      }
     }
 
     // Action 1: Find the supplier website URL via DuckDuckGo

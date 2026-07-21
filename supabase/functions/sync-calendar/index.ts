@@ -152,16 +152,25 @@ async function syncConnection(sb: any, connectionId: string, daysBack?: number) 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
-    // Auth : soit secret cron, soit JWT user (vérif allégée ici — le service role
-    // fait l'écrit ; TODO : valider que la connexion appartient bien à l'appelant JWT).
     const cronHeader = req.headers.get('x-cron-secret');
     const authHeader = req.headers.get('authorization');
-    if (!authHeader && cronHeader !== CRON_SECRET) return json({ error: 'Unauthorized' }, 401);
+    const isCron = cronHeader === CRON_SECRET;
 
     const { connection_id, days_back } = await req.json();
     if (!connection_id) return json({ error: 'connection_id requis' }, 400);
 
-    const res = await syncConnection(adminClient(), connection_id,
+    const sb = adminClient();
+    if (!isCron) {
+      if (!authHeader?.toLowerCase().startsWith('bearer ')) return json({ error: 'Unauthorized' }, 401);
+      const { createClient } = await import('npm:@supabase/supabase-js@2');
+      const userSb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader! } } });
+      const { data: { user } } = await userSb.auth.getUser();
+      if (!user) return json({ error: 'Unauthorized' }, 401);
+      const { data: conn } = await sb.from('integration_connections').select('user_id').eq('id', connection_id).maybeSingle();
+      if (!conn || conn.user_id !== user.id) return json({ error: 'Forbidden' }, 403);
+    }
+
+    const res = await syncConnection(sb, connection_id,
       days_back != null ? Number(days_back) : undefined);
     return json({ ok: true, ...res });
   } catch (e) {
