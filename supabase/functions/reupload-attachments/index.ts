@@ -5,9 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FS_BASE = "https://ninanoten.furious-squad.com";
-const FS_USER = "anne.onyme.34631";
-const FS_PASS = "/-u5rbyC=)WBk9O";
+const FS_BASE = Deno.env.get("FS_BASE") ?? "https://ninanoten.furious-squad.com";
+const FS_USER = Deno.env.get("FS_USER") ?? "";
+const FS_PASS = Deno.env.get("FS_PASS") ?? "";
 
 async function authenticate(): Promise<string> {
   const res = await fetch(`${FS_BASE}/api/v2/auth/`, {
