@@ -41,12 +41,19 @@ interface TeCalendarEvent {
 
 interface TeMatch {
   id: string;
+  calendar_event_id: string | null;
   status: 'suggested' | 'confirmed' | 'rejected' | 'auto_confirmed';
   confidence: number;
   signals: Record<string, number>;
   matched_event_title: string | null;
   matched_event_starts_at: string | null;
   te_calendar_events: TeCalendarEvent | null;
+}
+
+// RDV rattaché à une note de frais (picto + navigation dans le kanban agenda).
+interface EventLink {
+  expenseId: string;
+  status: TeMatch['status'];
 }
 
 interface TeGuest {
@@ -255,6 +262,10 @@ const Frais = () => {
   const [toDelete, setToDelete] = useState<TeExpense | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [rematchingId, setRematchingId] = useState<string | null>(null);
+  // Navigation croisée RDV ↔ note de frais : onglet contrôlé + surbrillance.
+  const [tab, setTab] = useState('agenda');
+  const [eventLinks, setEventLinks] = useState<Record<string, EventLink>>({});
+  const [highlight, setHighlight] = useState<string | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -265,7 +276,7 @@ const Frais = () => {
         .neq('status', 'revoked')
         .maybeSingle(),
       db.from('te_expenses')
-        .select('*, te_expense_matches(id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name)')
+        .select('*, te_expense_matches(id, calendar_event_id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name)')
         .eq('user_id', uid)
         .order('occurred_at', { ascending: false }),
       db.from('te_calendar_events')
@@ -277,6 +288,14 @@ const Frais = () => {
         .select('recurring_event_id, kanban_bucket')
         .eq('user_id', uid),
     ]);
+    // RDV ↔ frais : quels événements du kanban portent une note de frais ?
+    const { data: links } = await db.from('te_expense_matches')
+      .select('expense_id, calendar_event_id, status')
+      .eq('user_id', uid)
+      .not('calendar_event_id', 'is', null)
+      .neq('status', 'rejected');
+    setEventLinks(Object.fromEntries((links ?? []).map((l: any) =>
+      [l.calendar_event_id, { expenseId: l.expense_id, status: l.status }])));
     if (error) {
       // Migration socle pas encore appliquée → tables absentes.
       toast({ title: 'Module Frais non initialisé', description: error.message, variant: 'destructive' });
@@ -507,8 +526,30 @@ const Frais = () => {
     loadData(userId);
   };
 
-  const pending = expenses.filter((e) => ['new', 'suggested', 'no_context'].includes(e.status));
-  const done = expenses.filter((e) => ['confirmed', 'exported', 'rejected'].includes(e.status));
+  // « À traiter » = une action reste attendue : vérification pas encore faite,
+  // ou suggestion de RDV à confirmer. Un frais VÉRIFIÉ sans RDV trouvé est
+  // traité (il ne repassera pas en suggestion tout seul).
+  const pending = expenses.filter((e) =>
+    e.status === 'suggested'
+    || (['new', 'no_context'].includes(e.status) && !e.verified_at));
+  const done = expenses.filter((e) => !pending.includes(e));
+
+  // Navigation croisée : RDV du kanban → note de frais, et inversement.
+  const flash = (id: string) => {
+    setHighlight(id);
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => setHighlight((h) => (h === id ? null : h)), 2600);
+  };
+  const goToExpense = (expenseId: string) => {
+    setTab(pending.some((e) => e.id === expenseId) ? 'pending' : 'done');
+    flash(`exp-${expenseId}`);
+  };
+  const goToEvent = (eventId: string) => {
+    setTab('agenda');
+    flash(`evt-${eventId}`);
+  };
 
   const renderSignals = (signals: Record<string, number>) => {
     const active = Object.entries(signals ?? {})
@@ -527,7 +568,11 @@ const Frais = () => {
     const eventStart = event?.starts_at ?? match?.matched_event_starts_at;
 
     return (
-      <Card key={e.id}>
+      <Card
+        key={e.id}
+        id={`exp-${e.id}`}
+        className={highlight === `exp-${e.id}` ? 'ring-2 ring-brand transition-shadow' : 'transition-shadow'}
+      >
         <CardContent className="pt-4 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
@@ -599,10 +644,15 @@ const Frais = () => {
           {match && match.status === 'suggested' && eventTitle != null && (
             <div className="mt-3 rounded-lg border bg-muted/40 p-3">
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="flex items-start gap-2 min-w-0">
+                <button
+                  type="button"
+                  className="flex items-start gap-2 min-w-0 text-left group"
+                  title="Voir ce RDV dans l'agenda"
+                  onClick={() => match.calendar_event_id && goToEvent(match.calendar_event_id)}
+                >
                   <Sparkles className="h-4 w-4 mt-0.5 text-brand shrink-0" />
                   <div className="text-sm min-w-0">
-                    <span className="font-medium">{eventTitle}</span>
+                    <span className="font-medium group-hover:underline">{eventTitle}</span>
                     {eventStart && (
                       <span className="text-muted-foreground">
                         {' '}· {format(new Date(eventStart), "d MMM HH:mm", { locale: fr })}
@@ -612,7 +662,7 @@ const Frais = () => {
                       Correspondance {Math.round(match.confidence)} % · {renderSignals(match.signals)}
                     </div>
                   </div>
-                </div>
+                </button>
                 <div className="flex gap-2 shrink-0">
                   <Button size="sm" onClick={() => decideMatch(e, match, 'confirmed')}>
                     <Check className="h-4 w-4 mr-1" /> Confirmer
@@ -626,13 +676,18 @@ const Frais = () => {
           )}
 
           {e.status === 'confirmed' && (eventTitle || match?.matched_event_title) && (
-            <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
+            <button
+              type="button"
+              className="mt-3 text-sm text-muted-foreground flex items-center gap-2 min-w-0 hover:text-foreground group"
+              title="Voir ce RDV dans l'agenda"
+              onClick={() => match?.calendar_event_id && goToEvent(match.calendar_event_id)}
+            >
               <CalendarCheck2 className="h-4 w-4 shrink-0" />
-              <span className="truncate">
+              <span className="truncate group-hover:underline">
                 Rattaché à « {eventTitle ?? match?.matched_event_title} »
                 {eventStart && ` · ${format(new Date(eventStart), 'd MMM HH:mm', { locale: fr })}`}
               </span>
-            </div>
+            </button>
           )}
         </CardContent>
       </Card>
@@ -721,7 +776,7 @@ const Frais = () => {
         </Card>
 
         {/* Listes */}
-        <Tabs defaultValue="agenda">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="agenda">
               Agenda{agenda.length > 0 && ` (${agenda.length})`}
@@ -775,14 +830,36 @@ const Frais = () => {
                           <div className="text-xs text-muted-foreground text-center py-4">Glissez un RDV ici</div>
                         ) : items.map((ev) => {
                           const guests = Array.isArray(ev.attendees) ? ev.attendees.length : 0;
+                          // RDV rattaché à une note de frais : contour marqué, picto
+                          // cliquable, plus déplaçable (le classement est verrouillé,
+                          // seule la marge reste éditable).
+                          const link = eventLinks[ev.id] ?? null;
                           return (
                             <div
                               key={ev.id}
-                              draggable
-                              onDragStart={(e) => e.dataTransfer.setData('text/plain', ev.id)}
-                              className="rounded-md border bg-background p-2 cursor-grab active:cursor-grabbing"
+                              id={`evt-${ev.id}`}
+                              draggable={!link}
+                              onDragStart={(e) => !link && e.dataTransfer.setData('text/plain', ev.id)}
+                              title={link ? 'Rattaché à une note de frais — classement verrouillé' : undefined}
+                              className={`rounded-md border p-2 transition-shadow ${
+                                link
+                                  ? 'border-brand/50 bg-brand/5 cursor-default'
+                                  : 'bg-background cursor-grab active:cursor-grabbing'
+                              } ${highlight === `evt-${ev.id}` ? 'ring-2 ring-brand' : ''}`}
                             >
-                              <div className="text-sm font-medium leading-tight">{ev.title ?? '(sans titre)'}</div>
+                              <div className="flex items-start justify-between gap-1.5">
+                                <div className="text-sm font-medium leading-tight min-w-0">{ev.title ?? '(sans titre)'}</div>
+                                {link && (
+                                  <button
+                                    type="button"
+                                    className="shrink-0 rounded-md bg-brand/10 text-brand p-1 hover:bg-brand/20"
+                                    title="Voir la note de frais rattachée"
+                                    onClick={() => goToExpense(link.expenseId)}
+                                  >
+                                    <ReceiptText className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 {format(new Date(ev.starts_at), "EEE d MMM · HH:mm", { locale: fr })}
                               </div>

@@ -9,7 +9,7 @@
 // Corps : { user_id, limit? } — traite les te_contacts sans enriched_at.
 // ⚠️ Nécessite les scopes contacts.readonly + contacts.other.readonly : ajouter les
 // scopes sur l'écran de consentement GCP puis RECONNECTER l'agenda.
-import { corsHeaders, json, adminClient, env, getFreshAccessToken } from '../_shared/google.ts';
+import { corsHeaders, json, adminClient, userClient, env, getFreshAccessToken } from '../_shared/google.ts';
 
 const CRON_SECRET = env('CRON_SECRET');
 const PEOPLE_API = 'https://people.googleapis.com/v1';
@@ -52,6 +52,40 @@ async function peopleSearch(token: string, endpoint: 'people:searchContacts' | '
   const match = (out.results ?? []).find((r: any) =>
     (r.person?.emailAddresses ?? []).some((e: any) => (e.value ?? '').toLowerCase() === email));
   return match?.person ?? null;
+}
+
+// Recherche LIVE par nom dans le carnet Google (contacts enregistrés + contacts
+// d'interaction) — pour le lookup « Qui participe » de la modale de vérification.
+// Un invité peut être dans le carnet Gmail sans jamais avoir été dans un RDV
+// synchronisé (donc absent de te_contacts).
+async function searchPeople(token: string, q: string):
+  Promise<{ results: { name: string; email: string | null; company: string | null; source: string }[]; noScope: boolean }> {
+  const endpoints: { ep: string; mask: string; source: string }[] = [
+    { ep: 'people:searchContacts', mask: 'names,emailAddresses,organizations', source: 'google_contacts' },
+    { ep: 'otherContacts:search', mask: 'names,emailAddresses', source: 'other_contacts' },
+  ];
+  const results: { name: string; email: string | null; company: string | null; source: string }[] = [];
+  let noScope = false;
+  for (const { ep, mask, source } of endpoints) {
+    const base = `${PEOPLE_API}/${ep}?readMask=${mask}&pageSize=6`;
+    // Warmup obligatoire (cache Google), cf. peopleSearch.
+    await fetch(`${base}&query=`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+    const res = await fetch(`${base}&query=${encodeURIComponent(q)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 403) { noScope = true; continue; }
+    if (!res.ok) { console.error(`${ep} search ${res.status}:`, await res.text()); continue; }
+    const out = await res.json();
+    for (const r of out.results ?? []) {
+      const p = r.person;
+      const email = (p?.emailAddresses?.[0]?.value ?? '').toLowerCase() || null;
+      const name = p?.names?.[0]?.displayName ?? email;
+      if (!name) continue;
+      if (email && results.some((x) => x.email === email)) continue;
+      results.push({ name, email, company: p?.organizations?.[0]?.name ?? null, source });
+    }
+  }
+  return { results, noScope };
 }
 
 // ---- Connecteur CRM générique — provider Sellsy (v2) ----
@@ -102,10 +136,26 @@ Deno.serve(async (req) => {
     if (!authHeader && req.headers.get('x-cron-secret') !== CRON_SECRET) {
       return json({ error: 'Unauthorized' }, 401);
     }
-    const { user_id, limit } = await req.json();
-    if (!user_id) return json({ error: 'user_id requis' }, 400);
+    const { user_id, limit, search } = await req.json();
 
     const sb = adminClient();
+
+    // ---- Mode recherche live (front, JWT obligatoire) : { search: "regis" } ----
+    // L'utilisateur est résolu depuis le JWT (jamais depuis le corps).
+    if (typeof search === 'string' && search.trim()) {
+      if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+      const { data: { user } } = await userClient(authHeader).auth.getUser();
+      if (!user) return json({ error: 'Unauthorized' }, 401);
+      const { data: sconn } = await sb.from('integration_connections')
+        .select('*').eq('user_id', user.id).eq('provider', 'google_calendar')
+        .eq('status', 'active').maybeSingle();
+      const token = sconn ? await getFreshAccessToken(sb, sconn).catch(() => null) : null;
+      if (!token) return json({ ok: true, results: [], needs_reauth: !sconn });
+      const { results, noScope } = await searchPeople(token, search.trim());
+      return json({ ok: true, results, needs_reauth: noScope });
+    }
+
+    if (!user_id) return json({ error: 'user_id requis' }, 400);
     const { data: conn } = await sb.from('integration_connections')
       .select('*').eq('user_id', user_id).eq('provider', 'google_calendar')
       .eq('status', 'active').maybeSingle();

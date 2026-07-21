@@ -138,6 +138,10 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [guests, setGuests] = useState<Guest[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ContactRow[]>([]);
+  // Carnet Gmail (People API via enrich-contacts {search}) : couvre les contacts
+  // jamais invités à un RDV synchronisé, donc absents de te_contacts.
+  const [googleResults, setGoogleResults] = useState<{ name: string; email: string | null; company: string | null }[]>([]);
+  const [needsReauth, setNeedsReauth] = useState(false);
   const [searching, setSearching] = useState(false);
   const [eventCtx, setEventCtx] = useState<{ title: string | null; attendees: unknown[] } | null>(null);
   const [contactPool, setContactPool] = useState<ContactRow[]>([]);
@@ -266,23 +270,38 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     return out.slice(0, 6);
   }, [eventCtx, contactPool, guests]);
 
-  // Lookup contacts (carnet agenda enrichi) — debounce 250 ms.
+  // Lookup contacts — te_contacts (RDV synchronisés) ET carnet Gmail en
+  // parallèle, debounce 300 ms, dédup par email.
   useEffect(() => {
     if (!open || step !== 2) return;
     const q = query.trim();
-    if (q.length < 2) { setResults([]); return; }
+    if (q.length < 2) { setResults([]); setGoogleResults([]); return; }
+    let cancelled = false;
     const t = setTimeout(async () => {
       setSearching(true);
       const like = `%${q}%`;
-      const { data } = await db.from('te_contacts')
-        .select('id, email, first_name, last_name, display_name, company_name, company_domain')
-        .eq('user_id', userId)
-        .or(`display_name.ilike.${like},email.ilike.${like},first_name.ilike.${like},last_name.ilike.${like},company_name.ilike.${like}`)
-        .limit(8);
-      setResults((data ?? []).filter((c: ContactRow) => !guests.some((g) => g.contactId === c.id)));
+      const [{ data }, googleRes] = await Promise.all([
+        db.from('te_contacts')
+          .select('id, email, first_name, last_name, display_name, company_name, company_domain')
+          .eq('user_id', userId)
+          .or(`display_name.ilike.${like},email.ilike.${like},first_name.ilike.${like},last_name.ilike.${like},company_name.ilike.${like}`)
+          .limit(8),
+        supabase.functions.invoke('enrich-contacts', { body: { search: q } })
+          .catch(() => ({ data: null, error: true })),
+      ]);
+      if (cancelled) return;
+      const local: ContactRow[] = (data ?? []).filter((c: ContactRow) => !guests.some((g) => g.contactId === c.id));
+      setResults(local);
+      const localEmails = new Set(local.map((c) => norm(c.email)));
+      const g = (googleRes as any)?.data;
+      setNeedsReauth(!!g?.needs_reauth);
+      setGoogleResults(((g?.results ?? []) as { name: string; email: string | null; company: string | null }[])
+        .filter((r) => !(r.email && localEmails.has(norm(r.email))))
+        .filter((r) => !guests.some((x) => (r.email && x.email && norm(x.email) === norm(r.email)) || norm(x.displayName) === norm(r.name)))
+        .slice(0, 5));
       setSearching(false);
-    }, 250);
-    return () => clearTimeout(t);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [query, open, step, userId, guests]);
 
   // ---- Sanity checks TVA (bottom-up et top-down) ----
@@ -379,6 +398,28 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     const name = query.trim();
     if (!name) return;
     addGuest({ contact: null, name: toProperCase(name), email: null, company: '' });
+  };
+
+  // Contact du carnet Gmail : on l'inscrit dans te_contacts (source manual) pour
+  // que les prochains lookups le trouvent en local, puis on l'ajoute au frais.
+  const addGuestFromGoogle = async (r: { name: string; email: string | null; company: string | null }) => {
+    let contact: ContactRow | null = null;
+    if (r.email) {
+      const { data } = await db.from('te_contacts')
+        .upsert({
+          user_id: userId,
+          email: r.email.toLowerCase(),
+          display_name: r.name,
+          company_name: r.company,
+          source: 'manual',
+          enrich_source: 'google_contacts',
+          enriched_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,email' })
+        .select('id, email, first_name, last_name, display_name, company_name, company_domain')
+        .single();
+      contact = data ?? null;
+    }
+    addGuest({ contact, name: r.name, email: r.email, company: r.company ?? (contact ? contactCompany(contact) : '') });
   };
 
   const save = async () => {
@@ -655,7 +696,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
               }
             }}
           />
-          {(results.length > 0 || (query.trim().length >= 2 && !searching)) && (
+          {(results.length > 0 || googleResults.length > 0 || (query.trim().length >= 2 && !searching)) && (
             <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md overflow-hidden">
               {results.map((c) => (
                 <button
@@ -674,6 +715,32 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
                   )}
                 </button>
               ))}
+              {googleResults.map((r, i) => (
+                <button
+                  key={`g-${r.email ?? r.name}-${i}`}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 min-w-0"
+                  onClick={() => addGuestFromGoogle(r)}
+                >
+                  <UserRound className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate">{r.name}</span>
+                  {r.email && <span className="text-xs text-muted-foreground truncate">{r.email}</span>}
+                  <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                    {r.company && <Badge variant="outline" className="text-[10px]">{r.company}</Badge>}
+                    <Badge variant="secondary" className="text-[10px]">Gmail</Badge>
+                  </span>
+                </button>
+              ))}
+              {searching && (
+                <div className="px-3 py-1.5 text-[11px] text-muted-foreground flex items-center gap-1.5 border-t">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Recherche dans le carnet Gmail…
+                </div>
+              )}
+              {needsReauth && (
+                <div className="px-3 py-1.5 text-[11px] text-amber-700 bg-amber-50 border-t">
+                  Carnet Gmail inaccessible — reconnectez l'agenda pour accorder l'accès aux contacts.
+                </div>
+              )}
               {query.trim() && (
                 <button
                   type="button"

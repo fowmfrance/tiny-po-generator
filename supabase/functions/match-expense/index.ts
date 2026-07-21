@@ -23,9 +23,9 @@ function haversineMeters(aLat: number, aLng: number, bLat: number, bLng: number)
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-// Distance (minutes) entre un instant T et le créneau [start, end+30min].
-function minutesToSlot(t: Date, start: Date, end: Date): number {
-  const pad = new Date(end.getTime() + 30 * 60000);
+// Distance (minutes) entre un instant T et le créneau [start, end+pad].
+function minutesToSlot(t: Date, start: Date, end: Date, padMin: number): number {
+  const pad = new Date(end.getTime() + padMin * 60000);
   if (t >= start && t <= pad) return 0;
   return t < start
     ? (start.getTime() - t.getTime()) / 60000
@@ -37,9 +37,14 @@ function scoreEvent(exp: any, ev: any, historyHit: boolean, dateOnly: boolean): 
   const start = new Date(ev.starts_at), end = new Date(ev.ends_at);
 
   // 1. Proximité temporelle (40) : 40 × exp(−Δt/45).
+  //    L'addition part APRÈS le repas : pour un frais resto, le ticket d'un déj
+  //    12 h 30 peut sortir à 15 h 30 passées → tolérance post-créneau de 2 h
+  //    (45 min pour les autres catégories). Un RDV agenda dure souvent moins
+  //    longtemps que le repas réel.
   //    Ticket daté sans heure (OCR) : impossible de mesurer Δt → score plat
   //    « même journée » (25), le départage se fait sur les autres signaux.
-  const dt = dateOnly ? 0 : minutesToSlot(T, start, end);
+  const padMin = exp.te_category === 'restaurant' ? 120 : 45;
+  const dt = dateOnly ? 0 : minutesToSlot(T, start, end, padMin);
   const time = dateOnly ? 25 : 40 * Math.exp(-dt / 45);
 
   // 2. Proximité géographique (25) : <300 m plein, dégressif jusqu'à 2 km, 0 si pas de géoloc
@@ -54,8 +59,11 @@ function scoreEvent(exp: any, ev: any, historyHit: boolean, dateOnly: boolean): 
   //    budgétaires expense_categories (noms libres, non fiables pour le matching).
   let category = 0;
   // Sans heure sur le ticket, on regarde le créneau du RDV lui-même.
+  // Créneaux LARGES côté paiement : un café se paie jusqu'à midi, un déj
+  // jusqu'à 16 h, un dîner jusqu'à minuit — c'est l'heure d'impression du
+  // ticket, pas celle du début du repas.
   const h = parisHour(dateOnly ? start : T);
-  const isMeal = (h >= 12 && h <= 14) || (h >= 19 && h <= 22);
+  const isMeal = (h >= 7 && h <= 16) || (h >= 19 && h < 24);
   const cat = exp.te_category ?? '';
   if (cat === 'restaurant' && isMeal && dt < 90) category = 15;
   else if (cat === 'transport') category = 8;
@@ -110,7 +118,7 @@ Deno.serve(async (req) => {
     // 11 h 30 payé à 14 h 22 doit rester candidat — filtrer sur starts_at seul
     // le faisait passer au travers). Toute la journée si date seule (§5.1).
     const T = new Date(exp.occurred_at).getTime();
-    const from = dateOnly ? T - 2 * 3600e3 : T - 4 * 3600e3;
+    const from = dateOnly ? T - 2 * 3600e3 : T - 5 * 3600e3;
     const to = dateOnly ? T + 26 * 3600e3 : T + 1.5 * 3600e3;
     const { data: candidates } = await sb.from('te_calendar_events')
       .select('*')
