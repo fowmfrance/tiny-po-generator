@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
-  ReceiptText, Loader2, Sparkles, Pencil, Trash2,
+  ReceiptText, Loader2, Sparkles, Pencil, Trash2, Link as LinkIcon, Unlink,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users,
 } from 'lucide-react';
 import {
@@ -264,17 +264,22 @@ const Frais = () => {
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   // Navigation croisée RDV ↔ note de frais : onglet contrôlé + surbrillance.
   const [tab, setTab] = useState('agenda');
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [eventLinks, setEventLinks] = useState<Record<string, EventLink>>({});
   const [highlight, setHighlight] = useState<string | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
     const [{ data: conn }, { data: exp, error }, { data: evts }, { data: ruleRows }] = await Promise.all([
+      // limit(1) et pas maybeSingle : une reconnexion mal gérée a pu laisser
+      // plusieurs lignes en base — on prend la plus récente au lieu d'échouer.
       db.from('integration_connections')
         .select('id, status, last_synced_at')
         .eq('user_id', uid).eq('provider', 'google_calendar')
         .neq('status', 'revoked')
-        .maybeSingle(),
+        .order('created_at', { ascending: false })
+        .limit(1),
       db.from('te_expenses')
         .select('*, te_expense_matches(id, calendar_event_id, status, confidence, signals, matched_event_title, matched_event_starts_at, te_calendar_events(title, starts_at, location_raw)), te_expense_guests(display_name, company_name)')
         .eq('user_id', uid)
@@ -300,7 +305,7 @@ const Frais = () => {
       // Migration socle pas encore appliquée → tables absentes.
       toast({ title: 'Module Frais non initialisé', description: error.message, variant: 'destructive' });
     }
-    setConnection(conn ?? null);
+    setConnection((Array.isArray(conn) ? conn[0] : conn) ?? null);
     setExpenses(exp ?? []);
     setAgenda(evts ?? []);
     setRules(Object.fromEntries((ruleRows ?? []).map((r: any) => [r.recurring_event_id, r.kanban_bucket])));
@@ -377,6 +382,9 @@ const Frais = () => {
     window.history.replaceState({}, '', '/frais');
   }, [toast]);
 
+  // Connexion ET reconnexion : le flux repart avec prompt=consent, donc
+  // réaccorder l'accès (scopes contacts ajoutés depuis) passe par le même
+  // bouton — la connexion existante est mise à jour, pas dupliquée.
   const connectCalendar = async () => {
     const { data, error } = await supabase.functions.invoke('google-oauth-start');
     if (error || !data?.url) {
@@ -384,6 +392,24 @@ const Frais = () => {
       return;
     }
     window.location.href = data.url;
+  };
+
+  // Déconnexion : la connexion passe en 'revoked' (tokens conservés chiffrés,
+  // purge par le cron). Les RDV déjà synchronisés restent, mais ne se
+  // rafraîchissent plus tant qu'on n'a pas reconnecté.
+  const disconnectCalendar = async () => {
+    if (!connection || !userId) return;
+    setDisconnecting(true);
+    const { error } = await db.from('integration_connections')
+      .update({ status: 'revoked' }).eq('id', connection.id);
+    setDisconnecting(false);
+    setDisconnectOpen(false);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Agenda déconnecté', description: 'Reconnectez-le quand vous voulez, vos RDV déjà synchronisés sont conservés.' });
+    loadData(userId);
   };
 
   const syncCalendar = async () => {
@@ -748,7 +774,7 @@ const Frais = () => {
                   {connection.last_synced_at &&
                     ` · dernière synchro ${format(new Date(connection.last_synced_at), 'd MMM HH:mm', { locale: fr })}`}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Select value={syncDays} onValueChange={setSyncDays}>
                     <SelectTrigger className="h-8 w-[170px] text-xs">
                       <SelectValue />
@@ -761,6 +787,16 @@ const Frais = () => {
                   </Select>
                   <Button variant="outline" size="sm" onClick={syncCalendar} disabled={syncing}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} /> Synchroniser
+                  </Button>
+                  {/* Reconnexion : réaccorde l'accès Google (nécessaire quand de
+                      nouveaux scopes sont demandés, ex. carnet de contacts). */}
+                  <Button variant="outline" size="sm" onClick={connectCalendar}
+                    title="Réaccorder l'accès Google (agenda + carnet de contacts)">
+                    <LinkIcon className="h-4 w-4 mr-2" /> Reconnecter
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive"
+                    onClick={() => setDisconnectOpen(true)}>
+                    <Unlink className="h-4 w-4 mr-2" /> Déconnecter
                   </Button>
                 </div>
               </>
@@ -905,6 +941,31 @@ const Frais = () => {
           onSaved={() => loadData(userId)}
         />
       )}
+
+      {/* Déconnexion de l'agenda */}
+      <AlertDialog open={disconnectOpen} onOpenChange={(o) => !o && !disconnecting && setDisconnectOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Déconnecter l'agenda Google ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vos frais et les RDV déjà synchronisés sont conservés, mais l'agenda
+              ne se mettra plus à jour et les nouveaux frais ne se rattacheront plus
+              automatiquement. Vous pourrez reconnecter à tout moment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={disconnecting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={disconnecting}
+              onClick={(ev) => { ev.preventDefault(); disconnectCalendar(); }}
+            >
+              {disconnecting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Déconnecter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Suppression d'un justificatif non traité */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>

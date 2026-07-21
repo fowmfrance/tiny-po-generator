@@ -32,20 +32,42 @@ Deno.serve(async (req) => {
     const refreshRef = tokens.refresh_token ? await encryptToken(sb, tokens.refresh_token) : null;
 
     // TODO : récupérer l'email du calendar (userinfo) pour external_account_id.
-    const { data: conn, error } = await sb.from('integration_connections').upsert({
-      user_id: state,
-      provider: 'google_calendar',
-      external_account_id: null,
+    // ⚠️ PAS d'upsert onConflict ici : external_account_id est NULL et deux NULL
+    // ne « entrent pas en conflit » en SQL → chaque reconnexion créerait une
+    // ligne de plus (et le front, qui attend une connexion unique, casserait).
+    // On met donc à jour la connexion existante (reconnexion pour élargir les
+    // scopes = cas normal), sinon on insère.
+    const payload = {
       access_token_ref: accessRef,
-      refresh_token_ref: refreshRef,
+      // Google ne renvoie le refresh_token qu'au 1er consentement : ne jamais
+      // écraser celui qu'on a par un null.
+      ...(refreshRef ? { refresh_token_ref: refreshRef } : {}),
       token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
       status: 'active',
-      // organization_id rempli par trigger set_org_from_user
-    }, { onConflict: 'organization_id,user_id,provider,external_account_id' })
-      .select('id').single();
+    };
+
+    const { data: existing } = await sb.from('integration_connections')
+      .select('id')
+      .eq('user_id', state)
+      .eq('provider', 'google_calendar')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: conn, error } = existing
+      ? await sb.from('integration_connections')
+        .update(payload).eq('id', existing.id).select('id').single()
+      : await sb.from('integration_connections')
+        .insert({
+          user_id: state,
+          provider: 'google_calendar',
+          external_account_id: null,
+          ...payload,
+          // organization_id rempli par trigger set_org_from_user
+        }).select('id').single();
 
     if (error || !conn) {
-      console.error('upsert integration_connections:', error);
+      console.error('save integration_connections:', error);
       return redirect(`/frais?connexion=erreur`);
     }
 

@@ -912,7 +912,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
               )}
               {needsReauth && (
                 <div className="px-3 py-1.5 text-[11px] text-amber-700 bg-amber-50 border-t">
-                  Carnet Gmail inaccessible — reconnectez l'agenda pour accorder l'accès aux contacts.
+                  Carnet Gmail inaccessible — fermez cette fenêtre et cliquez
+                  « Reconnecter » dans le bloc Agenda Google pour accorder l'accès aux contacts.
                 </div>
               )}
               {query.trim() && (
