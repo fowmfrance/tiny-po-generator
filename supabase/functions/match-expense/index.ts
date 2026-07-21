@@ -92,20 +92,30 @@ Deno.serve(async (req) => {
       .select('*').eq('id', expense_id).single();
     if (!exp) return json({ error: 'frais introuvable' }, 404);
 
+    // Un rattachement déjà confirmé par l'utilisateur ne se recalcule pas
+    // (la modale de vérification relance le matching après édition).
+    const { data: existing } = await sb.from('te_expense_matches')
+      .select('status').eq('expense_id', expense_id).maybeSingle();
+    if (existing && ['confirmed', 'auto_confirmed'].includes(existing.status)) {
+      return json({ ok: true, status: existing.status, skipped: 'already_confirmed' });
+    }
+
     // Ticket OCR daté sans heure → occurred_at tombe à minuit UTC pile :
     // on préfiltre alors sur TOUTE la journée (marge ±2 h pour le fuseau Paris).
     const dateOnly = exp.source === 'receipt_only' &&
       new Date(exp.occurred_at).toISOString().includes('T00:00:00.000Z');
 
-    // Candidats : événements du même user dans [T−3h, T+1h], ou toute la journée
-    // si la date seule est connue (§5.1).
+    // Candidats : événements du même user dont le CRÉNEAU CHEVAUCHE la fenêtre
+    // [T−4h, T+1h30] (on paie l'addition APRÈS le repas : un déj commencé à
+    // 11 h 30 payé à 14 h 22 doit rester candidat — filtrer sur starts_at seul
+    // le faisait passer au travers). Toute la journée si date seule (§5.1).
     const T = new Date(exp.occurred_at).getTime();
-    const from = dateOnly ? T - 2 * 3600e3 : T - 3 * 3600e3;
-    const to = dateOnly ? T + 26 * 3600e3 : T + 1 * 3600e3;
+    const from = dateOnly ? T - 2 * 3600e3 : T - 4 * 3600e3;
+    const to = dateOnly ? T + 26 * 3600e3 : T + 1.5 * 3600e3;
     const { data: candidates } = await sb.from('te_calendar_events')
       .select('*')
       .eq('user_id', exp.user_id)
-      .gte('starts_at', new Date(from).toISOString())
+      .gte('ends_at', new Date(from).toISOString())
       .lte('starts_at', new Date(to).toISOString());
 
     if (!candidates?.length) {

@@ -1,10 +1,15 @@
 // Modale de vérification post-upload d'un justificatif (module Notes de frais).
+// Le document (photo ou PDF) reste AFFICHÉ à gauche, zoomable, pendant toute la
+// vérification — on contrôle les taux de TVA en regardant le ticket.
 // Écran 1 « Vérification » : données OCR éditables (date, fournisseur, SIRET,
-//   adresse, ventilation TVA par taux, totaux) + sanity checks bottom-up
+//   adresse, NAF, ventilation TVA par taux) + sanity checks bottom-up
 //   (somme des lignes vs totaux) et top-down (HT + TVA = TTC, cohérence par taux).
-// Écran 2 « Qui participe » : lookup multi-select des invités (te_contacts),
-//   l'entreprise du contact remonte et reste éditable — snapshot par frais.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+//   Lookup SIRENE (sous-modale, pattern fusion retail_shops) en fallback quand
+//   l'OCR n'a pas su extraire l'adresse, ou à la demande.
+// Écran 2 « Qui participe » : lookup multi-select des invités (te_contacts) +
+//   suggestions automatiques depuis le RDV rattaché (invités du RDV, prénoms
+//   du titre en fuzzy match), entreprise remontée du contact et éditable.
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,11 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Building2, Check, CheckCircle2,
-  Loader2, Plus, Search, Trash2, UserRound, Wand2, X,
+  Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Wand2, X,
+  ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORY_META } from './categoryMeta';
+import SireneFraisDialog, { SireneFields } from './SireneFraisDialog';
 
 const db = supabase as any;
 
@@ -29,6 +36,8 @@ export interface VerifyPrefill {
   merchant: string;
   siret: string;
   address: string;
+  naf: string;
+  nafLabel: string;
   date: string;   // YYYY-MM-DD
   time: string;   // HH:MM
   category: string;
@@ -58,6 +67,13 @@ interface ContactRow {
   company_domain: string | null;
 }
 
+interface GuestSuggestion {
+  contact: ContactRow | null;
+  name: string;
+  email: string | null;
+  company: string;
+}
+
 // Saisie FR tolérée (« 85,50 ») ; NaN si vide/invalide.
 const num = (s: string): number => parseFloat(s.replace(/\s/g, '').replace(',', '.'));
 const has = (s: string) => s.trim() !== '' && !Number.isNaN(num(s));
@@ -67,12 +83,22 @@ const euro = (n: number) =>
 // Tolérance d'arrondi : 1 centime par ligne agrégée, minimum 2 centimes.
 const close = (a: number, b: number, tol = 0.02) => Math.abs(a - b) <= tol + 1e-9;
 
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 const contactName = (c: ContactRow) =>
   c.display_name
   || [c.first_name, c.last_name].filter(Boolean).join(' ')
   || c.email;
 
 const contactCompany = (c: ContactRow) => c.company_name ?? c.company_domain ?? '';
+
+// Mots du titre d'un RDV qui ne sont PAS des prénoms (créneaux repas, liaisons…).
+const TITLE_STOPWORDS = new Set([
+  'dej', 'dejeuner', 'diner', 'dinner', 'lunch', 'cafe', 'coffee', 'petit',
+  'resto', 'restaurant', 'apero', 'drink', 'drinks', 'soiree', 'brunch',
+  'avec', 'chez', 'et', 'les', 'des', 'the', 'and', 'with', 'pour', 'sur',
+  'point', 'call', 'visio', 'meet', 'meeting', 'rdv', 'rendez', 'vous', 'reunion',
+]);
 
 interface Props {
   open: boolean;
@@ -87,10 +113,17 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [step, setStep] = useState<1 | 2>(1);
   const [saving, setSaving] = useState(false);
 
+  // --- Document (photo/PDF du bucket privé, URL signée 1 h) ---
+  const [docUrl, setDocUrl] = useState<string | null>(null);
+  const [docIsPdf, setDocIsPdf] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
   // --- Écran 1 : données du justificatif ---
   const [merchant, setMerchant] = useState('');
   const [siret, setSiret] = useState('');
   const [address, setAddress] = useState('');
+  const [naf, setNaf] = useState('');
+  const [nafLabel, setNafLabel] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [category, setCategory] = useState('');
@@ -98,12 +131,15 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [totalHT, setTotalHT] = useState('');
   const [totalTVA, setTotalTVA] = useState('');
   const [lines, setLines] = useState<VatLineDraft[]>([]);
+  const [sireneOpen, setSireneOpen] = useState(false);
 
   // --- Écran 2 : participants ---
   const [guests, setGuests] = useState<Guest[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ContactRow[]>([]);
   const [searching, setSearching] = useState(false);
+  const [eventCtx, setEventCtx] = useState<{ title: string | null; attendees: unknown[] } | null>(null);
+  const [contactPool, setContactPool] = useState<ContactRow[]>([]);
 
   // (Re)charge le prefill + les invités déjà enregistrés à l'ouverture.
   useEffect(() => {
@@ -112,6 +148,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setMerchant(prefill.merchant);
     setSiret(prefill.siret);
     setAddress(prefill.address);
+    setNaf(prefill.naf);
+    setNafLabel(prefill.nafLabel);
     setDate(prefill.date);
     setTime(prefill.time);
     setCategory(prefill.category);
@@ -122,6 +160,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setQuery('');
     setResults([]);
     setGuests([]);
+    setEventCtx(null);
+    // Fallback SIRENE : SIRET lu mais adresse manquante → lookup proposé d'office.
+    setSireneOpen(!!prefill.siret && !prefill.address);
     db.from('te_expense_guests')
       .select('contact_id, display_name, email, company_name')
       .eq('expense_id', prefill.expenseId)
@@ -137,6 +178,92 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         }
       });
   }, [open, prefill]);
+
+  // URL signée du justificatif (bucket privé te-receipts).
+  useEffect(() => {
+    if (!open || !prefill?.receiptId) { setDocUrl(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: r } = await db.from('te_receipts')
+        .select('storage_path').eq('id', prefill.receiptId).maybeSingle();
+      if (!r?.storage_path || cancelled) return;
+      const path = r.storage_path.replace(/^te-receipts\//, '');
+      const { data: s } = await supabase.storage.from('te-receipts').createSignedUrl(path, 3600);
+      if (cancelled || !s?.signedUrl) return;
+      setDocIsPdf(/\.pdf(\?|$)/i.test(path));
+      setZoom(1);
+      setDocUrl(s.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [open, prefill?.receiptId]);
+
+  // À l'entrée sur l'écran 2 : RDV rattaché (pour les suggestions) + carnet.
+  // Chargé à ce moment-là (pas à l'ouverture) : le matching post-OCR tourne en
+  // arrière-plan et a ainsi quelques secondes de plus pour aboutir.
+  useEffect(() => {
+    if (!open || step !== 2 || !prefill) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: m }, { data: cs }] = await Promise.all([
+        db.from('te_expense_matches')
+          .select('status, te_calendar_events(title, attendees)')
+          .eq('expense_id', prefill.expenseId)
+          .maybeSingle(),
+        db.from('te_contacts')
+          .select('id, email, first_name, last_name, display_name, company_name, company_domain')
+          .eq('user_id', userId)
+          .limit(1000),
+      ]);
+      if (cancelled) return;
+      const ev = m?.te_calendar_events;
+      setEventCtx(ev ? { title: ev.title, attendees: Array.isArray(ev.attendees) ? ev.attendees : [] } : null);
+      setContactPool(cs ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [open, step, prefill, userId]);
+
+  // Suggestions de participants : invités du RDV rattaché + prénoms du titre
+  // (« Déj Régis et Lolo » → fuzzy match sur le carnet te_contacts).
+  const suggestions = useMemo((): GuestSuggestion[] => {
+    if (!eventCtx) return [];
+    const out: GuestSuggestion[] = [];
+    const seen = new Set<string>();
+    const taken = new Set(guests.flatMap((g) => [
+      g.contactId ?? '', g.email ? norm(g.email) : '', norm(g.displayName),
+    ].filter(Boolean)));
+    const push = (s: GuestSuggestion) => {
+      const key = s.contact?.id ?? (s.email ? norm(s.email) : norm(s.name));
+      if (!key || seen.has(key)) return;
+      if (taken.has(key) || (s.contact && taken.has(s.contact.id)) || taken.has(norm(s.name))) return;
+      seen.add(key);
+      out.push(s);
+    };
+
+    // 1. Invités du RDV (emails Google) — signal le plus fort.
+    for (const a of eventCtx.attendees as any[]) {
+      if (!a || a.self) continue;
+      const email: string | null = a.email ?? null;
+      const c = email ? contactPool.find((x) => norm(x.email) === norm(email)) ?? null : null;
+      const name = c ? contactName(c) : (a.displayName || (email ? email.split('@')[0] : ''));
+      if (!name) continue;
+      push({ contact: c, name, email, company: c ? contactCompany(c) : '' });
+    }
+
+    // 2. Prénoms/surnoms dans le TITRE du RDV, en fuzzy sur le carnet.
+    const tokens = norm(eventCtx.title ?? '')
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length >= 3 && !TITLE_STOPWORDS.has(t));
+    for (const t of tokens) {
+      for (const c of contactPool) {
+        const hay = [c.first_name, c.last_name, c.display_name, c.email.split('@')[0]]
+          .filter(Boolean).map((v) => norm(v as string));
+        if (hay.some((h) => h.includes(t))) {
+          push({ contact: c, name: contactName(c), email: c.email, company: contactCompany(c) });
+        }
+      }
+    }
+    return out.slice(0, 6);
+  }, [eventCtx, contactPool, guests]);
 
   // Lookup contacts (carnet agenda enrichi) — debounce 250 ms.
   useEffect(() => {
@@ -227,13 +354,21 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const setLine = (i: number, patch: Partial<VatLineDraft>) =>
     setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
-  const addGuestFromContact = (c: ContactRow) => {
+  const applySirene = (patch: Partial<SireneFields>) => {
+    if (patch.merchant !== undefined) setMerchant(patch.merchant);
+    if (patch.siret !== undefined) setSiret(patch.siret);
+    if (patch.address !== undefined) setAddress(patch.address);
+    if (patch.naf !== undefined) setNaf(patch.naf);
+    if (patch.nafLabel !== undefined) setNafLabel(patch.nafLabel);
+  };
+
+  const addGuest = (s: GuestSuggestion) => {
     setGuests((g) => [...g, {
-      contactId: c.id,
-      displayName: contactName(c),
-      email: c.email,
-      companyName: contactCompany(c),
-      originalCompany: c.company_name,
+      contactId: s.contact?.id ?? null,
+      displayName: s.name,
+      email: s.email,
+      companyName: s.company,
+      originalCompany: s.contact?.company_name ?? null,
     }]);
     setQuery('');
     setResults([]);
@@ -242,11 +377,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const addFreeGuest = () => {
     const name = query.trim();
     if (!name) return;
-    setGuests((g) => [...g, {
-      contactId: null, displayName: name, email: null, companyName: '', originalCompany: null,
-    }]);
-    setQuery('');
-    setResults([]);
+    addGuest({ contact: null, name, email: null, company: '' });
   };
 
   const save = async () => {
@@ -268,6 +399,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         merchant_clean: merchant || null,
         supplier_siret: cleanSiret || null,
         supplier_address: address.trim() || null,
+        supplier_naf: naf.trim() || null,
+        supplier_naf_label: nafLabel.trim() || null,
         amount: num(totalTTC),
         amount_ht: has(totalHT) ? num(totalHT) : null,
         vat_amount: has(totalTVA) ? num(totalTVA) : null,
@@ -325,242 +458,334 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
-      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
-        {step === 1 ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Vérifier le justificatif</DialogTitle>
-              <DialogDescription>
-                Relisez ce que l'OCR a extrait — tout est corrigeable avant enregistrement.
-              </DialogDescription>
-            </DialogHeader>
+  const screen1 = (
+    <>
+      <DialogHeader>
+        <DialogTitle>Vérifier le justificatif</DialogTitle>
+        <DialogDescription>
+          Relisez ce que l'OCR a extrait — tout est corrigeable avant enregistrement.
+        </DialogDescription>
+      </DialogHeader>
 
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-merchant">Fournisseur</Label>
-                  <Input id="rv-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-siret">SIRET / SIREN</Label>
-                  <Input id="rv-siret" placeholder="14 chiffres" value={siret}
-                    onChange={(e) => setSiret(e.target.value)} />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="rv-address">Adresse</Label>
-                <Input id="rv-address" placeholder="12 rue …, 75009 Paris" value={address}
-                  onChange={(e) => setAddress(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-date">Date</Label>
-                  <Input id="rv-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-time">Heure</Label>
-                  <Input id="rv-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Type de frais</Label>
-                  <Select value={category || undefined} onValueChange={setCategory}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CATEGORY_META).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Ventilation TVA par taux */}
-              <div className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">TVA par taux</div>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs"
-                    onClick={() => setLines((ls) => [...ls, { rate: '', ht: '', tva: '' }])}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un taux
-                  </Button>
-                </div>
-                <div className="grid grid-cols-[1fr_1.4fr_1.4fr_28px] gap-2 text-[11px] text-muted-foreground px-0.5">
-                  <span>Taux %</span><span>Base HT €</span><span>TVA €</span><span />
-                </div>
-                {lines.map((l, i) => (
-                  <div key={i}>
-                    <div className="grid grid-cols-[1fr_1.4fr_1.4fr_28px] gap-2 items-center">
-                      <Input inputMode="decimal" placeholder="10" value={l.rate}
-                        onChange={(e) => setLine(i, { rate: e.target.value })} className="h-8" />
-                      <Input inputMode="decimal" placeholder="0,00" value={l.ht}
-                        onChange={(e) => setLine(i, { ht: e.target.value })} className="h-8" />
-                      <Input inputMode="decimal" placeholder="0,00" value={l.tva}
-                        onChange={(e) => setLine(i, { tva: e.target.value })} className="h-8" />
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    </div>
-                    {checks.lineWarnings[i] && (
-                      <div className="text-[11px] text-amber-600 mt-0.5 flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3 shrink-0" />
-                        {`${fmt(num(l.ht))} € × ${l.rate} % = ${fmt(num(l.ht) * num(l.rate) / 100)} €, pas ${fmt(num(l.tva))} €`}
-                      </div>
-                    )}
-                  </div>
+      <div className="space-y-3 py-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-merchant">Fournisseur</Label>
+            <Input id="rv-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-siret">SIRET / SIREN</Label>
+            <Input id="rv-siret" placeholder="14 chiffres" value={siret}
+              onChange={(e) => setSiret(e.target.value)} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="rv-address">Adresse</Label>
+            <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground"
+              onClick={() => setSireneOpen(true)}>
+              <Landmark className="h-3 w-3 mr-1" /> Compléter via SIRENE
+            </Button>
+          </div>
+          <Input id="rv-address" placeholder="12 rue …, 75009 Paris" value={address}
+            onChange={(e) => setAddress(e.target.value)} />
+        </div>
+        {(naf || nafLabel) && (
+          <div className="grid grid-cols-[120px_1fr] gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="rv-naf">Code NAF</Label>
+              <Input id="rv-naf" value={naf} onChange={(e) => setNaf(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rv-naf-label">Activité</Label>
+              <Input id="rv-naf-label" value={nafLabel} onChange={(e) => setNafLabel(e.target.value)} />
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-date">Date</Label>
+            <Input id="rv-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-time">Heure</Label>
+            <Input id="rv-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Type de frais</Label>
+            <Select value={category || undefined} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(CATEGORY_META).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
                 ))}
-              </div>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-              {/* Totaux */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-ht">Total HT (€)</Label>
-                  <Input id="rv-ht" inputMode="decimal" value={totalHT}
-                    onChange={(e) => setTotalHT(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-tva">Total TVA (€)</Label>
-                  <Input id="rv-tva" inputMode="decimal" value={totalTVA}
-                    onChange={(e) => setTotalTVA(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rv-ttc">Total TTC (€)</Label>
-                  <Input id="rv-ttc" inputMode="decimal" value={totalTTC}
-                    onChange={(e) => setTotalTTC(e.target.value)} />
-                </div>
+        {/* Ventilation TVA par taux */}
+        <div className="rounded-lg border p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">TVA par taux</div>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs"
+              onClick={() => setLines((ls) => [...ls, { rate: '', ht: '', tva: '' }])}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un taux
+            </Button>
+          </div>
+          <div className="grid grid-cols-[1fr_1.4fr_1.4fr_28px] gap-2 text-[11px] text-muted-foreground px-0.5">
+            <span>Taux %</span><span>Base HT €</span><span>TVA €</span><span />
+          </div>
+          {lines.map((l, i) => (
+            <div key={i}>
+              <div className="grid grid-cols-[1fr_1.4fr_1.4fr_28px] gap-2 items-center">
+                <Input inputMode="decimal" placeholder="10" value={l.rate}
+                  onChange={(e) => setLine(i, { rate: e.target.value })} className="h-8" />
+                <Input inputMode="decimal" placeholder="0,00" value={l.ht}
+                  onChange={(e) => setLine(i, { ht: e.target.value })} className="h-8" />
+                <Input inputMode="decimal" placeholder="0,00" value={l.tva}
+                  onChange={(e) => setLine(i, { tva: e.target.value })} className="h-8" />
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
               </div>
-
-              {/* Sanity checks */}
-              {checks.items.length > 0 && (
-                <div className={`rounded-lg border p-3 space-y-1.5 ${allOk ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
-                  {checks.items.map((c, i) => (
-                    <div key={i} className={`text-xs flex items-center gap-1.5 ${c.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
-                      {c.ok ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
-                      {c.label}
-                    </div>
-                  ))}
-                  {!allOk && (
-                    <Button type="button" variant="outline" size="sm" className="h-7 mt-1 text-xs"
-                      onClick={recalcFromLines}>
-                      <Wand2 className="h-3.5 w-3.5 mr-1.5" /> Recalculer les totaux depuis les taux
-                    </Button>
-                  )}
+              {checks.lineWarnings[i] && (
+                <div className="text-[11px] text-amber-600 mt-0.5 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  {`${fmt(num(l.ht))} € × ${l.rate} % = ${fmt(num(l.ht) * num(l.rate) / 100)} €, pas ${fmt(num(l.tva))} €`}
                 </div>
               )}
             </div>
+          ))}
+        </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Annuler</Button>
-              <Button onClick={() => setStep(2)} disabled={!has(totalTTC)}>
-                Qui participe ? <ArrowRight className="h-4 w-4 ml-1.5" />
+        {/* Totaux */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-ht">Total HT (€)</Label>
+            <Input id="rv-ht" inputMode="decimal" value={totalHT}
+              onChange={(e) => setTotalHT(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-tva">Total TVA (€)</Label>
+            <Input id="rv-tva" inputMode="decimal" value={totalTVA}
+              onChange={(e) => setTotalTVA(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="rv-ttc">Total TTC (€)</Label>
+            <Input id="rv-ttc" inputMode="decimal" value={totalTTC}
+              onChange={(e) => setTotalTTC(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Sanity checks */}
+        {checks.items.length > 0 && (
+          <div className={`rounded-lg border p-3 space-y-1.5 ${allOk ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+            {checks.items.map((c, i) => (
+              <div key={i} className={`text-xs flex items-center gap-1.5 ${c.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {c.ok ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                {c.label}
+              </div>
+            ))}
+            {!allOk && (
+              <Button type="button" variant="outline" size="sm" className="h-7 mt-1 text-xs"
+                onClick={recalcFromLines}>
+                <Wand2 className="h-3.5 w-3.5 mr-1.5" /> Recalculer les totaux depuis les taux
               </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Qui participe ?</DialogTitle>
-              <DialogDescription>
-                Les invités justifient le frais (obligation fiscale pour les repas d'affaires).
-                L'entreprise remonte du carnet de contacts — corrigez-la si besoin.
-              </DialogDescription>
-            </DialogHeader>
+            )}
+          </div>
+        )}
+      </div>
 
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                <Input
-                  placeholder="Chercher un contact (nom, email, entreprise)…"
-                  className="pl-8"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && results.length === 0 && query.trim()) {
-                      e.preventDefault();
-                      addFreeGuest();
-                    }
-                  }}
-                />
-                {(results.length > 0 || (query.trim().length >= 2 && !searching)) && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md overflow-hidden">
-                    {results.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 min-w-0"
-                        onClick={() => addGuestFromContact(c)}
-                      >
-                        <UserRound className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-medium truncate">{contactName(c)}</span>
-                        <span className="text-xs text-muted-foreground truncate">{c.email}</span>
-                        {contactCompany(c) && (
-                          <Badge variant="outline" className="ml-auto shrink-0 text-[10px]">
-                            {contactCompany(c)}
-                          </Badge>
-                        )}
-                      </button>
-                    ))}
-                    {query.trim() && (
-                      <button
-                        type="button"
-                        className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-sm border-t"
-                        onClick={addFreeGuest}
-                      >
-                        <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-                        Ajouter « {query.trim()} »
-                      </button>
-                    )}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Annuler</Button>
+        <Button onClick={() => setStep(2)} disabled={!has(totalTTC)}>
+          Qui participe ? <ArrowRight className="h-4 w-4 ml-1.5" />
+        </Button>
+      </DialogFooter>
+    </>
+  );
+
+  const screen2 = (
+    <>
+      <DialogHeader>
+        <DialogTitle>Qui participe ?</DialogTitle>
+        <DialogDescription>
+          Les invités justifient le frais (obligation fiscale pour les repas d'affaires).
+          L'entreprise remonte du carnet de contacts — corrigez-la si besoin.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-3 py-3">
+        {/* Suggestions depuis le RDV rattaché : invités + prénoms du titre */}
+        {suggestions.length > 0 && (
+          <div className="rounded-lg border border-brand/30 bg-brand/5 p-2.5 space-y-1.5">
+            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-brand shrink-0" />
+              Suggérés depuis le RDV{eventCtx?.title ? ` « ${eventCtx.title} »` : ''}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map((s, i) => (
+                <Button key={`${s.contact?.id ?? s.name}-${i}`} type="button" variant="outline" size="sm"
+                  className="h-7 text-xs" onClick={() => addGuest(s)}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  {s.name}{s.company && ` (${s.company})`}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="relative">
+          <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+          <Input
+            placeholder="Chercher un contact (nom, email, entreprise)…"
+            className="pl-8"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && results.length === 0 && query.trim()) {
+                e.preventDefault();
+                addFreeGuest();
+              }
+            }}
+          />
+          {(results.length > 0 || (query.trim().length >= 2 && !searching)) && (
+            <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md overflow-hidden">
+              {results.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 min-w-0"
+                  onClick={() => addGuest({ contact: c, name: contactName(c), email: c.email, company: contactCompany(c) })}
+                >
+                  <UserRound className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate">{contactName(c)}</span>
+                  <span className="text-xs text-muted-foreground truncate">{c.email}</span>
+                  {contactCompany(c) && (
+                    <Badge variant="outline" className="ml-auto shrink-0 text-[10px]">
+                      {contactCompany(c)}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+              {query.trim() && (
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-sm border-t"
+                  onClick={addFreeGuest}
+                >
+                  <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                  Ajouter « {query.trim()} »
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {guests.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-6 rounded-lg border border-dashed">
+            Aucun participant pour l'instant — cherchez un contact ou tapez un nom.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {guests.map((g, i) => (
+              <div key={`${g.contactId ?? 'free'}-${i}`} className="rounded-lg border p-2.5 flex items-center gap-2.5">
+                <UserRound className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{g.displayName}</div>
+                  {g.email && <div className="text-[11px] text-muted-foreground truncate">{g.email}</div>}
+                </div>
+                <div className="relative w-[180px] shrink-0">
+                  <Building2 className="h-3.5 w-3.5 absolute left-2 top-2.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Entreprise"
+                    className="h-8 pl-7 text-sm"
+                    value={g.companyName}
+                    onChange={(e) =>
+                      setGuests((gs) => gs.map((x, j) => (j === i ? { ...x, companyName: e.target.value } : x)))}
+                  />
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0"
+                  onClick={() => setGuests((gs) => gs.filter((_, j) => j !== i))}>
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <DialogFooter className="gap-2 sm:gap-0">
+        <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>
+          <ArrowLeft className="h-4 w-4 mr-1.5" /> Retour
+        </Button>
+        <Button onClick={save} disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Check className="h-4 w-4 mr-1.5" />}
+          Enregistrer{guests.length > 0 && ` (${guests.length} participant${guests.length > 1 ? 's' : ''})`}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
+        <DialogContent className={`${docUrl ? 'sm:max-w-[1080px]' : 'sm:max-w-[560px]'} max-h-[92vh] overflow-y-auto`}>
+          <div className={docUrl ? 'md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-5 md:items-start' : ''}>
+            {/* Visionneuse du justificatif : toujours visible pour contrôler
+                taux et montants en regardant le document. */}
+            {docUrl && (
+              <div className="rounded-lg border bg-muted/40 overflow-hidden flex flex-col mb-4 md:mb-0 md:sticky md:top-0 h-[320px] md:h-[calc(92vh-7rem)]">
+                <div className="flex items-center justify-between px-2.5 py-1.5 border-b bg-background/60">
+                  <span className="text-xs font-medium text-muted-foreground">Justificatif</span>
+                  {!docIsPdf && (
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 4) / 4))}>
+                        <ZoomOut className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground w-8 text-center">{Math.round(zoom * 100)} %</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => setZoom((z) => Math.min(4, Math.round((z + 0.25) * 4) / 4))}>
+                        <ZoomIn className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {docIsPdf ? (
+                  // Visionneuse PDF du navigateur : zoom/rotation intégrés.
+                  <iframe src={docUrl} title="Justificatif" className="flex-1 w-full" />
+                ) : (
+                  <div className="flex-1 overflow-auto">
+                    <img
+                      src={docUrl}
+                      alt="Justificatif"
+                      className="cursor-zoom-in select-none"
+                      style={{ width: `${zoom * 100}%`, maxWidth: 'none' }}
+                      onDoubleClick={() => setZoom((z) => (z >= 3 ? 1 : z + 1))}
+                      draggable={false}
+                    />
                   </div>
                 )}
               </div>
-
-              {guests.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-6 rounded-lg border border-dashed">
-                  Aucun participant pour l'instant — cherchez un contact ou tapez un nom.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {guests.map((g, i) => (
-                    <div key={`${g.contactId ?? 'free'}-${i}`} className="rounded-lg border p-2.5 flex items-center gap-2.5">
-                      <UserRound className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium truncate">{g.displayName}</div>
-                        {g.email && <div className="text-[11px] text-muted-foreground truncate">{g.email}</div>}
-                      </div>
-                      <div className="relative w-[180px] shrink-0">
-                        <Building2 className="h-3.5 w-3.5 absolute left-2 top-2.5 text-muted-foreground" />
-                        <Input
-                          placeholder="Entreprise"
-                          className="h-8 pl-7 text-sm"
-                          value={g.companyName}
-                          onChange={(e) =>
-                            setGuests((gs) => gs.map((x, j) => (j === i ? { ...x, companyName: e.target.value } : x)))}
-                        />
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-                        onClick={() => setGuests((gs) => gs.filter((_, j) => j !== i))}>
-                        <X className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            )}
+            <div className="min-w-0">
+              {step === 1 ? screen1 : screen2}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>
-                <ArrowLeft className="h-4 w-4 mr-1.5" /> Retour
-              </Button>
-              <Button onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Check className="h-4 w-4 mr-1.5" />}
-                Enregistrer{guests.length > 0 && ` (${guests.length} participant${guests.length > 1 ? 's' : ''})`}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+      <SireneFraisDialog
+        open={sireneOpen}
+        onOpenChange={setSireneOpen}
+        defaultQuery={siret.replace(/\D/g, '') || merchant}
+        current={{ merchant, siret, address, naf, nafLabel }}
+        onApply={applySirene}
+      />
+    </>
   );
 };
 

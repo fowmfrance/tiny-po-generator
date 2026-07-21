@@ -14,9 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
-  ReceiptText, Loader2, Sparkles, Pencil,
+  ReceiptText, Loader2, Sparkles, Pencil, Trash2,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users,
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +65,8 @@ interface TeExpense {
   vat_breakdown: { rate: number | null; ht: number | null; tva: number | null }[] | null;
   supplier_siret: string | null;
   supplier_address: string | null;
+  supplier_naf: string | null;
+  supplier_naf_label: string | null;
   occurred_at: string;
   te_category: 'restaurant' | 'transport' | 'hebergement' | 'autre' | null;
   status: 'new' | 'suggested' | 'confirmed' | 'rejected' | 'no_context' | 'exported';
@@ -187,6 +193,8 @@ const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | nu
   merchant: str(ex?.merchant),
   siret: str(ex?.siret),
   address: str(ex?.address),
+  naf: '',
+  nafLabel: '',
   date: str(ex?.date),
   time: ex?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(ex.time) ? ex.time : '',
   category: VALID_CATEGORIES.includes(ex?.category) ? ex.category : '',
@@ -209,6 +217,8 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
     merchant: e.merchant_clean ?? e.merchant_raw ?? '',
     siret: e.supplier_siret ?? '',
     address: e.supplier_address ?? '',
+    naf: e.supplier_naf ?? '',
+    nafLabel: e.supplier_naf_label ?? '',
     date: dateOnly ? e.occurred_at.slice(0, 10) : format(d, 'yyyy-MM-dd'),
     time: dateOnly ? '' : format(d, 'HH:mm'),
     category: e.te_category ?? '',
@@ -238,6 +248,10 @@ const Frais = () => {
   const [seriesMove, setSeriesMove] = useState<{ event: AgendaEvent; bucket: AgendaBucket } | null>(null);
   // Modale de vérification OCR (écran 1) + participants (écran 2).
   const [verify, setVerify] = useState<VerifyPrefill | null>(null);
+  // Suppression d'un frais non traité (confirmation) + relance de matching.
+  const [toDelete, setToDelete] = useState<TeExpense | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [rematchingId, setRematchingId] = useState<string | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -425,6 +439,55 @@ const Frais = () => {
     }
   };
 
+  // Supprime un frais non traité + son reçu (ligne et fichier du bucket).
+  const deleteExpense = async () => {
+    if (!toDelete || !userId) return;
+    setDeleting(true);
+    try {
+      let storagePath: string | null = null;
+      if (toDelete.receipt_id) {
+        const { data: r } = await db.from('te_receipts')
+          .select('storage_path').eq('id', toDelete.receipt_id).maybeSingle();
+        storagePath = r?.storage_path ?? null;
+      }
+      // Le frais d'abord (FK receipt_id), puis le reçu, puis le fichier.
+      const { error } = await db.from('te_expenses').delete().eq('id', toDelete.id);
+      if (error) throw error;
+      if (toDelete.receipt_id) {
+        await db.from('te_receipts').delete().eq('id', toDelete.receipt_id);
+        if (storagePath) {
+          await supabase.storage.from('te-receipts')
+            .remove([storagePath.replace(/^te-receipts\//, '')]);
+        }
+      }
+      toast({ title: 'Justificatif supprimé' });
+      setToDelete(null);
+      loadData(userId);
+    } catch (e: any) {
+      toast({ title: 'Erreur à la suppression', description: e.message ?? String(e), variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Relance le matching frais ↔ RDV à la demande (ex. après une resynchro agenda).
+  const rematch = async (e: TeExpense) => {
+    if (!userId) return;
+    setRematchingId(e.id);
+    const { data, error } = await supabase.functions.invoke('match-expense', {
+      body: { expense_id: e.id },
+    });
+    setRematchingId(null);
+    if (error) {
+      toast({ title: 'Erreur de matching', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.status === 'no_context') {
+      toast({ title: 'Aucun RDV trouvé', description: 'Aucun rendez-vous ne correspond à ce créneau dans l’agenda synchronisé.' });
+    }
+    loadData(userId);
+  };
+
   const decideMatch = async (expense: TeExpense, match: TeMatch, decision: 'confirmed' | 'rejected') => {
     if (!userId) return;
     const { error: mErr } = await db.from('te_expense_matches')
@@ -496,15 +559,37 @@ const Frais = () => {
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="text-lg font-semibold whitespace-nowrap">{euro(e.amount)}</div>
-              {e.status !== 'exported' && (
-                <Button
-                  variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground"
-                  onClick={() => setVerify(prefillFromExpense(e))}
-                >
-                  <Pencil className="h-3 w-3 mr-1" />
-                  {e.verified_at ? 'Modifier' : 'Vérifier'}
-                </Button>
-              )}
+              <div className="flex items-center">
+                {['new', 'no_context'].includes(e.status) && (
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                    title="Relancer la recherche de RDV"
+                    onClick={() => rematch(e)} disabled={rematchingId === e.id}
+                  >
+                    {rematchingId === e.id
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Sparkles className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+                {e.status !== 'exported' && (
+                  <Button
+                    variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground"
+                    onClick={() => setVerify(prefillFromExpense(e))}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    {e.verified_at ? 'Modifier' : 'Vérifier'}
+                  </Button>
+                )}
+                {['new', 'suggested', 'no_context'].includes(e.status) && (
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    title="Supprimer ce justificatif"
+                    onClick={() => setToDelete(e)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -579,7 +664,7 @@ const Frais = () => {
               Ajouter un reçu
             </Button>
             <input
-              ref={fileInputRef} type="file" accept="image/*" className="hidden"
+              ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden"
               onChange={(ev) => ev.target.files?.[0] && uploadReceipt(ev.target.files[0])}
             />
           </div>
@@ -740,6 +825,31 @@ const Frais = () => {
           onSaved={() => loadData(userId)}
         />
       )}
+
+      {/* Suppression d'un justificatif non traité */}
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce justificatif ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {toDelete?.merchant_clean ?? toDelete?.merchant_raw ?? 'Frais'} —{' '}
+              {toDelete ? euro(toDelete.amount) : ''} » sera supprimé,
+              {toDelete?.receipt_id ? ' ainsi que le reçu photo associé.' : ' définitivement.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(ev) => { ev.preventDefault(); deleteExpense(); }}
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Événement récurrent déplacé : un épisode ou toute la série ? */}
       <Dialog open={!!seriesMove} onOpenChange={(o) => !o && setSeriesMove(null)}>

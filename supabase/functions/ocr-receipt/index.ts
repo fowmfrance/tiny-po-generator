@@ -118,20 +118,34 @@ Deno.serve(async (req) => {
     const dataUrl = `data:${mime};base64,${b64}`;
 
     const res = await ocrImage(dataUrl, apiKey);
-    if (!res.ok) {
-      await sb.from('te_receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
-      if (res.status === 429) return json({ error: 'Limite de requêtes atteinte.' }, 429);
-      if (res.status === 402) return json({ error: 'Crédits AI épuisés.' }, 402);
-      return json({ error: "Erreur d'analyse OCR" }, 500);
-    }
+    // Limites plateforme = retryable → on rend l'erreur (l'utilisateur relancera).
+    if (res.status === 429) return json({ error: 'Limite de requêtes atteinte.' }, 429);
+    if (res.status === 402) return json({ error: 'Crédits AI épuisés.' }, 402);
 
-    const out = await res.json();
-    const args = out.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!args) {
-      await sb.from('te_receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
-      return json({ error: "L'AI n'a pas pu lire le reçu" }, 422);
+    // Document illisible (photo floue, PDF non supporté par le modèle…) :
+    // on ne bloque PAS le flux — frais vide + modale de vérification en
+    // saisie manuelle face au document.
+    let ex: any = null;
+    if (res.ok) {
+      const out = await res.json();
+      const args = out.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (args) { try { ex = JSON.parse(args); } catch { ex = null; } }
     }
-    const ex = JSON.parse(args);
+    if (!ex) {
+      await sb.from('te_receipts').update({ ocr_status: 'failed' }).eq('id', receipt_id);
+      const { data: bare, error: bareErr } = await sb.from('te_expenses').insert({
+        user_id: receipt.user_id,
+        source: 'receipt_only',
+        amount: 0,
+        occurred_at: new Date().toISOString(),
+        reimbursable: true,
+        reimbursement_status: 'pending',
+        receipt_id,
+        status: 'new',
+      }).select('id').single();
+      if (bareErr) throw new Error(`création frais (OCR illisible): ${bareErr.message}`);
+      return json({ ok: true, receipt_id, expense_id: bare.id, extracted: null, ocr_failed: true });
+    }
     // Ventilation TVA : ne garder que les lignes plausibles (taux FR).
     const vatLines = Array.isArray(ex.vat_lines)
       ? ex.vat_lines.filter((l: any) => typeof l?.rate === 'number' && l.rate >= 0 && l.rate <= 30)
