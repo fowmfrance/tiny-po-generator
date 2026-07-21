@@ -13,7 +13,8 @@
 -- TOUCHARD EI »). Un nom saisi à la main avec une casse voulue (« eBay »,
 -- « L'Oréal ») n'est jamais touché.
 --
--- ⚠ À exécuter à la main dans Lovable Cloud. Idempotent.
+-- ✅ EXÉCUTÉE en prod le 2026-07-21 via le connecteur Lovable (25 noms
+--    normalisés : 17 fournisseurs + 8 clients). Idempotent, rejouable.
 
 -- ---------------------------------------------------------------------------
 -- 1. La fonction (port SQL de src/utils/properCase.ts — garder les 2 en phase)
@@ -24,7 +25,8 @@ language plpgsql
 immutable
 as $$
 declare
-  _out text;
+  _src text;
+  _out text := '';
   _tok text;
   -- Acronymes / formes juridiques conservés en majuscules (= KEEP_UPPER côté TS)
   _keep_upper text[] := array[
@@ -37,12 +39,30 @@ begin
     return _raw;
   end if;
 
-  -- initcap découpe sur tout caractère non alphanumérique : apostrophes et
-  -- traits d'union sont donc gérés comme côté TS (« l'atelier » → « L'Atelier »).
-  _out := initcap(regexp_replace(btrim(_raw), '\s+', ' ', 'g'));
+  _src := regexp_replace(btrim(_raw), '\s+', ' ', 'g');
 
-  foreach _tok in array _keep_upper loop
-    _out := regexp_replace(_out, '\m' || _tok || '\M', _tok, 'gi');
+  -- Nom d'un seul mot de 4 caractères ou moins, tout en majuscules : acronyme
+  -- présumé (EDF, SNCF, MUA, MHCS). On n'y touche pas.
+  if _src = upper(_src) and _src ~ '^[[:alnum:]]{1,4}$' then
+    return _src;
+  end if;
+
+  -- On ne peut pas s'appuyer sur initcap() : depuis PG17 l'apostrophe n'est plus
+  -- un séparateur de mot (« L'ATELIER » → « L'atelier »), ce qui diverge du TS.
+  -- On refait donc le découpage à la main : chaque suite alphanumérique est
+  -- capitalisée, les séparateurs sont recopiés tels quels.
+  for _tok in
+    select m[1] from regexp_matches(_src, '([[:alnum:]]+|[^[:alnum:]]+)', 'g') m
+  loop
+    if _tok ~ '^[[:alnum:]]' then
+      if upper(_tok) = any (_keep_upper) then
+        _out := _out || upper(_tok);
+      else
+        _out := _out || upper(left(_tok, 1)) || lower(substr(_tok, 2));
+      end if;
+    else
+      _out := _out || _tok;
+    end if;
   end loop;
 
   return _out;

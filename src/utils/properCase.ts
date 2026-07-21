@@ -26,10 +26,14 @@ function capitalizeWord(word: string): string {
 
 export function toProperCase(raw: string): string {
   if (!raw) return raw;
+  const src = raw.trim().replace(/\s+/g, ' ');
+
+  // Nom d'un seul mot de 4 caractères ou moins, tout en majuscules : acronyme
+  // présumé (EDF, SNCF, MUA, MHCS). On n'y touche pas — impossible à distinguer
+  // d'une raison sociale par une liste, qu'il faudrait maintenir à la main.
+  if (src === src.toUpperCase() && /^[\p{L}\p{N}]{1,4}$/u.test(src)) return src;
+
   // Remplace chaque suite de lettres/chiffres ; laisse intacts espaces, traits
   // d'union, apostrophes, etc. Chaque « mot » est capitalisé indépendamment.
-  return raw
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[\p{L}\p{N}]+/gu, (word) => capitalizeWord(word));
+  return src.replace(/[\p{L}\p{N}]+/gu, (word) => capitalizeWord(word));
 }
