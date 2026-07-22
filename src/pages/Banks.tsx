@@ -77,6 +77,8 @@ interface QontoTransaction {
   initiator_id?: string;
   card_last_digits?: string;
   category?: string;
+  cashflow_category?: { id?: string; name: string | null } | null;
+  cashflow_subcategory?: { id?: string; name: string | null } | null;
   attachment_ids?: string[];
 }
 
@@ -91,6 +93,8 @@ interface Transaction {
   qonto_emitted_at: string | null;
   qonto_status: string;
   qonto_category: string | null;
+  qonto_cashflow_category: string | null;
+  qonto_cashflow_subcategory: string | null;
   qonto_operation_type: string | null;
   qonto_reference: string | null;
   bank_connection_id: string | null;
@@ -463,6 +467,8 @@ const Banks = () => {
         qonto_initiator_id: tx.initiator_id,
         qonto_card_last_digits: tx.card_last_digits,
         qonto_category: tx.category,
+        qonto_cashflow_category: tx.cashflow_category?.name || null,
+        qonto_cashflow_subcategory: tx.cashflow_subcategory?.name || null,
         qonto_attachment_ids: tx.attachment_ids || [],
         qonto_raw_data: JSON.parse(JSON.stringify(tx)),
       }));
@@ -1371,9 +1377,20 @@ const Banks = () => {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <span className="text-sm text-muted-foreground">
-                                  {tx.qonto_category || '-'}
-                                </span>
+                                {tx.qonto_cashflow_category ? (
+                                  <div className="leading-tight">
+                                    <span className="text-sm">{tx.qonto_cashflow_category}</span>
+                                    {tx.qonto_cashflow_subcategory && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {tx.qonto_cashflow_subcategory}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {tx.qonto_category || '-'}
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Select

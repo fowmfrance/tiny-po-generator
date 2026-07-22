@@ -3285,6 +3285,8 @@ export type Database = {
           qonto_amount: number
           qonto_attachment_ids: Json | null
           qonto_card_last_digits: string | null
+          qonto_cashflow_category: string | null
+          qonto_cashflow_subcategory: string | null
           qonto_category: string | null
           qonto_currency: string | null
           qonto_emitted_at: string | null
@@ -3318,6 +3320,8 @@ export type Database = {
           qonto_amount: number
           qonto_attachment_ids?: Json | null
           qonto_card_last_digits?: string | null
+          qonto_cashflow_category?: string | null
+          qonto_cashflow_subcategory?: string | null
           qonto_category?: string | null
           qonto_currency?: string | null
           qonto_emitted_at?: string | null
@@ -3351,6 +3355,8 @@ export type Database = {
           qonto_amount?: number
           qonto_attachment_ids?: Json | null
           qonto_card_last_digits?: string | null
+          qonto_cashflow_category?: string | null
+          qonto_cashflow_subcategory?: string | null
           qonto_category?: string | null
           qonto_currency?: string | null
           qonto_emitted_at?: string | null
