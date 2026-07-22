@@ -220,6 +220,10 @@ const ProjectCell = ({
         <SelectItem value="__new_budget__" className="text-brand font-medium">
           + Nouveau code projet
         </SelectItem>
+        {/* Code hérité absent de la liste des budgets : on le garde lisible */}
+        {projectCode && !budgets.some(b => b.code === projectCode) && (
+          <SelectItem value={projectCode}>{projectCode}</SelectItem>
+        )}
         {budgets.map(budget => (
           <SelectItem key={budget.id} value={budget.code}>
             {budget.code}
