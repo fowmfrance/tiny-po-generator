@@ -112,6 +112,17 @@ const ProjectCell = ({
             <Link2 className="h-3 w-3" />
             {linkedInvoice.projectCode || 'Sans projet'}
           </button>
+        ) : projectCode ? (
+          // Code déjà affecté (saisie antérieure) mais pas encore rapproché d'une
+          // facture : le code reste lisible tel quel, le clic ouvre le rapprochement.
+          <button
+            type="button"
+            onClick={openDialog}
+            title="Code non rapproché d'une facture — cliquer pour lier"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
+          >
+            {projectCode}
+          </button>
         ) : (
           <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground" onClick={openDialog}>
             <FileSearch className="h-3.5 w-3.5 mr-1" />
