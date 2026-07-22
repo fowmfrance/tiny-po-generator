@@ -17,6 +17,7 @@ import { InvoiceChainEntry } from '@/hooks/useInvoiceChain';
 interface BudgetOption {
   id: string;
   code: string;
+  name: string;
 }
 
 interface ProjectCellProps {
@@ -212,7 +213,7 @@ const ProjectCell = ({
         onSelectCode(value === 'none' ? null : value);
       }}
     >
-      <SelectTrigger className="w-[120px] h-8">
+      <SelectTrigger className="w-[190px] h-8 [&>span]:truncate">
         <SelectValue placeholder="Projet" />
       </SelectTrigger>
       <SelectContent>
@@ -224,9 +225,9 @@ const ProjectCell = ({
         {projectCode && !budgets.some(b => b.code === projectCode) && (
           <SelectItem value={projectCode}>{projectCode}</SelectItem>
         )}
-        {budgets.map(budget => (
+        {[...budgets].sort((a, b) => a.code.localeCompare(b.code)).map(budget => (
           <SelectItem key={budget.id} value={budget.code}>
-            {budget.code}
+            {budget.code} — {budget.name}
           </SelectItem>
         ))}
       </SelectContent>
