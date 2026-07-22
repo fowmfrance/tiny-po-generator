@@ -26,6 +26,8 @@ import CreateBudget from '@/pages/CreateBudget';
 import VendorDetail from '@/pages/VendorDetail';
 import ClientDetail from '@/pages/ClientDetail';
 import TiersCell from '@/components/banks/TiersCell';
+import ProjectCell from '@/components/banks/ProjectCell';
+import { useInvoiceChain, type InvoiceChainEntry } from '@/hooks/useInvoiceChain';
 import { findSupplierMatches, nameSimilarity, proposeTiersLinks, type SupplierMatch, type TiersLinkProposal } from '@/utils/fuzzyMatch';
 import PostSyncMatchDialog from '@/components/banks/PostSyncMatchDialog';
 import { toProperCase } from '@/utils/properCase';
@@ -93,6 +95,7 @@ interface Transaction {
   project_code: string | null;
   supplier_id: string | null;
   client_id: string | null;
+  supplier_invoice_id: string | null;
 }
 
 interface ExpenseCategory {
@@ -125,6 +128,7 @@ const Banks = () => {
   const navigate = useNavigate();
   const { budgets, refetch: refetchBudgets } = useBudgetsData();
   const { suppliers, createSupplier } = useSuppliers();
+  const { invoiceById, invoicesForSupplier, supplierHasPO } = useInvoiceChain();
   const { clients, createClient } = useClients();
   const { supplierTypes } = useSupplierTypes();
   const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
@@ -559,6 +563,25 @@ const Banks = () => {
     setTransactions(prev => prev.map(tx =>
       tx.id === transactionId ? { ...tx, [field]: value } : tx
     ));
+  };
+
+  // Rapproche l'opération d'une facture fournisseur (ou la délie). Le code
+  // projet dérivé (facture → BdC → budget) est figé dans project_code pour que
+  // les écrans qui lisent ce champ (reporting) restent justes.
+  const linkTransactionInvoice = async (txId: string, invoice: InvoiceChainEntry | null) => {
+    const patch = {
+      supplier_invoice_id: invoice?.id ?? null,
+      project_code: invoice?.projectCode ?? null,
+    };
+    const { error } = await supabase.from('transactions').update(patch).eq('id', txId);
+
+    if (error) {
+      console.error('linkTransactionInvoice error:', error);
+      toast({ title: 'Impossible de rapprocher', description: error.message || 'Erreur inconnue.', variant: 'destructive' });
+      return;
+    }
+
+    setTransactions(prev => prev.map(tx => (tx.id === txId ? { ...tx, ...patch } : tx)));
   };
 
   // Écrit le tiers (fournisseur XOR client) en une seule mise à jour : on pose
@@ -1292,32 +1315,23 @@ const Banks = () => {
                                 })()}
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={tx.project_code || 'none'}
-                                  onValueChange={(value) => {
-                                    if (value === '__new_budget__') {
-                                      setCreateBudgetForTxId(tx.id);
-                                      setIsCreateBudgetOpen(true);
-                                      return;
-                                    }
-                                    updateTransaction(tx.id, 'project_code', value === 'none' ? null : value);
+                                <ProjectCell
+                                  txAmount={tx.qonto_amount}
+                                  supplierId={tx.supplier_id}
+                                  supplierName={suppliers.find(s => s.id === tx.supplier_id)?.name}
+                                  supplierInvoiceId={tx.supplier_invoice_id}
+                                  projectCode={tx.project_code}
+                                  budgets={budgets}
+                                  supplierHasPO={supplierHasPO(tx.supplier_id)}
+                                  linkedInvoice={tx.supplier_invoice_id ? invoiceById.get(tx.supplier_invoice_id) : undefined}
+                                  supplierInvoices={tx.supplier_id ? invoicesForSupplier(tx.supplier_id) : []}
+                                  onLinkInvoice={(invoice) => linkTransactionInvoice(tx.id, invoice)}
+                                  onSelectCode={(code) => updateTransaction(tx.id, 'project_code', code)}
+                                  onCreateBudget={() => {
+                                    setCreateBudgetForTxId(tx.id);
+                                    setIsCreateBudgetOpen(true);
                                   }}
-                                >
-                                  <SelectTrigger className="w-[120px] h-8">
-                                    <SelectValue placeholder="Projet" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Aucun</SelectItem>
-                                    <SelectItem value="__new_budget__" className="text-brand font-medium">
-                                      + Nouveau code projet
-                                    </SelectItem>
-                                    {budgets.map(budget => (
-                                      <SelectItem key={budget.id} value={budget.code}>
-                                        {budget.code}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                />
                               </TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs ${

@@ -3304,6 +3304,7 @@ export type Database = {
           qonto_vat_rate: number | null
           sapajoo_category_id: string | null
           supplier_id: string | null
+          supplier_invoice_id: string | null
           updated_at: string
           user_id: string
         }
@@ -3336,6 +3337,7 @@ export type Database = {
           qonto_vat_rate?: number | null
           sapajoo_category_id?: string | null
           supplier_id?: string | null
+          supplier_invoice_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -3368,10 +3370,18 @@ export type Database = {
           qonto_vat_rate?: number | null
           sapajoo_category_id?: string | null
           supplier_id?: string | null
+          supplier_invoice_id?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_supplier_invoice_id_fkey"
+            columns: ["supplier_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_bank_connection_id_fkey"
             columns: ["bank_connection_id"]
