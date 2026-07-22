@@ -30,6 +30,9 @@ import ProjectCell from '@/components/banks/ProjectCell';
 import { useInvoiceChain, type InvoiceChainEntry } from '@/hooks/useInvoiceChain';
 import { findSupplierMatches, nameSimilarity, proposeTiersLinks, type SupplierMatch, type TiersLinkProposal } from '@/utils/fuzzyMatch';
 import PostSyncMatchDialog from '@/components/banks/PostSyncMatchDialog';
+import PostSyncInvoiceMatchDialog from '@/components/banks/PostSyncInvoiceMatchDialog';
+import { proposeInvoiceLinks, type InvoiceLinkProposal } from '@/utils/invoiceMatch';
+import { useQueryClient } from '@tanstack/react-query';
 import { toProperCase } from '@/utils/properCase';
 
 interface BankAccount {
@@ -128,7 +131,8 @@ const Banks = () => {
   const navigate = useNavigate();
   const { budgets, refetch: refetchBudgets } = useBudgetsData();
   const { suppliers, createSupplier } = useSuppliers();
-  const { invoiceById, invoicesForSupplier, supplierHasPO } = useInvoiceChain();
+  const { invoices, invoiceById, invoicesForSupplier, supplierHasPO } = useInvoiceChain();
+  const queryClient = useQueryClient();
   const { clients, createClient } = useClients();
   const { supplierTypes } = useSupplierTypes();
   const [isCreateBudgetOpen, setIsCreateBudgetOpen] = useState(false);
@@ -155,6 +159,8 @@ const Banks = () => {
   // Passe fuzzy post-synchronisation : rattachements proposés à valider en masse
   const [postSyncProposals, setPostSyncProposals] = useState<TiersLinkProposal[]>([]);
   const [applyingPostSync, setApplyingPostSync] = useState(false);
+  const [invoiceProposals, setInvoiceProposals] = useState<InvoiceLinkProposal[]>([]);
+  const [applyingInvoiceProposals, setApplyingInvoiceProposals] = useState(false);
   const [attachingSiblings, setAttachingSiblings] = useState(false);
   // Filtres de la table des opérations
   const [filterTiers, setFilterTiers] = useState<'all' | 'with' | 'without'>('all');
@@ -483,7 +489,12 @@ const Banks = () => {
       // Passe fuzzy post-sync : propose de rattacher les transactions non
       // affectées aux tiers déjà existants (par ressemblance de libellé).
       const proposals = proposeTiersLinks(refreshed, suppliers, clients);
-      if (proposals.length > 0) setPostSyncProposals(proposals);
+      if (proposals.length > 0) {
+        setPostSyncProposals(proposals);
+      } else {
+        // Pas de tiers à revoir : on enchaîne direct sur les factures au montant exact
+        computeInvoiceProposals(refreshed);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Impossible de synchroniser les transactions.";
       
@@ -565,15 +576,51 @@ const Banks = () => {
     ));
   };
 
+  const invalidateInvoiceQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['invoice-chain'] });
+    queryClient.invalidateQueries({ queryKey: ['supplier-invoices'] });
+    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+  };
+
+  // Au rapprochement, la facture passe payée (montant couvert) ou partielle.
+  // Une facture déjà 'paid' n'est pas retouchée (paid_date posée ailleurs).
+  const markInvoicePaidOnLink = async (txAmountAbs: number, txDate: string | null, invoice: InvoiceChainEntry) => {
+    if (invoice.status === 'paid') return;
+    const fullyPaid = txAmountAbs >= invoice.amount - 0.01;
+    const patch = fullyPaid
+      ? { status: 'paid', paid_date: txDate ? txDate.slice(0, 10) : null }
+      : { status: 'partial' };
+    const { error } = await supabase.from('supplier_invoices').update(patch).eq('id', invoice.id);
+    if (error) console.error('markInvoicePaidOnLink error:', error);
+  };
+
+  // Au déliage, la facture redevient 'pending' — sauf si un paiement par lot
+  // (payment_batch_invoices) la couvre encore, ou si son statut n'a rien à voir
+  // avec un paiement (approved…).
+  const revertInvoiceOnUnlink = async (invoiceId: string) => {
+    const { count } = await supabase
+      .from('payment_batch_invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('invoice_id', invoiceId)
+      .eq('status', 'paid');
+    if (count) return;
+    const { error } = await supabase
+      .from('supplier_invoices')
+      .update({ status: 'pending', paid_date: null })
+      .eq('id', invoiceId)
+      .in('status', ['paid', 'partial']);
+    if (error) console.error('revertInvoiceOnUnlink error:', error);
+  };
+
   // Rapproche l'opération d'une facture fournisseur (ou la délie). Le code
   // projet dérivé (facture → BdC → budget) est figé dans project_code pour que
   // les écrans qui lisent ce champ (reporting) restent justes.
-  const linkTransactionInvoice = async (txId: string, invoice: InvoiceChainEntry | null) => {
+  const linkTransactionInvoice = async (tx: Transaction, invoice: InvoiceChainEntry | null) => {
     const patch = {
       supplier_invoice_id: invoice?.id ?? null,
       project_code: invoice?.projectCode ?? null,
     };
-    const { error } = await supabase.from('transactions').update(patch).eq('id', txId);
+    const { error } = await supabase.from('transactions').update(patch).eq('id', tx.id);
 
     if (error) {
       console.error('linkTransactionInvoice error:', error);
@@ -581,7 +628,45 @@ const Banks = () => {
       return;
     }
 
-    setTransactions(prev => prev.map(tx => (tx.id === txId ? { ...tx, ...patch } : tx)));
+    if (invoice) {
+      await markInvoicePaidOnLink(Math.abs(Number(tx.qonto_amount)), tx.qonto_settled_at || tx.qonto_emitted_at, invoice);
+    } else if (tx.supplier_invoice_id) {
+      await revertInvoiceOnUnlink(tx.supplier_invoice_id);
+    }
+
+    setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, ...patch } : t)));
+    invalidateInvoiceQueries();
+  };
+
+  // Passe de pré-rapprochement : propose les factures au montant exact pour les
+  // décaissements rattachés à un fournisseur mais pas encore à une facture.
+  const computeInvoiceProposals = (txList: Transaction[]) => {
+    const proposals = proposeInvoiceLinks(txList, invoices);
+    if (proposals.length > 0) setInvoiceProposals(proposals);
+  };
+
+  // Applique en masse les rapprochements facture validés dans la revue post-sync.
+  const applyInvoiceProposals = async (accepted: InvoiceLinkProposal[]) => {
+    setApplyingInvoiceProposals(true);
+    let ok = 0;
+    for (const p of accepted) {
+      const patch = { supplier_invoice_id: p.invoice.id, project_code: p.invoice.projectCode };
+      const { error } = await supabase.from('transactions').update(patch).eq('id', p.txId);
+      if (error) {
+        console.error('applyInvoiceProposals error:', error);
+        continue;
+      }
+      await markInvoicePaidOnLink(Math.abs(Number(p.amount)), p.date, p.invoice);
+      ok += 1;
+      setTransactions(prev => prev.map(tx => (tx.id === p.txId ? { ...tx, ...patch } : tx)));
+    }
+    setApplyingInvoiceProposals(false);
+    setInvoiceProposals([]);
+    invalidateInvoiceQueries();
+    toast({
+      title: 'Factures rapprochées',
+      description: `${ok} opération(s) rapprochée(s) de leur facture, code projet affecté.`,
+    });
   };
 
   // Écrit le tiers (fournisseur XOR client) en une seule mise à jour : on pose
@@ -626,6 +711,18 @@ const Banks = () => {
       title: 'Rattachements appliqués',
       description: `${ok} transaction(s) rattachée(s) automatiquement à leur tiers.`,
     });
+
+    // Les tiers fraîchement rattachés ouvrent peut-être des rapprochements de
+    // factures : on relance la passe sur l'état à jour.
+    const acceptedById = new Map(accepted.map(p => [p.txId, p]));
+    const updatedTxs = transactions.map(tx => {
+      const p = acceptedById.get(tx.id);
+      if (!p) return tx;
+      return p.kind === 'supplier'
+        ? { ...tx, supplier_id: p.entityId, client_id: null }
+        : { ...tx, supplier_id: null, client_id: p.entityId };
+    });
+    computeInvoiceProposals(updatedTxs);
   };
 
   const resetCreateSupplierForm = () => {
@@ -1325,7 +1422,7 @@ const Banks = () => {
                                   supplierHasPO={supplierHasPO(tx.supplier_id)}
                                   linkedInvoice={tx.supplier_invoice_id ? invoiceById.get(tx.supplier_invoice_id) : undefined}
                                   supplierInvoices={tx.supplier_id ? invoicesForSupplier(tx.supplier_id) : []}
-                                  onLinkInvoice={(invoice) => linkTransactionInvoice(tx.id, invoice)}
+                                  onLinkInvoice={(invoice) => linkTransactionInvoice(tx, invoice)}
                                   onSelectCode={(code) => updateTransaction(tx.id, 'project_code', code)}
                                   onCreateBudget={() => {
                                     setCreateBudgetForTxId(tx.id);
@@ -1507,7 +1604,19 @@ const Banks = () => {
         proposals={postSyncProposals}
         isApplying={applyingPostSync}
         onConfirm={applyPostSyncProposals}
-        onClose={() => setPostSyncProposals([])}
+        onClose={() => {
+          setPostSyncProposals([]);
+          // Même si la revue tiers est ignorée, les transactions déjà rattachées
+          // à un fournisseur peuvent avoir une facture au montant exact.
+          computeInvoiceProposals(transactions);
+        }}
+      />
+
+      <PostSyncInvoiceMatchDialog
+        proposals={invoiceProposals}
+        isApplying={applyingInvoiceProposals}
+        onConfirm={applyInvoiceProposals}
+        onClose={() => setInvoiceProposals([])}
       />
 
       <Dialog open={siblingTxs.length > 0} onOpenChange={(o) => { if (!o) { setSiblingTxs([]); setSiblingTarget(null); } }}>

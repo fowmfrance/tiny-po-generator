@@ -71,6 +71,7 @@ export const useInvoiceChain = () => {
 
   return {
     isLoading,
+    invoices,
     invoiceById,
     invoicesForSupplier: (supplierId: string) => invoices.filter(inv => inv.supplierId === supplierId),
     supplierHasPO: (supplierId: string | null) => !!supplierId && !!data?.suppliersWithPO.has(supplierId),
