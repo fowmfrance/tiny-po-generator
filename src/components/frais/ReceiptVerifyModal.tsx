@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarCheck2, Check, CheckCircle2,
-  FolderKanban, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
+  FolderKanban, Info, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -911,6 +911,44 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             )}
           </div>
         )}
+
+        {/* Récupérabilité de la TVA (art. 242 nonies A, II-1°, ann. II CGI +
+            BOFiP BOI-TVA-DECLA-30-20-20-20) : facture simplifiée admise
+            jusqu'à 150 € HT PAR TRANSACTION ; au-delà, facture au nom du
+            client obligatoire. Sous le seuil, la déduction de la TVA reste
+            subordonnée à l'identification complète de l'entreprise portée
+            sur la note — par le client lui-même, c'est admis. */}
+        {(() => {
+          const ht = has(totalHT) ? num(totalHT)
+            : has(totalTTC) ? num(totalTTC) / 1.1 : NaN;
+          if (Number.isNaN(ht) || ht <= 0) return null;
+          const estimated = !has(totalHT);
+          if (ht > 150) {
+            return (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 text-xs text-amber-800 flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  Au-delà de 150 € HT{estimated ? ' (estimé)' : ''}, un ticket ne suffit plus
+                  pour récupérer la TVA : demandez une facture au nom et SIREN de l'entreprise.
+                  À partir de sept. 2026, elle arrivera par votre plateforme de facturation.
+                </span>
+              </div>
+            );
+          }
+          if (category === 'restaurant') {
+            return (
+              <div className="rounded-lg border bg-muted/40 p-2.5 text-xs text-muted-foreground flex gap-2">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  Ticket admis jusqu'à 150 € HT — mais pour récupérer la TVA, le nom de
+                  l'entreprise doit figurer sur la note : écrivez-le vous-même avant la photo,
+                  c'est admis.
+                </span>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       <DialogFooter>
