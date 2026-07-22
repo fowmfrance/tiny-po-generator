@@ -14,7 +14,6 @@ import {
   Edit,
   Copy,
   Download,
-  CalendarRange,
   Send,
   ArrowUp,
   ArrowDown,
@@ -126,12 +125,19 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
       : <ArrowDown className="h-3 w-3 ml-1 inline" />;
   };
 
+  const justifyFor = (className?: string) =>
+    className?.includes('text-right') ? 'justify-end'
+      : className?.includes('text-center') ? 'justify-center'
+      : 'justify-start';
+
   const SortableHead = ({ colKey, children, className }: { colKey: SortKey; children: React.ReactNode; className?: string }) => (
     <TableHead
       className={`cursor-pointer select-none hover:text-foreground ${className || ''}`}
       onClick={() => handleSort(colKey)}
     >
-      {children}<SortIcon colKey={colKey} />
+      <div className={`flex items-center ${justifyFor(className)}`}>
+        {children}<SortIcon colKey={colKey} />
+      </div>
     </TableHead>
   );
 
@@ -178,7 +184,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
             className={`cursor-pointer select-none hover:text-foreground ${className || ''}`}
             onClick={() => handleSort(colKey)}
           >
-            <div className="flex items-center">
+            <div className={`flex items-center ${justifyFor(className)}`}>
               {title}<SortIcon colKey={colKey} />
             </div>
           </TableHead>
@@ -201,7 +207,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
           className="pl-9"
         />
       </div>
-      <Table>
+      <Table containerClassName="max-h-[70vh]">
         <TableHeader>
           <TableRow>
             <SortableHead colKey="code">Code</SortableHead>
@@ -249,7 +255,9 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
               <TableCell className="text-right">
                 {formatCurrency(budget.currency, budget.remainingAmount)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className={`text-right font-medium ${
+                budget.availableAmount < 0 ? 'text-red-600' : budget.availableAmount > 0 ? 'text-green-600' : ''
+              }`}>
                 {formatCurrency(budget.currency, budget.availableAmount)}
               </TableCell>
               <TableCell className="text-center">{budget.currency}</TableCell>
@@ -260,12 +268,9 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
               </TableCell>
               <TableCell className="text-center">
                 {budget.startDate && budget.endDate ? (
-                  <div className="flex items-center justify-center text-xs text-muted-foreground">
-                    <CalendarRange className="h-3 w-3 mr-1" />
-                    <span>
-                      {budget.startDate.toLocaleDateString()} - {budget.endDate.toLocaleDateString()}
-                    </span>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {budget.startDate.toLocaleDateString()} - {budget.endDate.toLocaleDateString()}
+                  </span>
                 ) : (
                   <span className="text-xs text-muted-foreground">Pas de dates définies</span>
                 )}
