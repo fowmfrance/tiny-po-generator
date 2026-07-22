@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Pencil } from 'lucide-react';
 import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
+import BudgetSheetLink from '@/components/budget/BudgetSheetLink';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -372,6 +373,13 @@ const BudgetDetails = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Contrôle de cohérence avec le Google Sheet lié (Sapajoo = source de vérité) */}
+      <BudgetSheetLink
+        budgetId={budget.id}
+        currency={budget.currency}
+        initialAmount={metrics.initialAmount}
+      />
 
       {/* Montants du budget (CA initial / provision de charges) + historique */}
       <Card>
