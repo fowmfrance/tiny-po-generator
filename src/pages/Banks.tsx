@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -644,6 +644,17 @@ const Banks = () => {
     const proposals = proposeInvoiceLinks(txList, invoices);
     if (proposals.length > 0) setInvoiceProposals(proposals);
   };
+
+  // La passe tourne aussi à l'ouverture de l'écran : une facture saisie après
+  // coup (OCR) doit remonter sur son opération sans attendre la prochaine synchro.
+  const initialInvoicePassDone = useRef(false);
+  useEffect(() => {
+    if (initialInvoicePassDone.current) return;
+    if (transactions.length === 0 || invoices.length === 0) return;
+    initialInvoicePassDone.current = true;
+    computeInvoiceProposals(transactions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, invoices]);
 
   // Applique en masse les rapprochements facture validés dans la revue post-sync.
   const applyInvoiceProposals = async (accepted: InvoiceLinkProposal[]) => {
