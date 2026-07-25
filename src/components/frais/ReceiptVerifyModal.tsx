@@ -18,9 +18,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarCheck2, Check, CheckCircle2,
-  FolderKanban, Info, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
+  FolderKanban, Globe, Info, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +47,7 @@ export interface VerifyPrefill {
   date: string;   // YYYY-MM-DD
   time: string;   // HH:MM
   category: string;
+  isAbroad: boolean;
   totalTTC: string;
   totalHT: string;
   totalTVA: string;
@@ -154,6 +156,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [category, setCategory] = useState('');
+  const [isAbroad, setIsAbroad] = useState(false);
   const [totalTTC, setTotalTTC] = useState('');
   const [totalHT, setTotalHT] = useState('');
   const [totalTVA, setTotalTVA] = useState('');
@@ -204,6 +207,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setDate(prefill.date);
     setTime(prefill.time);
     setCategory(prefill.category);
+    setIsAbroad(prefill.isAbroad);
     setTotalTTC(prefill.totalTTC);
     setTotalHT(prefill.totalHT);
     setTotalTVA(prefill.totalTVA);
@@ -637,6 +641,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         ...(occurredAt ? { occurred_at: occurredAt.toISOString() } : {}),
         ...(expenseStatus ? { status: expenseStatus } : {}),
         te_category: category || null,
+        is_abroad: isAbroad,
         budget_id: budgetId || null,
         client_id: clientId || null,
         verified_at: new Date().toISOString(),
@@ -777,6 +782,13 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             </Select>
           </div>
         </div>
+
+        <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+          <Checkbox checked={isAbroad} onCheckedChange={(v) => setIsAbroad(v === true)} />
+          <span className="flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
+          </span>
+        </label>
 
         {/* RDV correspondant — lookup agenda depuis la date/heure du ticket */}
         {date && (
@@ -919,6 +931,21 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             subordonnée à l'identification complète de l'entreprise portée
             sur la note — par le client lui-même, c'est admis. */}
         {(() => {
+          // À l'étranger, les règles françaises (seuil 150 € HT, mention du
+          // SIREN) ne s'appliquent pas : la TVA locale n'est pas déductible
+          // sur la déclaration FR — seule la piste remboursement UE existe.
+          if (isAbroad) {
+            return (
+              <div className="rounded-lg border bg-muted/40 p-2.5 text-xs text-muted-foreground flex gap-2">
+                <Globe className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  TVA étrangère : non déductible sur la déclaration française. Ce frais
+                  est isolé dans le reporting et l'export pour votre comptable
+                  (remboursement UE possible selon le pays).
+                </span>
+              </div>
+            );
+          }
           const ht = has(totalHT) ? num(totalHT)
             : has(totalTTC) ? num(totalTTC) / 1.1 : NaN;
           if (Number.isNaN(ht) || ht <= 0) return null;

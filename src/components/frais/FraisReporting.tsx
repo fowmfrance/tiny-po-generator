@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Download, FolderKanban, ReceiptText, UserRound, Users, X } from 'lucide-react';
+import { Building2, Download, FolderKanban, Globe, ReceiptText, Store, UserRound, Users, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CATEGORY_META } from './categoryMeta';
@@ -35,6 +36,7 @@ export interface ReportExpense {
   occurred_at: string;
   te_category: string | null;
   status: string;
+  is_abroad?: boolean;
   te_expense_guests: ReportGuest[] | null;
   budgets: { code: string; name: string; cac_capitalization: boolean | null } | null;
 }
@@ -44,8 +46,11 @@ export interface ReportFilter {
   category?: string;
   contact?: string;
   budget?: string;
+  merchant?: string;
   /** 'externe' = réception clients, 'interne' = repas d'équipe. */
   nature?: string;
+  /** true = seulement les dépenses à l'étranger. */
+  abroad?: boolean;
 }
 
 const euro = (n: number) =>
@@ -97,8 +102,15 @@ const NO_VALUE = '—';
 interface Row { key: string; label: string; count: number; total: number }
 
 // Agrège les frais par clé ; `keys()` peut renvoyer plusieurs clés par frais
-// (un dîner à 3 entreprises alimente 3 lignes).
-function aggregate(expenses: ReportExpense[], keys: (e: ReportExpense) => string[]): Row[] {
+// (un dîner à 3 entreprises alimente 3 lignes). Tri au choix : montant total
+// ou fréquence (« mes invités / restos les plus fréquents »).
+type SortBy = 'total' | 'count';
+
+function aggregate(
+  expenses: ReportExpense[],
+  keys: (e: ReportExpense) => string[],
+  sortBy: SortBy = 'total',
+): Row[] {
   const map = new Map<string, Row>();
   for (const e of expenses) {
     for (const k of keys(e)) {
@@ -108,7 +120,8 @@ function aggregate(expenses: ReportExpense[], keys: (e: ReportExpense) => string
       map.set(k, row);
     }
   }
-  return [...map.values()].sort((a, b) => b.total - a.total);
+  return [...map.values()].sort((a, b) =>
+    sortBy === 'count' ? b.count - a.count || b.total - a.total : b.total - a.total);
 }
 
 const companiesOf = (e: ReportExpense) => {
@@ -126,6 +139,8 @@ const contactsOf = (e: ReportExpense) => {
 };
 
 const budgetOf = (e: ReportExpense) => (e.budgets ? `${e.budgets.code} — ${e.budgets.name}` : 'Non imputé');
+
+const merchantOf = (e: ReportExpense) => [e.merchant_clean ?? e.merchant_raw ?? NO_VALUE];
 
 // Réception clients dès qu'un participant est externe ; repas d'équipe si tous
 // sont internes (pilote le compte PCG, cf. docs/referentiel-tva-frais.md).
@@ -151,6 +166,7 @@ interface Props {
 const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenExpense }) => {
   const [preset, setPreset] = useState('quarter');
   const [[from, to], setRange] = useState<[string, string]>(() => PRESETS[2].range());
+  const [sortBy, setSortBy] = useState<SortBy>('total');
 
   const applyPreset = (key: string) => {
     const p = PRESETS.find((x) => x.key === key);
@@ -172,7 +188,9 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     if (filter.category && (e.te_category ?? NO_VALUE) !== filter.category) return false;
     if (filter.contact && !contactsOf(e).includes(filter.contact)) return false;
     if (filter.budget && budgetOf(e) !== filter.budget) return false;
+    if (filter.merchant && !merchantOf(e).includes(filter.merchant)) return false;
     if (filter.nature && natureOf(e) !== filter.nature) return false;
+    if (filter.abroad && !e.is_abroad) return false;
     return true;
   }), [inPeriod, filter]);
 
@@ -183,12 +201,13 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     count: filtered.length,
   }), [filtered]);
 
-  const byCompany = useMemo(() => aggregate(filtered, companiesOf), [filtered]);
+  const byCompany = useMemo(() => aggregate(filtered, companiesOf, sortBy), [filtered, sortBy]);
   const byCategory = useMemo(
-    () => aggregate(filtered, (e) => [e.te_category ?? NO_VALUE]), [filtered]);
-  const byContact = useMemo(() => aggregate(filtered, contactsOf), [filtered]);
-  const byBudget = useMemo(() => aggregate(filtered, (e) => [budgetOf(e)]), [filtered]);
-  const byNature = useMemo(() => aggregate(filtered, (e) => [natureOf(e)]), [filtered]);
+    () => aggregate(filtered, (e) => [e.te_category ?? NO_VALUE], sortBy), [filtered, sortBy]);
+  const byContact = useMemo(() => aggregate(filtered, contactsOf, sortBy), [filtered, sortBy]);
+  const byBudget = useMemo(() => aggregate(filtered, (e) => [budgetOf(e)], sortBy), [filtered, sortBy]);
+  const byNature = useMemo(() => aggregate(filtered, (e) => [natureOf(e)], sortBy), [filtered, sortBy]);
+  const byMerchant = useMemo(() => aggregate(filtered, merchantOf, sortBy), [filtered, sortBy]);
   // Part non imputée : ce qui n'atteindra aucun budget si on n'y touche pas.
   const unallocated = useMemo(
     () => filtered.filter((e) => !e.budgets).reduce((s, e) => s + (Number(e.amount) || 0), 0),
@@ -206,17 +225,22 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     ['category', filter.category, ReceiptText],
     ['contact', filter.contact, UserRound],
     ['budget', filter.budget, FolderKanban],
+    ['merchant', filter.merchant, Store],
     ['nature', filter.nature, Users],
   ] as const).filter(([, v]) => !!v);
+  const hasActiveFilters = activeFilters.length > 0 || !!filter.abroad;
 
   const exportCsv = () => {
-    const head = ['Date', 'Fournisseur', 'Type', 'Nature', 'Budget', 'Participants',
+    // « Étranger » : TVA non déductible en France → le comptable doit pouvoir
+    // isoler ces lignes d'un filtre Excel.
+    const head = ['Date', 'Fournisseur', 'Type', 'Nature', 'Étranger', 'Budget', 'Participants',
       'Entreprises', 'HT', 'TVA', 'TTC'];
     const rows = filtered.map((e) => [
       e.occurred_at.slice(0, 10),
       e.merchant_clean ?? e.merchant_raw ?? '',
       e.te_category ? CATEGORY_META[e.te_category]?.label ?? e.te_category : '',
       NATURE_LABELS[natureOf(e)] ?? '',
+      e.is_abroad ? 'oui' : '',
       e.budgets ? `${e.budgets.code} — ${e.budgets.name}` : '',
       contactsOf(e).filter((c) => c !== NO_VALUE).join(' / '),
       companiesOf(e).filter((c) => c !== NO_VALUE).join(' / '),
@@ -326,13 +350,43 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
               <Download className="h-4 w-4 mr-1.5" /> CSV
             </Button>
           </div>
+          <div className="flex items-center gap-4 basis-full flex-wrap pt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Classements :</span>
+              <Button type="button" size="sm" variant={sortBy === 'total' ? 'default' : 'outline'}
+                className="h-7 text-xs" onClick={() => setSortBy('total')}>
+                Par montant
+              </Button>
+              <Button type="button" size="sm" variant={sortBy === 'count' ? 'default' : 'outline'}
+                className="h-7 text-xs" onClick={() => setSortBy('count')}>
+                Par fréquence
+              </Button>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={!!filter.abroad}
+                onCheckedChange={(v) => setFilter({ ...filter, abroad: v === true ? true : undefined })} />
+              <span className="flex items-center gap-1.5 text-xs">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" /> À l'étranger uniquement
+              </span>
+            </label>
+          </div>
         </CardContent>
       </Card>
 
       {/* Filtres actifs */}
-      {activeFilters.length > 0 && (
+      {hasActiveFilters && (
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs text-muted-foreground">Filtres :</span>
+          {filter.abroad && (
+            <Badge variant="secondary" className="gap-1 pr-1">
+              <Globe className="h-3 w-3" />
+              À l'étranger
+              <button type="button" className="ml-0.5 rounded hover:bg-background/60"
+                onClick={() => setFilter({ ...filter, abroad: undefined })}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
           {activeFilters.map(([field, value, Icon]) => (
             <Badge key={field} variant="secondary" className="gap-1 pr-1">
               <Icon className="h-3 w-3" />
@@ -388,6 +442,7 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
         {renderTable('Par budget / projet', FolderKanban, byBudget, 'budget', 0)}
         {renderTable('Par entreprise', Building2, byCompany, 'company', multiCompany)}
         {renderTable('Par contact', UserRound, byContact, 'contact', multiContact)}
+        {renderTable('Par fournisseur', Store, byMerchant, 'merchant', 0)}
         {renderTable('Par type de frais', ReceiptText, byCategory, 'category', 0,
           (k) => CATEGORY_META[k]?.label ?? k)}
         {renderTable('Par nature', Users, byNature, 'nature', 0,
@@ -421,8 +476,9 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
                     <span className="text-xs text-muted-foreground w-24 shrink-0 tabular-nums">
                       {format(new Date(e.occurred_at), 'd MMM yyyy', { locale: fr })}
                     </span>
-                    <span className="text-sm font-medium truncate min-w-0 flex-1">
-                      {e.merchant_clean ?? e.merchant_raw ?? 'Marchand inconnu'}
+                    <span className="text-sm font-medium truncate min-w-0 flex-1 flex items-center gap-1.5">
+                      <span className="truncate">{e.merchant_clean ?? e.merchant_raw ?? 'Marchand inconnu'}</span>
+                      {e.is_abroad && <Globe className="h-3.5 w-3.5 shrink-0 text-sky-600" />}
                     </span>
                     <span className="hidden md:flex gap-1 shrink-0">
                       {contactsOf(e).filter((c) => c !== NO_VALUE).slice(0, 2).map((c) => (

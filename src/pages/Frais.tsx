@@ -15,8 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
   ReceiptText, Loader2, Sparkles, Pencil, Trash2, Link as LinkIcon, Unlink,
-  Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users,
+  Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users, Globe,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -87,6 +88,7 @@ interface TeExpense {
   te_category: 'restaurant' | 'transport' | 'hebergement' | 'autre' | null;
   status: 'new' | 'suggested' | 'confirmed' | 'rejected' | 'no_context' | 'exported';
   reimbursable: boolean;
+  is_abroad: boolean;
   receipt_id: string | null;
   verified_at: string | null;
   budget_id: string | null;
@@ -221,6 +223,7 @@ const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | nu
   date: str(ex?.date),
   time: ex?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(ex.time) ? ex.time : '',
   category: VALID_CATEGORIES.includes(ex?.category) ? ex.category : '',
+  isAbroad: false,
   totalTTC: str(ex?.amount),
   totalHT: str(ex?.total_ht),
   totalTVA: str(ex?.vat),
@@ -247,6 +250,7 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
     date: dateOnly ? e.occurred_at.slice(0, 10) : format(d, 'yyyy-MM-dd'),
     time: dateOnly ? '' : format(d, 'HH:mm'),
     category: e.te_category ?? '',
+    isAbroad: e.is_abroad ?? false,
     totalTTC: str(e.amount),
     totalHT: str(e.amount_ht),
     totalTVA: str(e.vat_amount),
@@ -264,7 +268,7 @@ const Frais = () => {
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '' });
+  const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false });
   const [savingManual, setSavingManual] = useState(false);
   const [agenda, setAgenda] = useState<AgendaEvent[]>([]);
   const [rules, setRules] = useState<Record<string, AgendaBucket>>({});
@@ -487,6 +491,7 @@ const Frais = () => {
         amount: Number(manual.amount),
         occurred_at: occurredAt.toISOString(),
         te_category: manual.category,
+        is_abroad: manual.abroad,
         notes: manual.notes || null,
         reimbursable: true,
         reimbursement_status: 'pending',
@@ -495,7 +500,7 @@ const Frais = () => {
       await supabase.functions.invoke('match-expense', { body: { expense_id: created.id } });
       toast({ title: 'Frais ajouté', description: 'Recherche du RDV correspondant…' });
       setManualOpen(false);
-      setManual({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '' });
+      setManual({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false });
       loadData(userId);
     } catch (e: any) {
       toast({ title: 'Erreur', description: e.message ?? String(e), variant: 'destructive' });
@@ -643,6 +648,11 @@ const Frais = () => {
                   <Badge variant="outline">{SOURCE_LABELS[e.source]}</Badge>
                   {cat && <Badge variant="outline">{cat.label}</Badge>}
                   {e.reimbursable && <Badge variant="secondary">À rembourser</Badge>}
+                  {e.is_abroad && (
+                    <Badge variant="outline" className="border-sky-300 text-sky-700">
+                      <Globe className="h-3 w-3 mr-1" /> Étranger
+                    </Badge>
+                  )}
                   {e.status === 'confirmed' && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Rattaché</Badge>}
                   {e.status === 'no_context' && <Badge variant="secondary">Sans RDV trouvé</Badge>}
                   {e.verified_at && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Vérifié</Badge>}
@@ -1158,6 +1168,13 @@ const Frais = () => {
               <Input id="frais-notes" placeholder="Déjeuner prospection…" value={manual.notes}
                 onChange={(e) => setManual({ ...manual, notes: e.target.value })} />
             </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+              <Checkbox checked={manual.abroad}
+                onCheckedChange={(v) => setManual({ ...manual, abroad: v === true })} />
+              <span className="flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManualOpen(false)}>Annuler</Button>
