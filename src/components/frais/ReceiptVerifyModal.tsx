@@ -635,9 +635,10 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         supplier_naf: naf.trim() || null,
         supplier_naf_label: nafLabel.trim() || null,
         amount: num(totalTTC),
-        amount_ht: has(totalHT) ? num(totalHT) : null,
-        vat_amount: has(totalTVA) ? num(totalTVA) : null,
-        vat_breakdown: parsedLines.length ? parsedLines : null,
+        // À l'étranger : TTC seul — la TVA étrangère n'est ni saisie ni stockée.
+        amount_ht: !isAbroad && has(totalHT) ? num(totalHT) : null,
+        vat_amount: !isAbroad && has(totalTVA) ? num(totalTVA) : null,
+        vat_breakdown: !isAbroad && parsedLines.length ? parsedLines : null,
         ...(occurredAt ? { occurred_at: occurredAt.toISOString() } : {}),
         ...(expenseStatus ? { status: expenseStatus } : {}),
         te_category: category || null,
@@ -851,7 +852,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
           </div>
         )}
 
-        {/* Ventilation TVA par taux */}
+        {/* Ventilation TVA par taux — sans objet à l'étranger (TTC seul). */}
+        {!isAbroad && (
         <div className="rounded-lg border p-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium">TVA par taux</div>
@@ -886,28 +888,33 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
             </div>
           ))}
         </div>
+        )}
 
-        {/* Totaux */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Totaux — à l'étranger, seul le montant TTC est saisi. */}
+        <div className={`grid ${isAbroad ? 'grid-cols-1' : 'grid-cols-3'} gap-3`}>
+          {!isAbroad && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-ht">Total HT (€)</Label>
+                <Input id="rv-ht" inputMode="decimal" value={totalHT}
+                  onChange={(e) => setTotalHT(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-tva">Total TVA (€)</Label>
+                <Input id="rv-tva" inputMode="decimal" value={totalTVA}
+                  onChange={(e) => setTotalTVA(e.target.value)} />
+              </div>
+            </>
+          )}
           <div className="space-y-1.5">
-            <Label htmlFor="rv-ht">Total HT (€)</Label>
-            <Input id="rv-ht" inputMode="decimal" value={totalHT}
-              onChange={(e) => setTotalHT(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="rv-tva">Total TVA (€)</Label>
-            <Input id="rv-tva" inputMode="decimal" value={totalTVA}
-              onChange={(e) => setTotalTVA(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="rv-ttc">Total TTC (€)</Label>
+            <Label htmlFor="rv-ttc">{isAbroad ? 'Montant total (€)' : 'Total TTC (€)'}</Label>
             <Input id="rv-ttc" inputMode="decimal" value={totalTTC}
               onChange={(e) => setTotalTTC(e.target.value)} />
           </div>
         </div>
 
-        {/* Sanity checks */}
-        {checks.items.length > 0 && (
+        {/* Sanity checks — sans objet à l'étranger (pas de ventilation TVA). */}
+        {!isAbroad && checks.items.length > 0 && (
           <div className={`rounded-lg border p-3 space-y-1.5 ${allOk ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
             {checks.items.map((c, i) => (
               <div key={i} className={`text-xs flex items-center gap-1.5 ${c.ok ? 'text-emerald-700' : 'text-amber-700'}`}>
@@ -939,7 +946,8 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
               <div className="rounded-lg border bg-muted/40 p-2.5 text-xs text-muted-foreground flex gap-2">
                 <Globe className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>
-                  TVA étrangère : non déductible sur la déclaration française. Ce frais
+                  Dépense à l'étranger : seul le montant total est enregistré — la TVA
+                  étrangère n'est pas déductible sur la déclaration française. Ce frais
                   est isolé dans le reporting et l'export pour votre comptable
                   (remboursement UE possible selon le pays).
                 </span>
