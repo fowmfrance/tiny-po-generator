@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { AlertTriangle, Building2, Download, FolderKanban, Globe, ReceiptText, Store, UserRound, Users, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PolicyRow, violationsOf } from './policies';
+import FraisMap from './FraisMap';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CATEGORY_META } from './categoryMeta';
@@ -41,6 +42,9 @@ export interface ReportExpense {
   has_alcohol?: boolean;
   receipt_id?: string | null;
   created_at?: string;
+  supplier_address?: string | null;
+  merchant_lat?: number | null;
+  merchant_lng?: number | null;
   te_expense_guests: ReportGuest[] | null;
   budgets: { code: string; name: string; cac_capitalization: boolean | null } | null;
 }
@@ -168,9 +172,11 @@ interface Props {
   filter: ReportFilter;
   setFilter: (f: ReportFilter) => void;
   onOpenExpense: (id: string) => void;
+  /** Recharger les frais (ex. après géocodage depuis la carte). */
+  onDataChanged?: () => void;
 }
 
-const FraisReporting: React.FC<Props> = ({ expenses, policies = [], filter, setFilter, onOpenExpense }) => {
+const FraisReporting: React.FC<Props> = ({ expenses, policies = [], filter, setFilter, onOpenExpense, onDataChanged }) => {
   const [preset, setPreset] = useState('quarter');
   const [[from, to], setRange] = useState<[string, string]>(() => PRESETS[2].range());
   const [sortBy, setSortBy] = useState<SortBy>('total');
@@ -481,6 +487,9 @@ const FraisReporting: React.FC<Props> = ({ expenses, policies = [], filter, setF
         {renderTable('Par nature', Users, byNature, 'nature', 0,
           (k) => NATURE_LABELS[k] ?? k)}
       </div>
+
+      {/* Carte des lieux — mêmes frais que le détail (filtres appliqués). */}
+      <FraisMap expenses={filtered} onOpenExpense={onOpenExpense} onDataChanged={onDataChanged} />
 
       {/* Détail */}
       <Card>

@@ -84,6 +84,8 @@ interface TeExpense {
   vat_breakdown: { rate: number | null; ht: number | null; tva: number | null }[] | null;
   supplier_siret: string | null;
   supplier_address: string | null;
+  merchant_lat: number | null;
+  merchant_lng: number | null;
   supplier_naf: string | null;
   supplier_naf_label: string | null;
   occurred_at: string;
@@ -229,6 +231,7 @@ const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | nu
   category: VALID_CATEGORIES.includes(ex?.category) ? ex.category : '',
   isAbroad: false,
   hasAlcohol: false,
+  hasCoords: false,
   totalTTC: str(ex?.amount),
   totalHT: str(ex?.total_ht),
   totalTVA: str(ex?.vat),
@@ -257,6 +260,7 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
     category: e.te_category ?? '',
     isAbroad: e.is_abroad ?? false,
     hasAlcohol: e.has_alcohol ?? false,
+    hasCoords: e.merchant_lat != null,
     totalTTC: str(e.amount),
     totalHT: str(e.amount_ht),
     totalTVA: str(e.vat_amount),
@@ -910,6 +914,7 @@ const Frais = () => {
               filter={reportFilter}
               setFilter={setReportFilter}
               onOpenExpense={goToExpense}
+              onDataChanged={() => userId && loadData(userId)}
             />
           </TabsContent>
           <TabsContent value="pending" className="space-y-3 mt-4">

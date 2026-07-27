@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORY_META } from './categoryMeta';
 import SireneFraisDialog, { SireneFields } from './SireneFraisDialog';
+import { geocodeBan } from './geocode';
 import { toProperCase } from '@/utils/properCase';
 
 const db = supabase as any;
@@ -49,6 +50,8 @@ export interface VerifyPrefill {
   category: string;
   isAbroad: boolean;
   hasAlcohol: boolean;
+  /** Le frais a déjà un point géocodé (merchant_lat/lng). */
+  hasCoords: boolean;
   totalTTC: string;
   totalHT: string;
   totalTVA: string;
@@ -630,6 +633,15 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         : selectedEventId === 'none' ? 'no_context'
         : undefined;
 
+      // Géocodage BAN (France) quand l'adresse est nouvelle ou a changé :
+      // alimente la carte du reporting et le signal « lieu » du matching.
+      // undefined = ne pas toucher aux coordonnées existantes.
+      let coords: { lat: number; lng: number } | null | undefined;
+      if (!isAbroad && properAddress
+        && (properAddress !== prefill.address || !prefill.hasCoords)) {
+        coords = await geocodeBan(properAddress);
+      }
+
       const { error } = await db.from('te_expenses').update({
         merchant_raw: merchant.trim() || null,
         merchant_clean: properMerchant || null,
@@ -644,6 +656,9 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         vat_breakdown: !isAbroad && parsedLines.length ? parsedLines : null,
         ...(occurredAt ? { occurred_at: occurredAt.toISOString() } : {}),
         ...(expenseStatus ? { status: expenseStatus } : {}),
+        ...(coords !== undefined
+          ? { merchant_lat: coords?.lat ?? null, merchant_lng: coords?.lng ?? null }
+          : {}),
         te_category: category || null,
         is_abroad: isAbroad,
         has_alcohol: hasAlcohol,
