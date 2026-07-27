@@ -53,8 +53,13 @@ export default {
           foreground: 'hsl(var(--brand-foreground))',
           subtle: 'hsl(var(--brand-subtle))'
         },
+        // Corail de signal (voir index.css pour les règles d'usage strictes)
+        flash: {
+          DEFAULT: 'hsl(var(--flash))',
+          foreground: 'hsl(var(--flash-foreground))'
+        },
         // Alias legacy : d'anciens composants utilisent bg-po-blue / text-po-blue
-        // (jamais défini → rendu invisible). On l'aligne sur l'accent terracotta.
+        // (jamais défini → rendu invisible). On l'aligne sur l'accent brand.
         'po-blue': 'hsl(var(--brand))',
         popover: {
           DEFAULT: 'hsl(var(--popover))',

@@ -20,9 +20,18 @@
     --accent: 42 35% 93%; /* cream (hover subtil) */
     --accent-foreground: 50 13% 9%;
 
-    --brand: 15 63% 60%; /* Terracotta #D97757 - accent Sapajoo (conservé) */
+    --brand: 325 47% 33%; /* Mûre #7C2D57 — accent Sapajoo (le fruit du sapajou) */
     --brand-foreground: 0 0% 100%;
-    --brand-subtle: 18 75% 96%; /* tint terracotta clair */
+    --brand-subtle: 327 41% 95%; /* tint mûre clair #F7ECF2 */
+
+    /* Corail #FF6B4E — couleur de SIGNAL uniquement (compteurs, points de
+       notification, valeur mise en avant, graphes). Jamais sur un bouton ou un
+       lien (l'interactif = mûre), jamais en texte sur papier (contraste
+       insuffisant) : toujours en aplat avec texte encre. Max 2 usages/écran.
+       Vit dans la même famille de teinte que le destructif #9B3B2A : le
+       destructif reste sombre/mat, le corail vif/plein — ne pas les mélanger. */
+    --flash: 11 100% 65%;
+    --flash-foreground: 50 13% 9%; /* encre */
 
     --card: 43 78% 98%; /* warm white #FEFCF7 */
     --card-foreground: 50 13% 9%;
@@ -32,19 +41,19 @@
 
     --border: 41 24% 87%; /* hairline #E6E1D6 */
     --input: 41 24% 87%;
-    --ring: 15 63% 60%; /* focus terracotta */
+    --ring: 325 47% 33%; /* focus mûre */
 
     --destructive: 9 57% 39%; /* brique #9B3B2A */
     --destructive-foreground: 43 41% 97%;
 
     --sidebar-background: 50 13% 9%; /* ink (warm near-black) */
     --sidebar-foreground: 43 41% 97%; /* paper */
-    --sidebar-primary: 15 63% 60%; /* terracotta */
+    --sidebar-primary: 325 40% 62%; /* mûre éclaircie (lisible sur encre) */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 48 8% 18%; /* warm dark hover */
     --sidebar-accent-foreground: 43 41% 97%;
     --sidebar-border: 48 8% 18%;
-    --sidebar-ring: 15 63% 60%;
+    --sidebar-ring: 325 40% 62%;
 
     --radius: 0.75rem;
   }
@@ -65,9 +74,12 @@
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --brand: 15 63% 60%; /* Terracotta #D97757 - Sapajoo brand accent */
+    --brand: 325 42% 45%; /* Mûre éclaircie pour fond sombre */
     --brand-foreground: 0 0% 100%;
-    --brand-subtle: 20 25% 16%;
+    --brand-subtle: 325 30% 18%;
+
+    --flash: 11 100% 65%; /* Corail — signal, texte encre */
+    --flash-foreground: 50 13% 9%;
 
     --card: 215 25% 12%;
     --card-foreground: 210 20% 98%;
