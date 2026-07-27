@@ -14,8 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Download, FolderKanban, Globe, ReceiptText, Store, UserRound, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, Download, FolderKanban, Globe, ReceiptText, Store, UserRound, Users, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PolicyRow, violationsOf } from './policies';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CATEGORY_META } from './categoryMeta';
@@ -37,6 +38,9 @@ export interface ReportExpense {
   te_category: string | null;
   status: string;
   is_abroad?: boolean;
+  has_alcohol?: boolean;
+  receipt_id?: string | null;
+  created_at?: string;
   te_expense_guests: ReportGuest[] | null;
   budgets: { code: string; name: string; cac_capitalization: boolean | null } | null;
 }
@@ -51,6 +55,8 @@ export interface ReportFilter {
   nature?: string;
   /** true = seulement les dépenses à l'étranger. */
   abroad?: boolean;
+  /** true = seulement les frais hors politiques maison. */
+  nonCompliant?: boolean;
 }
 
 const euro = (n: number) =>
@@ -158,12 +164,13 @@ const NATURE_LABELS: Record<string, string> = {
 
 interface Props {
   expenses: ReportExpense[];
+  policies?: PolicyRow[];
   filter: ReportFilter;
   setFilter: (f: ReportFilter) => void;
   onOpenExpense: (id: string) => void;
 }
 
-const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenExpense }) => {
+const FraisReporting: React.FC<Props> = ({ expenses, policies = [], filter, setFilter, onOpenExpense }) => {
   const [preset, setPreset] = useState('quarter');
   const [[from, to], setRange] = useState<[string, string]>(() => PRESETS[2].range());
   const [sortBy, setSortBy] = useState<SortBy>('total');
@@ -182,6 +189,11 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     return (!from || d >= from) && (!to || d <= to);
   }), [expenses, from, to]);
 
+  // Violations des politiques maison, par frais (badge, filtre, CSV).
+  const violations = useMemo(
+    () => new Map(inPeriod.map((e) => [e.id, violationsOf(e, policies)])),
+    [inPeriod, policies]);
+
   // Puis les filtres croisés (cumulables).
   const filtered = useMemo(() => inPeriod.filter((e) => {
     if (filter.company && !companiesOf(e).includes(filter.company)) return false;
@@ -191,8 +203,9 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     if (filter.merchant && !merchantOf(e).includes(filter.merchant)) return false;
     if (filter.nature && natureOf(e) !== filter.nature) return false;
     if (filter.abroad && !e.is_abroad) return false;
+    if (filter.nonCompliant && !(violations.get(e.id)?.length)) return false;
     return true;
-  }), [inPeriod, filter]);
+  }), [inPeriod, filter, violations]);
 
   const totals = useMemo(() => ({
     ttc: filtered.reduce((s, e) => s + (Number(e.amount) || 0), 0),
@@ -228,12 +241,12 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
     ['merchant', filter.merchant, Store],
     ['nature', filter.nature, Users],
   ] as const).filter(([, v]) => !!v);
-  const hasActiveFilters = activeFilters.length > 0 || !!filter.abroad;
+  const hasActiveFilters = activeFilters.length > 0 || !!filter.abroad || !!filter.nonCompliant;
 
   const exportCsv = () => {
     // « Étranger » : TVA non déductible en France → le comptable doit pouvoir
     // isoler ces lignes d'un filtre Excel.
-    const head = ['Date', 'Fournisseur', 'Type', 'Nature', 'Étranger', 'Budget', 'Participants',
+    const head = ['Date', 'Fournisseur', 'Type', 'Nature', 'Étranger', 'Conformité', 'Budget', 'Participants',
       'Entreprises', 'HT', 'TVA', 'TTC'];
     const rows = filtered.map((e) => [
       e.occurred_at.slice(0, 10),
@@ -241,6 +254,7 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
       e.te_category ? CATEGORY_META[e.te_category]?.label ?? e.te_category : '',
       NATURE_LABELS[natureOf(e)] ?? '',
       e.is_abroad ? 'oui' : '',
+      (violations.get(e.id) ?? []).join(' / '),
       e.budgets ? `${e.budgets.code} — ${e.budgets.name}` : '',
       contactsOf(e).filter((c) => c !== NO_VALUE).join(' / '),
       companiesOf(e).filter((c) => c !== NO_VALUE).join(' / '),
@@ -369,6 +383,15 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" /> À l'étranger uniquement
               </span>
             </label>
+            {policies.some((p) => p.enabled) && (
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={!!filter.nonCompliant}
+                  onCheckedChange={(v) => setFilter({ ...filter, nonCompliant: v === true ? true : undefined })} />
+                <span className="flex items-center gap-1.5 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" /> Non conformes uniquement
+                </span>
+              </label>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -383,6 +406,16 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
               À l'étranger
               <button type="button" className="ml-0.5 rounded hover:bg-background/60"
                 onClick={() => setFilter({ ...filter, abroad: undefined })}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filter.nonCompliant && (
+            <Badge variant="secondary" className="gap-1 pr-1">
+              <AlertTriangle className="h-3 w-3" />
+              Non conformes
+              <button type="button" className="ml-0.5 rounded hover:bg-background/60"
+                onClick={() => setFilter({ ...filter, nonCompliant: undefined })}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -479,6 +512,10 @@ const FraisReporting: React.FC<Props> = ({ expenses, filter, setFilter, onOpenEx
                     <span className="text-sm font-medium truncate min-w-0 flex-1 flex items-center gap-1.5">
                       <span className="truncate">{e.merchant_clean ?? e.merchant_raw ?? 'Marchand inconnu'}</span>
                       {e.is_abroad && <Globe className="h-3.5 w-3.5 shrink-0 text-sky-600" />}
+                      {(violations.get(e.id)?.length ?? 0) > 0 && (
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-600"
+                          aria-label={violations.get(e.id)!.join(' · ')} />
+                      )}
                     </span>
                     <span className="hidden md:flex gap-1 shrink-0">
                       {contactsOf(e).filter((c) => c !== NO_VALUE).slice(0, 2).map((c) => (

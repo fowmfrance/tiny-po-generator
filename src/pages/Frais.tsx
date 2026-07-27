@@ -16,6 +16,7 @@ import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
   ReceiptText, Loader2, Sparkles, Pencil, Trash2, Link as LinkIcon, Unlink,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users, Globe,
+  AlertTriangle, Wine,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -29,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVerifyModal';
 import FraisReporting, { ReportFilter } from '@/components/frais/FraisReporting';
 import { CATEGORY_META } from '@/components/frais/categoryMeta';
+import { PolicyRow, violationsOf } from '@/components/frais/policies';
 import { toProperCase } from '@/utils/properCase';
 
 // Tables te_* pas encore dans les types générés (migration appliquée à la main
@@ -85,10 +87,12 @@ interface TeExpense {
   supplier_naf: string | null;
   supplier_naf_label: string | null;
   occurred_at: string;
-  te_category: 'restaurant' | 'transport' | 'hebergement' | 'autre' | null;
+  te_category: 'restaurant' | 'transport' | 'hebergement' | 'autre' | 'cadeau' | null;
   status: 'new' | 'suggested' | 'confirmed' | 'rejected' | 'no_context' | 'exported';
   reimbursable: boolean;
   is_abroad: boolean;
+  has_alcohol: boolean;
+  created_at: string;
   receipt_id: string | null;
   verified_at: string | null;
   budget_id: string | null;
@@ -203,7 +207,7 @@ const SIGNAL_LABELS: Record<string, string> = {
 const euro = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
 
-const VALID_CATEGORIES = ['restaurant', 'transport', 'hebergement', 'autre'];
+const VALID_CATEGORIES = ['restaurant', 'transport', 'hebergement', 'autre', 'cadeau'];
 const str = (v: unknown) => (v == null ? '' : String(v));
 // Proper Case (règle fleuron) — les tickets OCR sortent souvent en MAJUSCULES.
 const proper = (v: unknown) => (typeof v === 'string' && v.trim() ? toProperCase(v) : '');
@@ -224,6 +228,7 @@ const prefillFromExtracted = (ex: any, expenseId: string, receiptId: string | nu
   time: ex?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(ex.time) ? ex.time : '',
   category: VALID_CATEGORIES.includes(ex?.category) ? ex.category : '',
   isAbroad: false,
+  hasAlcohol: false,
   totalTTC: str(ex?.amount),
   totalHT: str(ex?.total_ht),
   totalTVA: str(ex?.vat),
@@ -251,6 +256,7 @@ const prefillFromExpense = (e: TeExpense): VerifyPrefill => {
     time: dateOnly ? '' : format(d, 'HH:mm'),
     category: e.te_category ?? '',
     isAbroad: e.is_abroad ?? false,
+    hasAlcohol: e.has_alcohol ?? false,
     totalTTC: str(e.amount),
     totalHT: str(e.amount_ht),
     totalTVA: str(e.vat_amount),
@@ -264,11 +270,12 @@ const Frais = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [expenses, setExpenses] = useState<TeExpense[]>([]);
+  const [policies, setPolicies] = useState<PolicyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false });
+  const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false, alcohol: false });
   const [savingManual, setSavingManual] = useState(false);
   const [agenda, setAgenda] = useState<AgendaEvent[]>([]);
   const [rules, setRules] = useState<Record<string, AgendaBucket>>({});
@@ -314,6 +321,10 @@ const Frais = () => {
         .select('recurring_event_id, kanban_bucket')
         .eq('user_id', uid),
     ]);
+    // Politiques maison de l'org (RLS : lecture pour tous les membres).
+    const { data: policyRows } = await db.from('te_expense_policies')
+      .select('policy_key, enabled, threshold');
+    setPolicies(policyRows ?? []);
     // RDV ↔ frais : quels événements du kanban portent une note de frais ?
     const { data: links } = await db.from('te_expense_matches')
       .select('expense_id, calendar_event_id, status')
@@ -492,6 +503,7 @@ const Frais = () => {
         occurred_at: occurredAt.toISOString(),
         te_category: manual.category,
         is_abroad: manual.abroad,
+        has_alcohol: manual.alcohol,
         notes: manual.notes || null,
         reimbursable: true,
         reimbursement_status: 'pending',
@@ -500,7 +512,7 @@ const Frais = () => {
       await supabase.functions.invoke('match-expense', { body: { expense_id: created.id } });
       toast({ title: 'Frais ajouté', description: 'Recherche du RDV correspondant…' });
       setManualOpen(false);
-      setManual({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false });
+      setManual({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false, alcohol: false });
       loadData(userId);
     } catch (e: any) {
       toast({ title: 'Erreur', description: e.message ?? String(e), variant: 'destructive' });
@@ -619,6 +631,7 @@ const Frais = () => {
 
   const renderExpense = (e: TeExpense) => {
     const match = e.te_expense_matches?.[0] ?? null;
+    const violations = violationsOf(e, policies);
     const cat = e.te_category ? CATEGORY_META[e.te_category] : null;
     const CatIcon = cat?.icon ?? ReceiptText;
     const event = match?.te_calendar_events;
@@ -651,6 +664,12 @@ const Frais = () => {
                   {e.is_abroad && (
                     <Badge variant="outline" className="border-sky-300 text-sky-700">
                       <Globe className="h-3 w-3 mr-1" /> Étranger
+                    </Badge>
+                  )}
+                  {violations.length > 0 && (
+                    <Badge variant="outline" className="border-red-300 text-red-700"
+                      title={violations.join(' · ')}>
+                      <AlertTriangle className="h-3 w-3 mr-1" /> Non conforme
                     </Badge>
                   )}
                   {e.status === 'confirmed' && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Rattaché</Badge>}
@@ -887,6 +906,7 @@ const Frais = () => {
           <TabsContent value="reporting" className="mt-4">
             <FraisReporting
               expenses={expenses}
+              policies={policies}
               filter={reportFilter}
               setFilter={setReportFilter}
               onOpenExpense={goToExpense}
@@ -1168,13 +1188,22 @@ const Frais = () => {
               <Input id="frais-notes" placeholder="Déjeuner prospection…" value={manual.notes}
                 onChange={(e) => setManual({ ...manual, notes: e.target.value })} />
             </div>
-            <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
-              <Checkbox checked={manual.abroad}
-                onCheckedChange={(v) => setManual({ ...manual, abroad: v === true })} />
-              <span className="flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
-              </span>
-            </label>
+            <div className="flex items-center gap-5 flex-wrap">
+              <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+                <Checkbox checked={manual.abroad}
+                  onCheckedChange={(v) => setManual({ ...manual, abroad: v === true })} />
+                <span className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
+                </span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+                <Checkbox checked={manual.alcohol}
+                  onCheckedChange={(v) => setManual({ ...manual, alcohol: v === true })} />
+                <span className="flex items-center gap-1.5">
+                  <Wine className="h-3.5 w-3.5 text-muted-foreground" /> Contient de l'alcool
+                </span>
+              </label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManualOpen(false)}>Annuler</Button>

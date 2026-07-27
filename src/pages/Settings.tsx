@@ -19,7 +19,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { availableCurrencies, BudgetCurrency, defaultCurrency } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
-import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase, ShieldCheck, Layers } from 'lucide-react';
+import { Euro, Wallet, Settings as SettingsIcon, Tags, Hash, Building2, Briefcase, ShieldCheck, Layers, ReceiptText } from 'lucide-react';
+import FraisPoliciesTab from '@/components/settings/FraisPoliciesTab';
 import ExpenseCategoriesTab from '@/components/settings/ExpenseCategoriesTab';
 import ServiceTypesTab from '@/components/settings/ServiceTypesTab';
 import NumberingTab from '@/components/settings/NumberingTab';
@@ -123,6 +124,10 @@ const Settings = () => {
             <ShieldCheck className="h-4 w-4 mr-2" />
             KYC
           </TabsTrigger>
+          <TabsTrigger value="frais-policies">
+            <ReceiptText className="h-4 w-4 mr-2" />
+            Notes de frais
+          </TabsTrigger>
           <TabsTrigger value="currencies">
             <Euro className="h-4 w-4 mr-2" />
             Devises
@@ -155,6 +160,10 @@ const Settings = () => {
 
         <TabsContent value="service-types" className="mt-6">
           <ServiceTypesTab />
+        </TabsContent>
+
+        <TabsContent value="frais-policies" className="mt-6">
+          <FraisPoliciesTab />
         </TabsContent>
 
         <TabsContent value="kyc" className="mt-6">

@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarCheck2, Check, CheckCircle2,
-  FolderKanban, Globe, Info, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, X,
+  FolderKanban, Globe, Info, Landmark, Loader2, Plus, Search, Sparkles, Trash2, UserRound, Users, Wand2, Wine, X,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +48,7 @@ export interface VerifyPrefill {
   time: string;   // HH:MM
   category: string;
   isAbroad: boolean;
+  hasAlcohol: boolean;
   totalTTC: string;
   totalHT: string;
   totalTVA: string;
@@ -157,6 +158,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
   const [time, setTime] = useState('');
   const [category, setCategory] = useState('');
   const [isAbroad, setIsAbroad] = useState(false);
+  const [hasAlcohol, setHasAlcohol] = useState(false);
   const [totalTTC, setTotalTTC] = useState('');
   const [totalHT, setTotalHT] = useState('');
   const [totalTVA, setTotalTVA] = useState('');
@@ -208,6 +210,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
     setTime(prefill.time);
     setCategory(prefill.category);
     setIsAbroad(prefill.isAbroad);
+    setHasAlcohol(prefill.hasAlcohol);
     setTotalTTC(prefill.totalTTC);
     setTotalHT(prefill.totalHT);
     setTotalTVA(prefill.totalTVA);
@@ -643,6 +646,7 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
         ...(expenseStatus ? { status: expenseStatus } : {}),
         te_category: category || null,
         is_abroad: isAbroad,
+        has_alcohol: hasAlcohol,
         budget_id: budgetId || null,
         client_id: clientId || null,
         verified_at: new Date().toISOString(),
@@ -784,12 +788,20 @@ const ReceiptVerifyModal: React.FC<Props> = ({ open, userId, prefill, onClose, o
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
-          <Checkbox checked={isAbroad} onCheckedChange={(v) => setIsAbroad(v === true)} />
-          <span className="flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
-          </span>
-        </label>
+        <div className="flex items-center gap-5 flex-wrap">
+          <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+            <Checkbox checked={isAbroad} onCheckedChange={(v) => setIsAbroad(v === true)} />
+            <span className="flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" /> Dépense à l'étranger
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+            <Checkbox checked={hasAlcohol} onCheckedChange={(v) => setHasAlcohol(v === true)} />
+            <span className="flex items-center gap-1.5">
+              <Wine className="h-3.5 w-3.5 text-muted-foreground" /> Contient de l'alcool
+            </span>
+          </label>
+        </div>
 
         {/* RDV correspondant — lookup agenda depuis la date/heure du ticket */}
         {date && (
