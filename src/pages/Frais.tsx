@@ -16,7 +16,7 @@ import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
   ReceiptText, Loader2, Sparkles, Pencil, Trash2, Link as LinkIcon, Unlink,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users, Globe,
-  AlertTriangle, Wine, Plane,
+  AlertTriangle, Wine, Plane, CreditCard,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -31,6 +31,7 @@ import ReceiptVerifyModal, { VerifyPrefill } from '@/components/frais/ReceiptVer
 import FraisReporting, { ReportFilter } from '@/components/frais/FraisReporting';
 import { CATEGORY_META } from '@/components/frais/categoryMeta';
 import { PolicyRow, violationsOf } from '@/components/frais/policies';
+import BankMatchDialog from '@/components/frais/BankMatchDialog';
 import { toProperCase } from '@/utils/properCase';
 
 // Tables te_* pas encore dans les types générés (migration appliquée à la main
@@ -95,6 +96,7 @@ interface TeExpense {
   is_abroad: boolean;
   has_alcohol: boolean;
   created_at: string;
+  transaction_id: string | null;
   receipt_id: string | null;
   verified_at: string | null;
   budget_id: string | null;
@@ -341,6 +343,7 @@ const Frais = () => {
   // Navigation croisée RDV ↔ note de frais : onglet contrôlé + surbrillance.
   const [tab, setTab] = useState('agenda');
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [eventLinks, setEventLinks] = useState<Record<string, EventLink>>({});
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -712,6 +715,11 @@ const Frais = () => {
                   <Badge variant="outline">{SOURCE_LABELS[e.source]}</Badge>
                   {cat && <Badge variant="outline">{cat.label}</Badge>}
                   {e.reimbursable && <Badge variant="secondary">À rembourser</Badge>}
+                  {e.transaction_id && (
+                    <Badge variant="outline" title="Relié à une transaction Qonto">
+                      <CreditCard className="h-3 w-3 mr-1" /> Payé carte
+                    </Badge>
+                  )}
                   {e.is_abroad && (
                     <Badge variant="outline" className="border-sky-300 text-sky-700">
                       <Globe className="h-3 w-3 mr-1" /> Étranger
@@ -871,6 +879,9 @@ const Frais = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBankOpen(true)}>
+              <CreditCard className="h-4 w-4 mr-2" /> Rapprocher banque
+            </Button>
             <Button variant="outline" onClick={() => setManualOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Saisie manuelle
             </Button>
@@ -1133,6 +1144,17 @@ const Frais = () => {
           userId={userId}
           prefill={verify}
           onClose={() => setVerify(null)}
+          onSaved={() => loadData(userId)}
+        />
+      )}
+
+      {/* Rapprochement frais ↔ transactions carte Qonto */}
+      {userId && (
+        <BankMatchDialog
+          open={bankOpen}
+          userId={userId}
+          expenses={expenses}
+          onClose={() => setBankOpen(false)}
           onSaved={() => loadData(userId)}
         />
       )}
