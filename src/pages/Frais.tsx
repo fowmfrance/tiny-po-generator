@@ -16,7 +16,7 @@ import {
   Wallet, CalendarCheck2, Camera, RefreshCw, Check, X, Plus,
   ReceiptText, Loader2, Sparkles, Pencil, Trash2, Link as LinkIcon, Unlink,
   Coffee, UtensilsCrossed, Moon, CircleUserRound, Video, MapPin, Users, Globe,
-  AlertTriangle, Wine,
+  AlertTriangle, Wine, Plane,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -187,6 +187,51 @@ function classifyEvent(ev: AgendaEvent): AgendaBucket {
   return 'perso';
 }
 
+// ---- Habituel vs en déplacement ----
+// La « base habituelle » se déduit par MAJORITÉ des RDV localisés : département
+// du code postal quand il y en a un, sinon nom de ville adjacent au code postal
+// d'autres RDV. Un RDV est « en déplacement » quand son lieu s'écarte de cette
+// base ; visio et RDV sans lieu comptent en habituel.
+type TravelFilter = 'all' | 'local' | 'travel';
+
+const stripAccents = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+function computeHomeBase(events: AgendaEvent[]): { dep: string | null; city: string | null } {
+  const deps = new Map<string, number>();
+  const cities = new Map<string, number>();
+  for (const ev of events) {
+    const loc = ev.location_raw;
+    if (!loc || isVisio(ev)) continue;
+    const m = loc.match(/([\p{L}'’-]{3,})?[,\s]*\b(\d{5})\b/u);
+    if (!m) continue;
+    const dep = m[2].slice(0, 2);
+    deps.set(dep, (deps.get(dep) || 0) + 1);
+    if (m[1]) {
+      const c = stripAccents(m[1]);
+      cities.set(c, (cities.get(c) || 0) + 1);
+    }
+  }
+  const top = (counts: Map<string, number>) =>
+    [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  return { dep: top(deps), city: top(cities) };
+}
+
+function isTravelEvent(ev: AgendaEvent, home: { dep: string | null; city: string | null }): boolean {
+  if (isVisio(ev)) return false;
+  const loc = ev.location_raw;
+  if (!loc) return false;
+  const m = loc.match(/\b(\d{5})\b/);
+  if (m && home.dep) return m[1].slice(0, 2) !== home.dep;
+  if (home.city) return !stripAccents(loc).includes(home.city);
+  return false;
+}
+
+const TRAVEL_FILTERS: { key: TravelFilter; label: string }[] = [
+  { key: 'all', label: 'Tous' },
+  { key: 'local', label: 'Habituel' },
+  { key: 'travel', label: 'En déplacement' },
+];
+
 const BUCKETS: { key: AgendaBucket; label: string; hint: string; icon: React.ElementType }[] = [
   { key: 'cafes', label: 'Cafés', hint: '8 h – 10 h', icon: Coffee },
   { key: 'dejeuners', label: 'Déjeuners', hint: '12 h – 14 h', icon: UtensilsCrossed },
@@ -282,6 +327,7 @@ const Frais = () => {
   const [manual, setManual] = useState({ merchant: '', amount: '', date: '', time: '12:30', category: 'restaurant', notes: '', abroad: false, alcohol: false });
   const [savingManual, setSavingManual] = useState(false);
   const [agenda, setAgenda] = useState<AgendaEvent[]>([]);
+  const agendaHomeBase = useMemo(() => computeHomeBase(agenda), [agenda]);
   const [rules, setRules] = useState<Record<string, AgendaBucket>>({});
   const [syncDays, setSyncDays] = useState('30');
   // Modale « série récurrente » : événement déplacé + colonne cible en attente.
@@ -298,6 +344,7 @@ const Frais = () => {
   const [disconnecting, setDisconnecting] = useState(false);
   const [eventLinks, setEventLinks] = useState<Record<string, EventLink>>({});
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [travelFilter, setTravelFilter] = useState<TravelFilter>('all');
   // Filtres du reporting, pilotés aussi depuis les puces contact des cartes.
   const [reportFilter, setReportFilter] = useState<ReportFilter>({});
 
@@ -937,9 +984,34 @@ const Frais = () => {
                 Aucun RDV synchronisé. Connectez votre agenda ou lancez une synchronisation.
               </div>
             ) : (
+              <>
+              <div className="flex items-center justify-end mb-3">
+                <div
+                  className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-xs"
+                  title="« Habituel » = la base majoritaire de vos RDV (département / ville) ; « En déplacement » = lieu qui s'en écarte. Visio et RDV sans lieu comptent en habituel."
+                >
+                  {TRAVEL_FILTERS.map(f => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setTravelFilter(f.key)}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        travelFilter === f.key
+                          ? 'bg-background shadow-sm font-medium'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {f.key === 'travel' && <Plane className="h-3 w-3 inline mr-1 -mt-0.5" />}
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                 {BUCKETS.map((bucket) => {
-                  const items = agenda.filter((ev) => bucketOf(ev) === bucket.key);
+                  const items = agenda.filter((ev) =>
+                    bucketOf(ev) === bucket.key
+                    && (travelFilter === 'all' || (travelFilter === 'travel') === isTravelEvent(ev, agendaHomeBase)));
                   const BucketIcon = bucket.icon;
                   return (
                     <div
@@ -1001,6 +1073,11 @@ const Frais = () => {
                                 {ev.location_raw && !isVisio(ev) && (
                                   <span className="flex items-center gap-0.5 truncate"><MapPin className="h-3 w-3 shrink-0" /> {ev.location_raw}</span>
                                 )}
+                                {isTravelEvent(ev, agendaHomeBase) && (
+                                  <span className="flex items-center gap-0.5 shrink-0 text-brand" title="Lieu hors de votre base habituelle">
+                                    <Plane className="h-3 w-3" /> déplacement
+                                  </span>
+                                )}
                                 {guests > 0 && (
                                   <span className="flex items-center gap-0.5 shrink-0"><Users className="h-3 w-3" /> {guests}</span>
                                 )}
@@ -1038,6 +1115,7 @@ const Frais = () => {
                   );
                 })}
               </div>
+              </>
             )}
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
               Classement auto (visio et libellés perso écartés, mots-clés repas validés par l'heure,
