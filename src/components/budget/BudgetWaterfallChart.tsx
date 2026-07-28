@@ -56,7 +56,7 @@ export function BudgetWaterfallChart({
   const engagedCosts = invoicedAmount + committedAmount;
 
   // If resalePrice is set, bridge vs budget :
-  //   Vente → -Charges budgétées → Marge cible (pointillés) → ±Écart vs budget → Marge à date
+  //   Vente → -Charges budgétées → Marge cible (pointillés) → ±Écart vs budget → Marge potentielle
   // Otherwise fallback to cost-only view: Budget → -Facturé → -Engagé → Restant
   const hasResale = typeof resalePrice === 'number' && resalePrice > 0;
 
@@ -73,7 +73,7 @@ export function BudgetWaterfallChart({
       // ou l'améliore (économie), pour atterrir sur la marge à date.
       const targetMargin = sale - initialAmount; // marge cible initiale
       const variance = initialAmount - engagedCosts; // <0 = dépassement, >0 = économie
-      const currentMargin = sale - engagedCosts; // marge à date (= cible + écart)
+      const currentMargin = sale - engagedCosts; // marge potentielle (= cible + écart)
 
       return trackingSlice([
         {
@@ -115,7 +115,7 @@ export function BudgetWaterfallChart({
             : `${variance < 0 ? '−' : '+'}${fmt(currency, Math.abs(variance))}`,
         },
         {
-          name: 'Marge à date',
+          name: 'Marge potentielle',
           type: 'total',
           from: 0,
           to: currentMargin,
@@ -303,7 +303,7 @@ export function BudgetWaterfallChart({
             {!notStarted && (
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.margin }} />
-                Marge à date
+                Marge potentielle
               </span>
             )}
           </>
