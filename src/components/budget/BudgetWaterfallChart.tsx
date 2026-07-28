@@ -7,6 +7,9 @@ interface BudgetWaterfallChartProps {
   receivedAmount: number;
   availableAmount: number;
   resalePrice?: number;
+  /** Projet pas encore commencé (début futur + aucun BdC) : les blocs de suivi
+   *  (écart vs budget, marge à date / consommation) n'ont pas encore de sens. */
+  notStarted?: boolean;
 }
 
 const fmt = (currency: string, amount: number) =>
@@ -46,6 +49,7 @@ export function BudgetWaterfallChart({
   receivedAmount,
   availableAmount,
   resalePrice,
+  notStarted = false,
 }: BudgetWaterfallChartProps) {
   const invoicedAmount = Math.max(0, receivedAmount);
   const committedAmount = Math.max(0, sentAmount - receivedAmount);
@@ -57,6 +61,11 @@ export function BudgetWaterfallChart({
   const hasResale = typeof resalePrice === 'number' && resalePrice > 0;
 
   const steps: WaterfallStep[] = useMemo(() => {
+    // Projet non commencé : on s'arrête aux blocs de CADRAGE (vente, charges
+    // budgétées, marge cible). Écart et marge à date n'existeront qu'en phase
+    // de suivi (premier BdC / date de début atteinte).
+    const trackingSlice = <T,>(arr: T[], keep: number) => (notStarted ? arr.slice(0, keep) : arr);
+
     if (hasResale) {
       const sale = resalePrice!;
       // Bridge vs BUDGET : la marge cible (CA − provision de charges) est le repère ;
@@ -66,7 +75,7 @@ export function BudgetWaterfallChart({
       const variance = initialAmount - engagedCosts; // <0 = dépassement, >0 = économie
       const currentMargin = sale - engagedCosts; // marge à date (= cible + écart)
 
-      return [
+      return trackingSlice([
         {
           name: 'Prix de vente',
           type: 'total',
@@ -114,14 +123,14 @@ export function BudgetWaterfallChart({
           color: currentMargin >= 0 ? COLORS.margin : COLORS.invoiced,
           label: fmt(currency, currentMargin),
         },
-      ];
+      ] as WaterfallStep[], 3);
     }
 
     // Fallback: cost-only waterfall
     const levelAfterInvoiced = initialAmount - invoicedAmount;
     const levelAfterCommitted = levelAfterInvoiced - committedAmount;
 
-    return [
+    return trackingSlice([
       {
         name: 'Budget',
         type: 'total',
@@ -158,8 +167,8 @@ export function BudgetWaterfallChart({
         color: COLORS.margin,
         label: fmt(currency, levelAfterCommitted),
       },
-    ];
-  }, [currency, initialAmount, invoicedAmount, committedAmount, engagedCosts, hasResale, resalePrice]);
+    ] as WaterfallStep[], 1);
+  }, [currency, initialAmount, invoicedAmount, committedAmount, engagedCosts, hasResale, resalePrice, notStarted]);
 
   // SVG layout
   const svgWidth = 700;
@@ -284,19 +293,21 @@ export function BudgetWaterfallChart({
                 style={{ borderColor: COLORS.margin, background: 'transparent' }} />
               Marge cible
             </span>
-            {variance !== 0 && (
+            {!notStarted && variance !== 0 && (
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-sm"
                   style={{ background: variance < 0 ? COLORS.invoiced : COLORS.margin }} />
                 {variance < 0 ? 'Dépassement' : 'Écart favorable'}
               </span>
             )}
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.margin }} />
-              Marge à date
-            </span>
+            {!notStarted && (
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.margin }} />
+                Marge à date
+              </span>
+            )}
           </>
-        ) : (
+        ) : !notStarted ? (
           <>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.invoiced }} />
@@ -311,10 +322,17 @@ export function BudgetWaterfallChart({
               Restant
             </span>
           </>
-        )}
+        ) : null}
       </div>
 
-      {hasResale && (
+      {notStarted && (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          Projet pas encore commencé — le suivi (écart vs budget, marge à date) s'affichera
+          au premier BdC ou à la date de début.
+        </p>
+      )}
+
+      {hasResale && !notStarted && (
         <p className="mt-2 text-center text-[11px] text-muted-foreground">
           Coûts engagés : <span className="font-medium text-foreground">{fmt(currency, engagedCosts)}</span>
           {' '}(factures {fmt(currency, invoicedAmount)} + BdC {fmt(currency, committedAmount)})

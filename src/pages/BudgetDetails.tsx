@@ -301,6 +301,11 @@ const BudgetDetails = () => {
               receivedAmount={metrics.receivedAmount}
               availableAmount={metrics.availableAmount}
               resalePrice={budget.resale_price ?? undefined}
+              notStarted={
+                !!budget.start_date
+                && new Date(budget.start_date) > new Date()
+                && metrics.poCount === 0
+              }
             />
               </>
             )}
