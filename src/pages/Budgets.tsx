@@ -11,6 +11,7 @@ import BudgetHeader from '@/components/budget/BudgetHeader';
 import BudgetViewToggle, { ViewType } from '@/components/budget/BudgetViewToggle';
 import BudgetCardView from '@/components/budget/BudgetCardView';
 import BudgetKanbanView from '@/components/budget/BudgetKanbanView';
+import BudgetTimelineView from '@/components/budget/BudgetTimelineView';
 import { useBudgetsData } from '@/hooks/useBudgetsData';
 import { Loader2 } from 'lucide-react';
 
@@ -24,7 +25,7 @@ const Budgets = () => {
     toast({
       title: "Vue changée",
       description: `Vue des budgets mise à jour vers ${
-        view === 'list' ? 'Liste' : view === 'grid' ? 'Cartes' : 'Kanban'
+        view === 'list' ? 'Liste' : view === 'grid' ? 'Cartes' : view === 'kanban' ? 'Kanban' : 'Timeline'
       }`,
     });
   };
@@ -67,6 +68,8 @@ const Budgets = () => {
         return <BudgetCardView budgets={budgets} />;
       case 'kanban':
         return <BudgetKanbanView budgets={budgets} />;
+      case 'timeline':
+        return <BudgetTimelineView budgets={budgets} />;
       case 'list':
       default:
         return <BudgetList budgets={budgets} />;

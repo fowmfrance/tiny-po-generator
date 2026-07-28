@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { LayoutGrid, LayoutList, Kanban } from 'lucide-react';
+import { LayoutGrid, LayoutList, Kanban, GanttChartSquare } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-export type ViewType = 'list' | 'grid' | 'kanban';
+export type ViewType = 'list' | 'grid' | 'kanban' | 'timeline';
 
 interface BudgetViewToggleProps {
   activeView: ViewType;
@@ -27,6 +27,10 @@ const BudgetViewToggle: React.FC<BudgetViewToggleProps> = ({
       <ToggleGroupItem value="kanban" aria-label="Vue kanban" className="px-3">
         <Kanban className="h-4 w-4 mr-1" />
         <span className="hidden sm:inline">Kanban</span>
+      </ToggleGroupItem>
+      <ToggleGroupItem value="timeline" aria-label="Vue timeline" className="px-3">
+        <GanttChartSquare className="h-4 w-4 mr-1" />
+        <span className="hidden sm:inline">Timeline</span>
       </ToggleGroupItem>
     </ToggleGroup>
   );
