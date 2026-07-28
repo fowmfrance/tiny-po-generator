@@ -207,10 +207,16 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
               <Trash2 className="w-4 h-4" /> Supprimer
             </Button>
           )}
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2" 
+          {/* Le portail fournisseur = suivi des bons de commande : sans objet
+              pour un fournisseur dispensé de BdC. */}
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
             onClick={() => copyPortalLink()}
+            disabled={supplier.is_po_exempt}
+            title={supplier.is_po_exempt
+              ? 'Fournisseur dispensé de BdC : le portail (suivi des bons de commande) ne s\'applique pas.'
+              : undefined}
           >
             <Copy className="w-4 h-4" /> Copier lien portail
           </Button>
@@ -218,8 +224,10 @@ const VendorDetail = ({ supplierId, embedded = false }: VendorDetailProps = {}) 
             variant="default"
             className="flex items-center gap-2"
             onClick={() => id && sendMagicLink.mutate(id)}
-            disabled={sendMagicLink.isPending || !supplier.email}
-            title={!supplier.email ? "Renseigner d'abord un email sur la fiche" : undefined}
+            disabled={sendMagicLink.isPending || !supplier.email || supplier.is_po_exempt}
+            title={supplier.is_po_exempt
+              ? 'Fournisseur dispensé de BdC : le portail (suivi des bons de commande) ne s\'applique pas.'
+              : !supplier.email ? "Renseigner d'abord un email sur la fiche" : undefined}
           >
             <Send className="w-4 h-4" /> Envoyer le lien par email
           </Button>
