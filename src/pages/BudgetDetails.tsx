@@ -404,6 +404,7 @@ const BudgetDetails = () => {
         budgetCode={budget.code}
         currency={budget.currency}
         initialAmount={Number(budget.initial_amount) || 0}
+        resalePrice={budget.resale_price != null ? Number(budget.resale_price) : null}
         startDate={budget.start_date}
         endDate={budget.end_date}
       />

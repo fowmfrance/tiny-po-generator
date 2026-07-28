@@ -819,6 +819,96 @@ export type Database = {
           },
         ]
       }
+      client_invoices: {
+        Row: {
+          amount_ht: number | null
+          amount_ttc: number | null
+          budget_id: string | null
+          client_name: string | null
+          created_at: string
+          currency: string | null
+          due_date: string | null
+          id: string
+          invoice_type: string | null
+          invoice_url: string | null
+          is_credit_note: boolean
+          issue_date: string | null
+          linked_qonto_invoice_id: string | null
+          number: string | null
+          organization_id: string
+          paid_at: string | null
+          qonto_invoice_id: string
+          raw: Json | null
+          status: string | null
+          updated_at: string
+          user_id: string
+          vat_amount: number | null
+        }
+        Insert: {
+          amount_ht?: number | null
+          amount_ttc?: number | null
+          budget_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_type?: string | null
+          invoice_url?: string | null
+          is_credit_note?: boolean
+          issue_date?: string | null
+          linked_qonto_invoice_id?: string | null
+          number?: string | null
+          organization_id: string
+          paid_at?: string | null
+          qonto_invoice_id: string
+          raw?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          vat_amount?: number | null
+        }
+        Update: {
+          amount_ht?: number | null
+          amount_ttc?: number | null
+          budget_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_type?: string | null
+          invoice_url?: string | null
+          is_credit_note?: boolean
+          issue_date?: string | null
+          linked_qonto_invoice_id?: string | null
+          number?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          qonto_invoice_id?: string
+          raw?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoices_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string
