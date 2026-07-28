@@ -24,13 +24,14 @@
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 327 41% 95%; /* tint mûre clair #F7ECF2 */
 
-    /* Corail vif #FF614D (choisi via tuner) — couleur de SIGNAL uniquement (compteurs, points de
+    /* Corail #FF6652 (setup « variante B » validé via tuner) — SIGNAL uniquement (compteurs, points de
        notification, valeur mise en avant, graphes). Jamais sur un bouton ou un
        lien (l'interactif = mûre), jamais en texte sur papier (contraste
        insuffisant) : toujours en aplat avec texte encre. Max 2 usages/écran.
-       Vit dans la même famille de teinte que le destructif #9B3B2A : le
-       destructif reste sombre/mat, le corail vif/plein — ne pas les mélanger. */
-    --flash: 7 100% 65%;
+       Le rouge destructif est refroidi vers le carmin (352°) pour se distinguer
+       du corail (écart de luminance ≥ 2:1) : le corail signale, le rouge alerte —
+       le corail ne touche jamais un chiffre ni un statut. */
+    --flash: 7 100% 66%;
     --flash-foreground: 50 13% 9%; /* encre */
 
     --card: 43 78% 98%; /* warm white #FEFCF7 */
@@ -43,7 +44,7 @@
     --input: 41 24% 87%;
     --ring: 325 48% 42%; /* focus mûre */
 
-    --destructive: 9 57% 39%; /* brique #9B3B2A */
+    --destructive: 352 70% 44%; /* carmin #BF2237 — refroidi pour se distinguer du corail */
     --destructive-foreground: 43 41% 97%;
 
     --sidebar-background: 50 13% 9%; /* ink (warm near-black) */
@@ -78,7 +79,7 @@
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 325 30% 18%;
 
-    --flash: 7 100% 65%; /* Corail vif — signal, texte encre */
+    --flash: 7 100% 66%; /* Corail — signal, texte encre */
     --flash-foreground: 50 13% 9%;
 
     --card: 215 25% 12%;
