@@ -226,7 +226,7 @@ export function FinancialDetailsCard({
             name="startDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Date de début</FormLabel>
+                <FormLabel>Date de début *</FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input type="date" className="pl-10" {...field} />
@@ -242,7 +242,7 @@ export function FinancialDetailsCard({
             name="endDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Date de fin</FormLabel>
+                <FormLabel>Date de fin *</FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input type="date" className="pl-10" {...field} />

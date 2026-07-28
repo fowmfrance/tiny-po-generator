@@ -320,15 +320,18 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
       toast({ title: "Champ requis", description: "Veuillez saisir un nom pour le budget.", variant: "destructive" });
       return;
     }
-    // La reconnaissance linéaire répartit CA, coûts et provisions entre deux
-    // dates : elles sont donc obligatoires avec cette méthode (le défaut).
-    const selectedMethod = recognitionMethods.find((m) => m.id === data.recognitionMethodId);
-    if (selectedMethod?.code === 'over_time_linear' && (!data.startDate || !data.endDate)) {
+    // Dates OBLIGATOIRES quel que soit le mode de reconnaissance : CA, coûts et
+    // provisions se calent sur la période du projet (cut-off, reprises).
+    if (!data.startDate || !data.endDate) {
       toast({
         title: 'Dates requises',
-        description: 'La reconnaissance linéaire répartit CA, coûts et provisions entre la date de début et la date de fin : renseignez les deux.',
+        description: 'Renseignez la date de début et la date de fin du projet : la reconnaissance (CA, coûts, provisions) et le cut-off s\'y adossent, quel que soit le mode.',
         variant: 'destructive',
       });
+      return;
+    }
+    if (data.endDate < data.startDate) {
+      toast({ title: 'Dates incohérentes', description: 'La date de fin doit être postérieure à la date de début.', variant: 'destructive' });
       return;
     }
     const hasMilestones = milestoneMode === 'global'

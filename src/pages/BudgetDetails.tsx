@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, CalendarRange, AlertTriangle } from 'lucide-react';
 import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
 import BudgetSheetLink from '@/components/budget/BudgetSheetLink';
 import { Badge } from '@/components/ui/badge';
@@ -233,6 +233,23 @@ const BudgetDetails = () => {
               <CardDescription className="mt-1">
                 Code: {budget.code} | Type: <Badge variant="secondary">{budget.budget_type_id}</Badge>
               </CardDescription>
+              {/* Période du projet : socle de la reconnaissance (CA, coûts,
+                  provisions) et du cut-off — toujours visible. */}
+              {budget.start_date && budget.end_date ? (
+                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <CalendarRange className="h-4 w-4" />
+                  <span>
+                    {new Date(budget.start_date).toLocaleDateString('fr-FR')}
+                    {' → '}
+                    {new Date(budget.end_date).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Dates de projet manquantes — requises pour la reconnaissance et le cut-off</span>
+                </div>
+              )}
             </div>
             {/* Lentille : Économique (HT, produit/consommé) vs Trésorerie (TTC, encaissé/décaissé) */}
             <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5 shrink-0">
