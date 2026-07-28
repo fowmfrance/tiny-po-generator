@@ -22,6 +22,7 @@ import DAS2 from './pages/DAS2';
 import Payments from './pages/Payments';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Team from './pages/Team';
 import SupplierPortal from './pages/SupplierPortal';
 import SupplierPOView from './pages/SupplierPOView';
 import SupplierPortalAccess from './pages/SupplierPortalAccess';
@@ -72,6 +73,7 @@ function App() {
         <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
         <Route path="/benchmark" element={<ProtectedRoute><Layout><PriceBenchmark /></Layout></ProtectedRoute>} />
         <Route path="/milestones" element={<ProtectedRoute><Layout><MilestoneReport /></Layout></ProtectedRoute>} />
+        <Route path="/equipe" element={<ProtectedRoute><Layout><Team /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="/supplier" element={<SupplierPortal />} />
         <Route path="/supplier/purchaseorders/:token" element={<SupplierPOView />} />

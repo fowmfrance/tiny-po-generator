@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { useBudgetParticipants, PARTICIPANT_ROLES } from '@/hooks/useBudgetParticipants';
+import { useBudgetParticipants } from '@/hooks/useBudgetParticipants';
+import { useOrgRoles } from '@/hooks/useOrgTeam';
 
 interface BudgetParticipantsDialogProps {
   budgetId: string | null;
@@ -27,6 +28,9 @@ interface BudgetParticipantsDialogProps {
  */
 const BudgetParticipantsDialog = ({ budgetId, budgetName, onClose }: BudgetParticipantsDialogProps) => {
   const { participants, isLoading, addParticipant, updateParticipant, removeParticipant } = useBudgetParticipants(budgetId ?? undefined);
+  const { roles } = useOrgRoles();
+  const invitableRoles = roles.filter(r => !r.is_key_user);
+  const roleLabel = (key: string) => roles.find(r => r.key === key)?.label ?? key;
   const [newUserId, setNewUserId] = useState('');
   const [newRole, setNewRole] = useState('chef_de_projet');
 
@@ -47,7 +51,8 @@ const BudgetParticipantsDialog = ({ budgetId, budgetName, onClose }: BudgetParti
 
   const handleAdd = () => {
     if (!newUserId) return;
-    addParticipant.mutate({ userId: newUserId, role: newRole });
+    const role = roles.find(r => r.key === newRole);
+    addParticipant.mutate({ userId: newUserId, role: newRole, maxPoAmount: role?.max_po_amount ?? null });
     setNewUserId('');
   };
 
@@ -87,9 +92,9 @@ const BudgetParticipantsDialog = ({ budgetId, budgetName, onClose }: BudgetParti
             <Select value={newRole} onValueChange={setNewRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(PARTICIPANT_ROLES).map(([key, r]) => (
-                  <SelectItem key={key} value={key}>
-                    {r.label} · {fmtEur(r.defaultMax)}
+                {invitableRoles.map(r => (
+                  <SelectItem key={r.key} value={r.key}>
+                    {r.label}{r.max_po_amount != null ? ` · ${fmtEur(r.max_po_amount)}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -116,11 +121,19 @@ const BudgetParticipantsDialog = ({ budgetId, budgetName, onClose }: BudgetParti
                   <div className="text-xs text-muted-foreground truncate">{p.email}</div>
                 )}
               </div>
-              <Select value={p.role} onValueChange={(role) => updateParticipant.mutate({ id: p.id, role })}>
-                <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <Select
+                value={p.role}
+                onValueChange={(roleKey) => {
+                  const role = roles.find(r => r.key === roleKey);
+                  updateParticipant.mutate({ id: p.id, role: roleKey, maxPoAmount: role?.max_po_amount ?? null });
+                }}
+              >
+                <SelectTrigger className="w-[150px] h-8 text-xs">
+                  <SelectValue>{roleLabel(p.role)}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PARTICIPANT_ROLES).map(([key, r]) => (
-                    <SelectItem key={key} value={key}>{r.label}</SelectItem>
+                  {invitableRoles.map(r => (
+                    <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

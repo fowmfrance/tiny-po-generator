@@ -24,6 +24,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           .eq('id', user.id)
           .single();
         setUserName(profile?.full_name || user.email?.split('@')[0] || null);
+
+        // Heartbeat « dernière activité » (Équipe → Membres), throttlé à 30 min
+        const THROTTLE_MS = 30 * 60 * 1000;
+        const last = Number(localStorage.getItem('sapajoo_last_seen_ping') || 0);
+        if (Date.now() - last > THROTTLE_MS) {
+          localStorage.setItem('sapajoo_last_seen_ping', String(Date.now()));
+          supabase.from('profiles')
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq('id', user.id)
+            .then(({ error }) => { if (error) console.error('heartbeat error:', error); });
+        }
       }
     };
     fetchUser();

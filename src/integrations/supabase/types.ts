@@ -1573,6 +1573,98 @@ export type Database = {
           },
         ]
       }
+      org_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          org_role_id: string | null
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          org_role_id?: string | null
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          org_role_id?: string | null
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invitations_org_role_id_fkey"
+            columns: ["org_role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_roles: {
+        Row: {
+          can_create_budgets: boolean
+          created_at: string
+          id: string
+          is_key_user: boolean
+          key: string
+          label: string
+          max_po_amount: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_create_budgets?: boolean
+          created_at?: string
+          id?: string
+          is_key_user?: boolean
+          key: string
+          label: string
+          max_po_amount?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_create_budgets?: boolean
+          created_at?: string
+          id?: string
+          is_key_user?: boolean
+          key?: string
+          label?: string
+          max_po_amount?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company: string | null
@@ -1580,6 +1672,8 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_seen_at: string | null
+          org_role_id: string | null
           organization_id: string | null
           receive_email_copies: boolean
           updated_at: string
@@ -1590,6 +1684,8 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          last_seen_at?: string | null
+          org_role_id?: string | null
           organization_id?: string | null
           receive_email_copies?: boolean
           updated_at?: string
@@ -1600,6 +1696,8 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_seen_at?: string | null
+          org_role_id?: string | null
           organization_id?: string | null
           receive_email_copies?: boolean
           updated_at?: string
@@ -1610,6 +1708,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_org_role_id_fkey"
+            columns: ["org_role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
             referencedColumns: ["id"]
           },
         ]

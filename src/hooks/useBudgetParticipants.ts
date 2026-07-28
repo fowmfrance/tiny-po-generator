@@ -6,16 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 /**
  * Participants d'un budget : collaborateurs de l'organisation invités par le
  * créateur du budget à émettre des BdC sur son projet, avec un plafond
- * d'engagement PAR BdC selon le rôle.
+ * d'engagement PAR BdC.
  *
- * Phase 1 : rôles et plafonds par défaut codés ici, plafond ajustable par
- * participant. Phase 2 : grille paramétrable par instance (key user).
+ * Les rôles et leurs plafonds par défaut viennent de la grille de l'instance
+ * (org_roles, onglet Équipe → Rôles) ; le plafond reste ajustable par
+ * participant. `role` stocke la clé du rôle d'instance.
  */
-export const PARTICIPANT_ROLES: Record<string, { label: string; defaultMax: number }> = {
-  chef_de_projet: { label: 'Chef de projet', defaultMax: 500 },
-  responsable: { label: 'Responsable', defaultMax: 2000 },
-  directeur: { label: 'Directeur', defaultMax: 10000 },
-};
 
 export interface BudgetParticipant {
   id: string;
@@ -65,7 +61,7 @@ export function useBudgetParticipants(budgetId: string | undefined) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['budget-participants', budgetId] });
 
   const addParticipant = useMutation({
-    mutationFn: async (input: { userId: string; role: string }) => {
+    mutationFn: async (input: { userId: string; role: string; maxPoAmount: number | null }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
       const organizationId = await getCurrentOrganizationId();
@@ -75,7 +71,7 @@ export function useBudgetParticipants(budgetId: string | undefined) {
         user_id: input.userId,
         organization_id: organizationId,
         role: input.role,
-        max_po_amount: PARTICIPANT_ROLES[input.role]?.defaultMax ?? null,
+        max_po_amount: input.maxPoAmount,
         invited_by: user.id,
       });
       if (error) throw error;
@@ -93,10 +89,7 @@ export function useBudgetParticipants(budgetId: string | undefined) {
   const updateParticipant = useMutation({
     mutationFn: async (input: { id: string; role?: string; maxPoAmount?: number | null }) => {
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-      if (input.role !== undefined) {
-        patch.role = input.role;
-        patch.max_po_amount = PARTICIPANT_ROLES[input.role]?.defaultMax ?? null;
-      }
+      if (input.role !== undefined) patch.role = input.role;
       if (input.maxPoAmount !== undefined) patch.max_po_amount = input.maxPoAmount;
       const { error } = await supabase.from('budget_participants').update(patch).eq('id', input.id);
       if (error) throw error;
@@ -118,27 +111,64 @@ export function useBudgetParticipants(budgetId: string | undefined) {
 }
 
 /**
- * Plafond d'engagement de l'utilisateur courant sur un budget donné.
- * Renvoie null si l'utilisateur n'est pas plafonné : créateur du budget,
- * non-participant (RLS org ouverte, durcissement en phase 2) ou plafond vide.
+ * Autorisation d'émettre un BdC d'un montant donné sur un budget.
+ *
+ * Règle produit : key user/admin libres ; participant invité → son plafond ;
+ * créateur du budget → la limite de son rôle d'instance ; tout autre membre
+ * de l'organisation → refus.
  */
-export async function getMyPoCeiling(budgetId: string): Promise<{ max: number; role: string } | null> {
+export async function checkPoAuthorization(
+  budgetId: string,
+  total: number,
+): Promise<{ ok: true } | { ok: false; title: string; message: string }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { ok: false, title: 'Non authentifié', message: 'Reconnectez-vous.' };
 
+  const { fetchMyPermissions } = await import('@/hooks/useOrgTeam');
+  const perms = await fetchMyPermissions();
+  if (perms.isKeyUser) return { ok: true };
+
+  const fmt = (n: number) => n.toLocaleString('fr-FR');
+
+  // Participant invité sur ce budget : son plafond individuel fait foi.
+  const { data: participant } = await supabase
+    .from('budget_participants')
+    .select('max_po_amount')
+    .eq('budget_id', budgetId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (participant) {
+    const max = participant.max_po_amount != null ? Number(participant.max_po_amount) : null;
+    if (max != null && total > max) {
+      return {
+        ok: false,
+        title: 'Plafond d\'engagement dépassé',
+        message: `Votre participation à ce budget limite chaque BdC à ${fmt(max)} €. Total actuel : ${fmt(total)} €.`,
+      };
+    }
+    return { ok: true };
+  }
+
+  // Créateur du budget : limite de son rôle d'instance (Équipe → Rôles).
   const { data: budget } = await supabase
     .from('budgets')
     .select('user_id')
     .eq('id', budgetId)
     .maybeSingle();
-  if (budget?.user_id === user.id) return null;
+  if (budget?.user_id === user.id) {
+    if (perms.maxPoAmount != null && total > perms.maxPoAmount) {
+      return {
+        ok: false,
+        title: 'Plafond d\'engagement dépassé',
+        message: `Votre rôle${perms.roleLabel ? ` (${perms.roleLabel})` : ''} limite chaque BdC à ${fmt(perms.maxPoAmount)} €. Total actuel : ${fmt(total)} €.`,
+      };
+    }
+    return { ok: true };
+  }
 
-  const { data: row } = await supabase
-    .from('budget_participants')
-    .select('role, max_po_amount')
-    .eq('budget_id', budgetId)
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (!row || row.max_po_amount == null) return null;
-  return { max: Number(row.max_po_amount), role: row.role };
+  return {
+    ok: false,
+    title: 'BdC non autorisé sur ce budget',
+    message: 'Seuls le créateur du budget, ses participants invités et le key user peuvent émettre un BdC ici. Demandez au créateur du budget de vous inviter.',
+  };
 }

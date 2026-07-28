@@ -287,7 +287,18 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
+    // Création de budgets réservée aux rôles autorisés (Équipe → Rôles) et au key user.
+    const { fetchMyPermissions } = await import('@/hooks/useOrgTeam');
+    const perms = await fetchMyPermissions();
+    if (!perms.canCreateBudgets) {
+      toast({
+        title: 'Création de budget non autorisée',
+        description: `Votre rôle${perms.roleLabel ? ` (${perms.roleLabel})` : ''} ne permet pas de créer des budgets. Rapprochez-vous du key user de votre instance.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!data.budgetTypeId) {
       toast({ title: "Champ requis", description: "Veuillez sélectionner un type de budget.", variant: "destructive" });
       return;

@@ -175,6 +175,19 @@ const Sidebar = () => {
               <span className="hidden group-hover:inline whitespace-nowrap">Banques</span>
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="/equipe"
+              className={({ isActive }) =>
+                `flex items-center justify-center group-hover:justify-start p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+                  isActive ? 'bg-sidebar-accent font-medium text-brand' : ''
+                }`
+              }
+            >
+              <Users className="w-5 h-5 min-w-5 group-hover:mr-3" />
+              <span className="hidden group-hover:inline whitespace-nowrap">Équipe</span>
+            </NavLink>
+          </li>
           {/* Module Notes de frais (T&E) — séparé du flux budgétaire/factures */}
           <li aria-hidden="true">
             <div className="my-2 mx-2 border-t border-white/20" />
