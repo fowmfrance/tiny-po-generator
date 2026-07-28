@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Pencil, CalendarRange, AlertTriangle } from 'lucide-react';
 import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
+import BudgetRecognitionTimeline from '@/components/budget/BudgetRecognitionTimeline';
 import BudgetSheetLink from '@/components/budget/BudgetSheetLink';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
@@ -395,6 +396,17 @@ const BudgetDetails = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Reconnaissance des charges entre les dates du projet — provisions par
+          différentiel d'engagement (CA/Marge : après connexion facturation) */}
+      <BudgetRecognitionTimeline
+        budgetId={budget.id}
+        budgetCode={budget.code}
+        currency={budget.currency}
+        initialAmount={Number(budget.initial_amount) || 0}
+        startDate={budget.start_date}
+        endDate={budget.end_date}
+      />
 
       {/* Contrôle de cohérence avec le Google Sheet lié (Sapajoo = source de vérité) */}
       <BudgetSheetLink
