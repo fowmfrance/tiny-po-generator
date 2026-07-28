@@ -606,6 +606,57 @@ export type Database = {
           },
         ]
       }
+      budget_participants: {
+        Row: {
+          budget_id: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          max_po_amount: number | null
+          organization_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          max_po_amount?: number | null
+          organization_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          max_po_amount?: number | null
+          organization_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_participants_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_participants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_types: {
         Row: {
           created_at: string

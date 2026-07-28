@@ -15,6 +15,7 @@ import {
   Copy,
   Download,
   Send,
+  Users,
   ArrowUp,
   ArrowDown,
   Search,
@@ -23,6 +24,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import EditBudgetDialog from '@/components/budget/EditBudgetDialog';
+import BudgetParticipantsDialog from '@/components/budget/BudgetParticipantsDialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -58,6 +60,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
   const [sortKey, setSortKey] = useState<SortKey>('code');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [editBudget, setEditBudget] = useState<Budget | null>(null);
+  const [participantsBudget, setParticipantsBudget] = useState<Budget | null>(null);
 
   const refreshBudgets = () => {
     queryClient.invalidateQueries({ queryKey: ['budgets'] });
@@ -303,6 +306,9 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
                       <DropdownMenuItem onClick={() => handleAdjustBudget(budget)}>
                         <Edit className="mr-2 h-4 w-4" /> Ajuster le budget au montant envoyé
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setParticipantsBudget(budget)}>
+                        <Users className="mr-2 h-4 w-4" /> Participants
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
@@ -318,6 +324,12 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets }) => {
           ))}
         </TableBody>
       </Table>
+
+      <BudgetParticipantsDialog
+        budgetId={participantsBudget?.id ?? null}
+        budgetName={participantsBudget?.name}
+        onClose={() => setParticipantsBudget(null)}
+      />
 
       {editBudget && (
         <EditBudgetDialog

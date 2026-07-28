@@ -32,6 +32,7 @@ import { findSupplierMatches, nameSimilarity, proposeTiersLinks, type SupplierMa
 import PostSyncMatchDialog from '@/components/banks/PostSyncMatchDialog';
 import PostSyncInvoiceMatchDialog from '@/components/banks/PostSyncInvoiceMatchDialog';
 import { proposeInvoiceLinks, type InvoiceLinkProposal } from '@/utils/invoiceMatch';
+import { qontoCategoryLabel } from '@/utils/qontoCategoryLabels';
 import { useQueryClient } from '@tanstack/react-query';
 import { toProperCase } from '@/utils/properCase';
 
@@ -1401,7 +1402,7 @@ const Banks = () => {
                                   </div>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">
-                                    {tx.qonto_category || '-'}
+                                    {qontoCategoryLabel(tx.qonto_category) || '-'}
                                   </span>
                                 )}
                               </TableCell>

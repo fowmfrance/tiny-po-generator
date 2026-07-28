@@ -376,6 +376,23 @@ const CreatePO = () => {
       return;
     }
 
+    // Plafond d'engagement : un participant invité sur le budget ne peut pas
+    // émettre un BdC au-dessus de son plafond (le créateur du budget est libre).
+    const totalCheck = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    if (selectedBudget) {
+      const { getMyPoCeiling } = await import('@/hooks/useBudgetParticipants');
+      const { PARTICIPANT_ROLES } = await import('@/hooks/useBudgetParticipants');
+      const ceiling = await getMyPoCeiling(selectedBudget);
+      if (ceiling && totalCheck > ceiling.max) {
+        toast({
+          title: 'Plafond d\'engagement dépassé',
+          description: `Votre rôle (${PARTICIPANT_ROLES[ceiling.role]?.label || ceiling.role}) limite chaque BdC à ${ceiling.max.toLocaleString('fr-FR')} € sur ce budget. Total actuel : ${totalCheck.toLocaleString('fr-FR')} €.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       if (isEditMode && editId) {

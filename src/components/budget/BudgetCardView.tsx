@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import BudgetParticipantsDialog from '@/components/budget/BudgetParticipantsDialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ interface BudgetCardViewProps {
 
 const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
   const navigate = useNavigate();
+  const [participantsBudget, setParticipantsBudget] = useState<Budget | null>(null);
 
   // Handle budget card click to navigate to details page
   const handleBudgetClick = (budget: Budget) => {
@@ -51,7 +53,7 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/budgets/${budget.id}/edit`); }}>
                     <Edit className="mr-2 h-4 w-4" /> Modifier
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); }}>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setParticipantsBudget(budget); }}>
                     <Users className="mr-2 h-4 w-4" /> Ajouter des participants
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -136,6 +138,12 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
           </CardFooter>
         </Card>
       ))}
+
+      <BudgetParticipantsDialog
+        budgetId={participantsBudget?.id ?? null}
+        budgetName={participantsBudget?.name}
+        onClose={() => setParticipantsBudget(null)}
+      />
     </div>
   );
 };
