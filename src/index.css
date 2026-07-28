@@ -24,13 +24,13 @@
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 327 41% 95%; /* tint mûre clair #F7ECF2 */
 
-    /* Corail néon #FF441A — couleur de SIGNAL uniquement (compteurs, points de
+    /* Corail vif #FF5729 — couleur de SIGNAL uniquement (compteurs, points de
        notification, valeur mise en avant, graphes). Jamais sur un bouton ou un
        lien (l'interactif = mûre), jamais en texte sur papier (contraste
        insuffisant) : toujours en aplat avec texte encre. Max 2 usages/écran.
        Vit dans la même famille de teinte que le destructif #9B3B2A : le
        destructif reste sombre/mat, le corail vif/plein — ne pas les mélanger. */
-    --flash: 11 100% 55%;
+    --flash: 13 100% 58%;
     --flash-foreground: 50 13% 9%; /* encre */
 
     --card: 43 78% 98%; /* warm white #FEFCF7 */
@@ -78,7 +78,7 @@
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 325 30% 18%;
 
-    --flash: 11 100% 55%; /* Corail néon — signal, texte encre */
+    --flash: 13 100% 58%; /* Corail vif — signal, texte encre */
     --flash-foreground: 50 13% 9%;
 
     --card: 215 25% 12%;
