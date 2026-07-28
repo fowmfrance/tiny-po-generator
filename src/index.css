@@ -20,17 +20,17 @@
     --accent: 42 35% 93%; /* cream (hover subtil) */
     --accent-foreground: 50 13% 9%;
 
-    --brand: 325 47% 33%; /* Mûre #7C2D57 — accent Sapajoo (le fruit du sapajou) */
+    --brand: 325 48% 42%; /* Mûre claire (framboise) #9F3372 — accent Sapajoo */
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 327 41% 95%; /* tint mûre clair #F7ECF2 */
 
-    /* Corail vif #FF5729 — couleur de SIGNAL uniquement (compteurs, points de
+    /* Corail vif #FF614D (choisi via tuner) — couleur de SIGNAL uniquement (compteurs, points de
        notification, valeur mise en avant, graphes). Jamais sur un bouton ou un
        lien (l'interactif = mûre), jamais en texte sur papier (contraste
        insuffisant) : toujours en aplat avec texte encre. Max 2 usages/écran.
        Vit dans la même famille de teinte que le destructif #9B3B2A : le
        destructif reste sombre/mat, le corail vif/plein — ne pas les mélanger. */
-    --flash: 13 100% 58%;
+    --flash: 7 100% 65%;
     --flash-foreground: 50 13% 9%; /* encre */
 
     --card: 43 78% 98%; /* warm white #FEFCF7 */
@@ -41,19 +41,19 @@
 
     --border: 41 24% 87%; /* hairline #E6E1D6 */
     --input: 41 24% 87%;
-    --ring: 325 47% 33%; /* focus mûre */
+    --ring: 325 48% 42%; /* focus mûre */
 
     --destructive: 9 57% 39%; /* brique #9B3B2A */
     --destructive-foreground: 43 41% 97%;
 
     --sidebar-background: 50 13% 9%; /* ink (warm near-black) */
     --sidebar-foreground: 43 41% 97%; /* paper */
-    --sidebar-primary: 325 40% 62%; /* mûre éclaircie (lisible sur encre) */
+    --sidebar-primary: 325 50% 68%; /* mûre claire (lisible sur encre) */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 48 8% 18%; /* warm dark hover */
     --sidebar-accent-foreground: 43 41% 97%;
     --sidebar-border: 48 8% 18%;
-    --sidebar-ring: 325 40% 62%;
+    --sidebar-ring: 325 50% 68%;
 
     --radius: 0.75rem;
   }
@@ -74,11 +74,11 @@
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --brand: 325 42% 45%; /* Mûre éclaircie pour fond sombre */
+    --brand: 325 45% 52%; /* Mûre claire pour fond sombre */
     --brand-foreground: 0 0% 100%;
     --brand-subtle: 325 30% 18%;
 
-    --flash: 13 100% 58%; /* Corail vif — signal, texte encre */
+    --flash: 7 100% 65%; /* Corail vif — signal, texte encre */
     --flash-foreground: 50 13% 9%;
 
     --card: 215 25% 12%;
