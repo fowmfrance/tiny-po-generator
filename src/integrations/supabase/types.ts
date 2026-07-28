@@ -726,6 +726,12 @@ export type Database = {
           project_manager_id: string | null
           recognition_method_id: string | null
           resale_price: number | null
+          sheet_checked_at: string | null
+          sheet_error: string | null
+          sheet_last_total: number | null
+          sheet_mode: string
+          sheet_spreadsheet_id: string | null
+          sheet_status: string | null
           start_date: string | null
           status: string
           updated_at: string
@@ -749,6 +755,12 @@ export type Database = {
           project_manager_id?: string | null
           recognition_method_id?: string | null
           resale_price?: number | null
+          sheet_checked_at?: string | null
+          sheet_error?: string | null
+          sheet_last_total?: number | null
+          sheet_mode?: string
+          sheet_spreadsheet_id?: string | null
+          sheet_status?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -772,6 +784,12 @@ export type Database = {
           project_manager_id?: string | null
           recognition_method_id?: string | null
           resale_price?: number | null
+          sheet_checked_at?: string | null
+          sheet_error?: string | null
+          sheet_last_total?: number | null
+          sheet_mode?: string
+          sheet_spreadsheet_id?: string | null
+          sheet_status?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -1324,6 +1342,98 @@ export type Database = {
         }
         Relationships: []
       }
+      org_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          org_role_id: string | null
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          org_role_id?: string | null
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          org_role_id?: string | null
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invitations_org_role_id_fkey"
+            columns: ["org_role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_roles: {
+        Row: {
+          can_create_budgets: boolean
+          created_at: string
+          id: string
+          is_key_user: boolean
+          key: string
+          label: string
+          max_po_amount: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_create_budgets?: boolean
+          created_at?: string
+          id?: string
+          is_key_user?: boolean
+          key: string
+          label: string
+          max_po_amount?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_create_budgets?: boolean
+          created_at?: string
+          id?: string
+          is_key_user?: boolean
+          key?: string
+          label?: string
+          max_po_amount?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           contact_email: string | null
@@ -1573,98 +1683,6 @@ export type Database = {
           },
         ]
       }
-      org_invitations: {
-        Row: {
-          accepted_at: string | null
-          created_at: string
-          email: string
-          id: string
-          invited_by: string | null
-          org_role_id: string | null
-          organization_id: string
-          status: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          created_at?: string
-          email: string
-          id?: string
-          invited_by?: string | null
-          org_role_id?: string | null
-          organization_id: string
-          status?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          created_at?: string
-          email?: string
-          id?: string
-          invited_by?: string | null
-          org_role_id?: string | null
-          organization_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "org_invitations_org_role_id_fkey"
-            columns: ["org_role_id"]
-            isOneToOne: false
-            referencedRelation: "org_roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_invitations_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      org_roles: {
-        Row: {
-          can_create_budgets: boolean
-          created_at: string
-          id: string
-          is_key_user: boolean
-          key: string
-          label: string
-          max_po_amount: number | null
-          organization_id: string
-          updated_at: string
-        }
-        Insert: {
-          can_create_budgets?: boolean
-          created_at?: string
-          id?: string
-          is_key_user?: boolean
-          key: string
-          label: string
-          max_po_amount?: number | null
-          organization_id: string
-          updated_at?: string
-        }
-        Update: {
-          can_create_budgets?: boolean
-          created_at?: string
-          id?: string
-          is_key_user?: boolean
-          key?: string
-          label?: string
-          max_po_amount?: number | null
-          organization_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "org_roles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           company: string | null
@@ -1704,17 +1722,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "profiles_org_role_id_fkey"
             columns: ["org_role_id"]
             isOneToOne: false
             referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2937,6 +2955,7 @@ export type Database = {
           enriched_at: string | null
           first_name: string | null
           id: string
+          is_internal: boolean
           last_name: string | null
           organization_id: string
           phone: string | null
@@ -2956,6 +2975,7 @@ export type Database = {
           enriched_at?: string | null
           first_name?: string | null
           id?: string
+          is_internal?: boolean
           last_name?: string | null
           organization_id: string
           phone?: string | null
@@ -2975,6 +2995,7 @@ export type Database = {
           enriched_at?: string | null
           first_name?: string | null
           id?: string
+          is_internal?: boolean
           last_name?: string | null
           organization_id?: string
           phone?: string | null
@@ -3041,6 +3062,7 @@ export type Database = {
           email: string | null
           expense_id: string
           id: string
+          is_internal: boolean
           organization_id: string
           user_id: string
         }
@@ -3052,6 +3074,7 @@ export type Database = {
           email?: string | null
           expense_id: string
           id?: string
+          is_internal?: boolean
           organization_id: string
           user_id: string
         }
@@ -3063,6 +3086,7 @@ export type Database = {
           email?: string | null
           expense_id?: string
           id?: string
+          is_internal?: boolean
           organization_id?: string
           user_id?: string
         }
@@ -3152,17 +3176,59 @@ export type Database = {
           },
         ]
       }
+      te_expense_policies: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          organization_id: string
+          policy_key: string
+          threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id: string
+          policy_key: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          organization_id?: string
+          policy_key?: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "te_expense_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       te_expenses: {
         Row: {
           amount: number
           amount_ht: number | null
           booked_at: string | null
+          budget_id: string | null
+          client_id: string | null
           created_at: string
           currency: string
           expense_category_id: string | null
           external_txn_id: string | null
           gl_account: string | null
+          has_alcohol: boolean
           id: string
+          is_abroad: boolean
           merchant_clean: string | null
           merchant_lat: number | null
           merchant_lng: number | null
@@ -3194,12 +3260,16 @@ export type Database = {
           amount: number
           amount_ht?: number | null
           booked_at?: string | null
+          budget_id?: string | null
+          client_id?: string | null
           created_at?: string
           currency?: string
           expense_category_id?: string | null
           external_txn_id?: string | null
           gl_account?: string | null
+          has_alcohol?: boolean
           id?: string
+          is_abroad?: boolean
           merchant_clean?: string | null
           merchant_lat?: number | null
           merchant_lng?: number | null
@@ -3231,12 +3301,16 @@ export type Database = {
           amount?: number
           amount_ht?: number | null
           booked_at?: string | null
+          budget_id?: string | null
+          client_id?: string | null
           created_at?: string
           currency?: string
           expense_category_id?: string | null
           external_txn_id?: string | null
           gl_account?: string | null
+          has_alcohol?: boolean
           id?: string
+          is_abroad?: boolean
           merchant_clean?: string | null
           merchant_lat?: number | null
           merchant_lng?: number | null
@@ -3265,6 +3339,20 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "te_expenses_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "te_expenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "te_expenses_expense_category_id_fkey"
             columns: ["expense_category_id"]
@@ -3450,9 +3538,11 @@ export type Database = {
           qonto_label: string | null
           qonto_local_amount: number | null
           qonto_local_currency: string | null
+          qonto_logo_url: string | null
           qonto_note: string | null
           qonto_operation_type: string | null
           qonto_raw_data: Json | null
+          qonto_raw_label: string | null
           qonto_reference: string | null
           qonto_settled_at: string | null
           qonto_side: string | null
@@ -3485,9 +3575,11 @@ export type Database = {
           qonto_label?: string | null
           qonto_local_amount?: number | null
           qonto_local_currency?: string | null
+          qonto_logo_url?: string | null
           qonto_note?: string | null
           qonto_operation_type?: string | null
           qonto_raw_data?: Json | null
+          qonto_raw_label?: string | null
           qonto_reference?: string | null
           qonto_settled_at?: string | null
           qonto_side?: string | null
@@ -3520,9 +3612,11 @@ export type Database = {
           qonto_label?: string | null
           qonto_local_amount?: number | null
           qonto_local_currency?: string | null
+          qonto_logo_url?: string | null
           qonto_note?: string | null
           qonto_operation_type?: string | null
           qonto_raw_data?: Json | null
+          qonto_raw_label?: string | null
           qonto_reference?: string | null
           qonto_settled_at?: string | null
           qonto_side?: string | null
@@ -3537,13 +3631,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "transactions_supplier_invoice_id_fkey"
-            columns: ["supplier_invoice_id"]
-            isOneToOne: false
-            referencedRelation: "supplier_invoices"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "transactions_bank_connection_id_fkey"
             columns: ["bank_connection_id"]
@@ -3577,6 +3664,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_supplier_invoice_id_fkey"
+            columns: ["supplier_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -3638,6 +3732,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_user_is_key_user: { Args: never; Returns: boolean }
       current_user_organization_id: { Args: never; Returns: string }
       decrypt_credential: {
         Args: { encrypted_text: string; encryption_key: string }
@@ -3720,6 +3815,7 @@ export type Database = {
         Returns: number
       }
       propagate_service_type_templates: { Args: never; Returns: number }
+      proper_case_name: { Args: { _raw: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
