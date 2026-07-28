@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { FileSearch, Link2, Unlink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileSearch, Link2, Pencil, Unlink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -64,10 +65,32 @@ const ProjectCell = ({
   onSelectCode,
   onCreateBudget,
 }: ProjectCellProps) => {
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectEditing, setSelectEditing] = useState(false);
 
   const absAmount = Math.abs(txAmount);
+
+  // Le code affiché mène à la fiche budget d'un clic ; l'édition passe par le crayon.
+  const budgetFor = (code: string | null) => (code ? budgets.find(b => b.code === code) : undefined);
+  const CodeLink = ({ code, title }: { code: string; title: string }) => {
+    const budget = budgetFor(code);
+    return (
+      <button
+        type="button"
+        title={budget ? `${budget.code} — ${budget.name} : ouvrir le budget` : title}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (budget) navigate(`/budgets/${budget.id}`);
+        }}
+        className={`inline-flex items-center gap-1 rounded-full bg-brand-subtle/60 px-2 py-0.5 text-[11px] font-medium text-brand ${budget ? 'hover:bg-brand-subtle underline-offset-2 hover:underline' : 'cursor-default'}`}
+      >
+        <Link2 className="h-3 w-3" />
+        {code}
+      </button>
+    );
+  };
 
   const sortedInvoices = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -103,26 +126,32 @@ const ProjectCell = ({
   if (supplierId && (supplierHasPO || supplierInvoiceId)) {
     return (
       <>
-        {linkedInvoice ? (
+        {(linkedInvoice?.projectCode || projectCode) ? (
+          <span className="inline-flex items-center gap-1">
+            <CodeLink
+              code={(linkedInvoice?.projectCode || projectCode) as string}
+              title={linkedInvoice ? `Dérivé de la facture ${linkedInvoice.invoiceNumber || ''}` : 'Code non rapproché d\'une facture'}
+            />
+            <button
+              type="button"
+              onClick={openDialog}
+              title={linkedInvoice
+                ? `Facture ${linkedInvoice.invoiceNumber || ''}${linkedInvoice.poNumber ? ` (BdC ${linkedInvoice.poNumber})` : ''} — changer le rapprochement`
+                : 'Rapprocher d\'une facture'}
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          </span>
+        ) : linkedInvoice ? (
           <button
             type="button"
             onClick={openDialog}
-            title={`Dérivé de la facture ${linkedInvoice.invoiceNumber || ''}${linkedInvoice.poNumber ? ` (BdC ${linkedInvoice.poNumber})` : ''} — cliquer pour changer`}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-subtle/60 px-2 py-0.5 text-[11px] font-medium text-brand hover:bg-brand-subtle"
+            title={`Facture ${linkedInvoice.invoiceNumber || ''} sans code projet — cliquer pour changer`}
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted"
           >
             <Link2 className="h-3 w-3" />
-            {linkedInvoice.projectCode || 'Sans projet'}
-          </button>
-        ) : projectCode ? (
-          // Code déjà affecté (saisie antérieure) mais pas encore rapproché d'une
-          // facture : le code reste lisible tel quel, le clic ouvre le rapprochement.
-          <button
-            type="button"
-            onClick={openDialog}
-            title="Code non rapproché d'une facture — cliquer pour lier"
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
-          >
-            {projectCode}
+            Sans projet
           </button>
         ) : (
           <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground" onClick={openDialog}>
@@ -201,15 +230,36 @@ const ProjectCell = ({
     );
   }
 
-  // Cas 3 : fournisseur sans BdC, ou pas de tiers → choix libre du code projet
+  // Cas 3 : fournisseur sans BdC, ou pas de tiers → choix libre du code projet.
+  // Une fois le code posé, il s'affiche en lien vers la fiche budget ; le crayon
+  // rouvre le sélecteur.
+  if (projectCode && !selectEditing) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <CodeLink code={projectCode} title="Code projet" />
+        <button
+          type="button"
+          onClick={() => setSelectEditing(true)}
+          title="Changer le code projet"
+          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      </span>
+    );
+  }
+
   return (
     <Select
+      open={selectEditing || undefined}
+      onOpenChange={(o) => { if (!o) setSelectEditing(false); }}
       value={projectCode || 'none'}
       onValueChange={(value) => {
         if (value === '__new_budget__') {
           onCreateBudget();
           return;
         }
+        setSelectEditing(false);
         onSelectCode(value === 'none' ? null : value);
       }}
     >
