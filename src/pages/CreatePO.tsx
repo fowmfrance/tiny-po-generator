@@ -382,7 +382,7 @@ const CreatePO = () => {
     if (selectedBudget) {
       const { checkPoAuthorization } = await import('@/hooks/useBudgetParticipants');
       const verdict = await checkPoAuthorization(selectedBudget, totalCheck);
-      if (!verdict.ok) {
+      if (verdict.ok === false) {
         toast({ title: verdict.title, description: verdict.message, variant: 'destructive' });
         return;
       }
