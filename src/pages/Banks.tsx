@@ -69,6 +69,10 @@ interface QontoTransaction {
   side: 'credit' | 'debit';
   operation_type?: string;
   label: string;
+  /** Libellé affiché dans l'interface Qonto (contrepartie nettoyée) — null
+      quand Qonto n'a pas su enrichir : on retombe sur label. */
+  clean_counterparty_name?: string | null;
+  logo?: { small?: string; medium?: string } | null;
   status: string;
   note?: string;
   reference?: string;
@@ -89,6 +93,7 @@ interface Transaction {
   qonto_currency: string;
   qonto_side: string;
   qonto_label: string;
+  qonto_raw_label: string | null;
   qonto_settled_at: string | null;
   qonto_emitted_at: string | null;
   qonto_status: string;
@@ -181,7 +186,11 @@ const Banks = () => {
     if (filterCategory === 'without' && hasCat) return false;
     if (filterSide !== 'all' && tx.qonto_side !== filterSide) return false;
     const q = filterSearch.trim().toLowerCase();
-    if (q && !(tx.qonto_label || '').toLowerCase().includes(q) && !(tx.qonto_reference || '').toLowerCase().includes(q)) return false;
+    // La recherche couvre aussi le libellé bancaire brut : taper « GOURMET »
+    // retrouve la transaction affichée « Galeries Lafayette ».
+    if (q && !(tx.qonto_label || '').toLowerCase().includes(q)
+      && !(tx.qonto_raw_label || '').toLowerCase().includes(q)
+      && !(tx.qonto_reference || '').toLowerCase().includes(q)) return false;
     return true;
   });
   const hasActiveFilter = filterTiers !== 'all' || filterCategory !== 'all' || filterSide !== 'all' || filterSearch.trim() !== '';
@@ -456,7 +465,11 @@ const Banks = () => {
         qonto_local_currency: tx.local_currency,
         qonto_side: tx.side,
         qonto_operation_type: tx.operation_type,
-        qonto_label: tx.label,
+        // qonto_label = le libellé que Qonto AFFICHE (clean_counterparty_name),
+        // le brut bancaire reste consultable dans qonto_raw_label.
+        qonto_label: tx.clean_counterparty_name || tx.label,
+        qonto_raw_label: tx.label,
+        qonto_logo_url: tx.logo?.small ?? null,
         qonto_settled_at: tx.settled_at,
         qonto_emitted_at: tx.emitted_at,
         qonto_status: tx.status,
