@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -64,6 +64,10 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
     },
   });
 
+  // Défaut produit : reconnaissance LINÉAIRE entre date de début et date de fin
+  // sur TOUS les projets (CA, coûts et provisions au prorata temporis). Le key
+  // user de l'instance peut affiner la méthode ; les autres rôles ne la
+  // choisissent pas (RecognitionMethodCard en lecture seule).
   const form = useForm<FormValues>({
     defaultValues: {
       budgetTypeId: '',
@@ -77,6 +81,15 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
       expenseTypes: [],
     },
   });
+
+  // Présélection du linéaire dès que les méthodes sont chargées.
+  useEffect(() => {
+    if (!form.getValues('recognitionMethodId') && recognitionMethods.length > 0) {
+      const linear = recognitionMethods.find((m) => m.code === 'over_time_linear');
+      if (linear) form.setValue('recognitionMethodId', linear.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recognitionMethods]);
 
   const selectedBudgetTypeId = useWatch({ control: form.control, name: 'budgetTypeId' });
   const selectedRecognitionMethodId = useWatch({ control: form.control, name: 'recognitionMethodId' });
@@ -305,6 +318,17 @@ const CreateBudget = ({ embedded = false, onCreated, onCancel }: CreateBudgetPro
     }
     if (!data.name.trim()) {
       toast({ title: "Champ requis", description: "Veuillez saisir un nom pour le budget.", variant: "destructive" });
+      return;
+    }
+    // La reconnaissance linéaire répartit CA, coûts et provisions entre deux
+    // dates : elles sont donc obligatoires avec cette méthode (le défaut).
+    const selectedMethod = recognitionMethods.find((m) => m.id === data.recognitionMethodId);
+    if (selectedMethod?.code === 'over_time_linear' && (!data.startDate || !data.endDate)) {
+      toast({
+        title: 'Dates requises',
+        description: 'La reconnaissance linéaire répartit CA, coûts et provisions entre la date de début et la date de fin : renseignez les deux.',
+        variant: 'destructive',
+      });
       return;
     }
     const hasMilestones = milestoneMode === 'global'

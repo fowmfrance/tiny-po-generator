@@ -7,6 +7,7 @@ import { MilestoneTimelineDialog, Milestone } from '@/components/budget/Mileston
 import { ChangeRecognitionMethodDialog } from '@/components/budget/ChangeRecognitionMethodDialog';
 import { MilestoneMode } from '@/models/Budget';
 import { Progress } from '@/components/ui/progress';
+import { useMyPermissions } from '@/hooks/useOrgTeam';
 
 interface RecognitionMethod {
   id: string;
@@ -62,8 +63,14 @@ export function BudgetRecognitionSection({
   const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
   const [isMethodDialogOpen, setIsMethodDialogOpen] = useState(false);
 
-  // Verrou : méthode figée dès la première écriture reconnue, sauf pour un admin
-  const methodLocked = recognitionStarted && !isAdmin;
+  // Affiner la méthode = geste d'expert : réservé au key user de l'instance
+  // (le linéaire par défaut convient à tous les autres).
+  const { data: perms } = useMyPermissions();
+  const isKeyUser = perms?.isKeyUser ?? false;
+
+  // Verrou : méthode figée dès la première écriture reconnue, sauf pour un admin.
+  // Et hors key user, pas de changement de méthode du tout.
+  const methodLocked = (recognitionStarted && !isAdmin) || !isKeyUser;
 
   const isMilestoneMethod = !!recognitionMethod
     && (recognitionMethod.trigger_type === 'milestone' || recognitionMethod.code === 'milestone');
@@ -124,9 +131,11 @@ export function BudgetRecognitionSection({
                 onClick={() => setIsMethodDialogOpen(true)}
                 className="flex items-center gap-1.5"
                 title={
-                  methodLocked
-                    ? 'Méthode verrouillée : des montants ont déjà été reconnus sur ce budget. Seul un administrateur peut la modifier.'
-                    : undefined
+                  !isKeyUser
+                    ? 'Affiner la méthode de reconnaissance est réservé au key user de votre instance.'
+                    : methodLocked
+                      ? 'Méthode verrouillée : des montants ont déjà été reconnus sur ce budget. Seul un administrateur peut la modifier.'
+                      : undefined
                 }
               >
                 {methodLocked ? <Lock className="w-3.5 h-3.5" /> : <ArrowLeftRight className="w-3.5 h-3.5" />}
