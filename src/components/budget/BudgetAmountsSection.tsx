@@ -20,9 +20,11 @@ interface Props {
   currency: string;
   initialAmount: number;
   resalePrice: number | null;
+  /** Coûts à terminaison HT : par BdC max(BdC, facturé) + factures hors BdC. */
+  finalCosts?: number;
 }
 
-export function BudgetAmountsSection({ budgetId, currency, initialAmount, resalePrice }: Props) {
+export function BudgetAmountsSection({ budgetId, currency, initialAmount, resalePrice, finalCosts }: Props) {
   const { history, isLoading, change } = useBudgetAmountHistory(budgetId);
   const [editField, setEditField] = useState<BudgetAmountField | null>(null);
   const [value, setValue] = useState('');
@@ -43,10 +45,17 @@ export function BudgetAmountsSection({ budgetId, currency, initialAmount, resale
     );
   };
 
+  // Marge brute finale = CA − coûts à terminaison ; cible = CA − provision de charges
+  const hasMargin = resalePrice != null && resalePrice > 0 && finalCosts != null;
+  const finalMargin = hasMargin ? (resalePrice as number) - (finalCosts as number) : null;
+  const targetMargin = resalePrice != null ? resalePrice - initialAmount : null;
+  const marginRate = finalMargin != null && resalePrice ? finalMargin / resalePrice : null;
+  const vsTarget = finalMargin != null && targetMargin != null ? finalMargin - targetMargin : null;
+
   return (
     <div className="space-y-4">
       {/* Montants courants + bouton ajuster */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-lg border px-4 py-3 flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Provision de charges</p>
@@ -64,6 +73,37 @@ export function BudgetAmountsSection({ budgetId, currency, initialAmount, resale
           <Button variant="outline" size="sm" className="h-8" onClick={() => openEdit('resale_price', resalePrice)}>
             <Pencil className="h-3.5 w-3.5 mr-1" /> Ajuster
           </Button>
+        </div>
+        <div
+          className="rounded-lg border border-brand/30 bg-brand/10 px-4 py-3"
+          title="CA initial − coûts à terminaison (BdC, ou facturé s'il est supérieur, + factures hors BdC)"
+        >
+          <p className="text-xs text-brand">Marge brute finale</p>
+          {finalMargin != null ? (
+            <>
+              <p className={`text-lg font-semibold ${finalMargin < 0 ? 'text-red-600' : 'text-brand'}`}>
+                {fmt(currency, finalMargin)}
+                {marginRate != null && (
+                  <span className="ml-1.5 text-xs font-medium">
+                    ({(marginRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %)
+                  </span>
+                )}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Coûts engagés {fmt(currency, finalCosts as number)}
+                {vsTarget != null && (
+                  <>
+                    {' · '}cible {fmt(currency, targetMargin)}{' '}
+                    <span className={vsTarget < 0 ? 'text-red-600' : 'text-green-700'}>
+                      ({vsTarget >= 0 ? '+' : ''}{fmt(currency, vsTarget)})
+                    </span>
+                  </>
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Renseigner un CA pour calculer la marge.</p>
+          )}
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
