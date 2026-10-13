@@ -30,6 +30,7 @@ export interface Budget {
   receivedAmount: number;   // BC envoyés et factures reçues
   sentAmount: number;       // Somme des BC envoyés (all POs)
   availableAmount: number;  // initialAmount - sentAmount
+  finalCosts?: number;      // coûts à terminaison HT : max(BdC, facturé) par BdC actif + factures hors BdC
   type: 'Project' | 'G&A' | string;
   poCount: number;
   createdAt: Date;

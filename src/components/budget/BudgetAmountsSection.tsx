@@ -46,7 +46,8 @@ export function BudgetAmountsSection({ budgetId, currency, initialAmount, resale
   };
 
   // Marge brute finale = CA − coûts à terminaison ; cible = CA − provision de charges
-  const hasMargin = resalePrice != null && resalePrice > 0 && finalCosts != null;
+  // Sans aucun coût engagé, la « marge finale » vaudrait 100 % : on affiche la cible à la place.
+  const hasMargin = resalePrice != null && resalePrice > 0 && finalCosts != null && finalCosts > 0;
   const finalMargin = hasMargin ? (resalePrice as number) - (finalCosts as number) : null;
   const targetMargin = resalePrice != null ? resalePrice - initialAmount : null;
   const marginRate = finalMargin != null && resalePrice ? finalMargin / resalePrice : null;
@@ -100,6 +101,11 @@ export function BudgetAmountsSection({ budgetId, currency, initialAmount, resale
                   </>
                 )}
               </p>
+            </>
+          ) : resalePrice != null && resalePrice > 0 ? (
+            <>
+              <p className="text-lg font-semibold text-brand">{fmt(currency, targetMargin)}</p>
+              <p className="text-[11px] text-muted-foreground">Aucun coût engagé — marge cible (CA − provision)</p>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">Renseigner un CA pour calculer la marge.</p>

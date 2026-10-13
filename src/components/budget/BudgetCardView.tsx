@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import BudgetParticipantsDialog from '@/components/budget/BudgetParticipantsDialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +65,12 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
               const usagePct = initial > 0 ? Math.round((budget.sentAmount / initial) * 100) : 0;
               const overspent = budget.availableAmount < 0;
               const hasResale = typeof budget.resalePrice === 'number' && budget.resalePrice > 0;
-              const margin = hasResale ? (budget.resalePrice as number) - initial : 0;
+              const margin = hasResale ? (budget.resalePrice as number) - initial : 0; // marge cible
+              // Marge brute finale = prix de vente − coûts à terminaison ; tant qu'aucun coût
+              // n'est engagé, on montre la marge cible (sinon 100 % de marge trompeur).
+              const finalCosts = budget.finalCosts ?? 0;
+              const hasCosts = finalCosts > 0;
+              const finalMargin = hasResale ? (budget.resalePrice as number) - finalCosts : 0;
               const fmtSigned = (v: number) =>
                 `${v >= 0 ? '+' : '−'}${formatCurrency(budget.currency, Math.abs(v))}`;
               return (
@@ -103,10 +107,18 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
                         <p className="font-medium">{formatCurrency(budget.currency, budget.resalePrice as number)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Marge</p>
-                        <p className={`font-medium ${margin >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                          {fmtSigned(margin)}
+                        <p className="text-sm text-gray-500">{hasCosts ? 'Marge brute finale' : 'Marge cible'}</p>
+                        <p className={`font-medium ${(hasCosts ? finalMargin : margin) >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                          {fmtSigned(hasCosts ? finalMargin : margin)}
+                          {hasCosts && (
+                            <span className="ml-1 text-xs font-normal">
+                              ({Math.round((finalMargin / (budget.resalePrice as number)) * 100)} %)
+                            </span>
+                          )}
                         </p>
+                        {hasCosts && (
+                          <p className="text-xs text-gray-500">cible {fmtSigned(margin)}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -149,4 +161,3 @@ const BudgetCardView: React.FC<BudgetCardViewProps> = ({ budgets }) => {
 };
 
 export default BudgetCardView;
-
