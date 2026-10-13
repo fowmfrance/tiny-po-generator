@@ -397,8 +397,8 @@ const BudgetDetails = () => {
         </CardContent>
       </Card>
 
-      {/* Reconnaissance des charges entre les dates du projet — provisions par
-          différentiel d'engagement (CA/Marge : après connexion facturation) */}
+      {/* Reconnaissance selon la méthode du budget (linéaire par défaut) — provisions
+          par différentiel d'engagement (CA/Marge : après connexion facturation) */}
       <BudgetRecognitionTimeline
         budgetId={budget.id}
         budgetCode={budget.code}
@@ -407,6 +407,8 @@ const BudgetDetails = () => {
         resalePrice={budget.resale_price != null ? Number(budget.resale_price) : null}
         startDate={budget.start_date}
         endDate={budget.end_date}
+        recognitionMethodCode={recognitionMethod?.code ?? null}
+        recognitionMethodName={recognitionMethod?.name_expense ?? null}
       />
 
       {/* Contrôle de cohérence avec le Google Sheet lié (Sapajoo = source de vérité) */}

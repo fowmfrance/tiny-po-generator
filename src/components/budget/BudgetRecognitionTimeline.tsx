@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { computeRecognition } from '@/services/recognitionEngine';
 
 /**
- * Reconnaissance entre les dates du projet — doctrine Sapajoo : reco linéaire
- * (défaut), provisions par DIFFÉRENTIEL de lissage.
+ * Reconnaissance du budget selon sa méthode (`recognition_methods.code`, calcul
+ * dans `services/recognitionEngine`) — linéaire par défaut, provisions par
+ * DIFFÉRENTIEL avec le comptabilisé.
  *
  * Charges : comptabilisé (factures fournisseurs HT) + FNP hachurée jusqu'au
  * curseur reco ; CCA (comptabilisé > reco) en transparence AU-DELÀ du curseur,
@@ -22,6 +24,10 @@ interface BudgetRecognitionTimelineProps {
   resalePrice?: number | null;
   startDate: string | null;
   endDate: string | null;
+  /** `recognition_methods.code` du budget (null → linéaire, défaut DB). */
+  recognitionMethodCode?: string | null;
+  /** Libellé de la méthode, pour le message de repli. */
+  recognitionMethodName?: string | null;
 }
 
 type Aggregate = 'ca' | 'charges' | 'marge';
@@ -43,8 +49,8 @@ const fmt = (currency: string, n: number) =>
 interface Marker { pct: number; label: string; kind: 'po' | 'invoice' | 'credit'; big?: boolean; count?: number }
 
 /** Barre générique constaté + provision (hachuré) / rabot (transparence ←) */
-function RecoBar({ currency, total, constate, reconnu, elapsed, solidColor, provisionLabel, rabotLabel, constateLabel }: {
-  currency: string; total: number; constate: number; reconnu: number; elapsed: number;
+function RecoBar({ currency, total, constate, reconnu, progressLabel, solidColor, provisionLabel, rabotLabel, constateLabel }: {
+  currency: string; total: number; constate: number; reconnu: number; progressLabel: string;
   solidColor: string; provisionLabel: string; rabotLabel: string; constateLabel: string;
 }) {
   const provision = Math.max(0, reconnu - constate);
@@ -100,7 +106,7 @@ function RecoBar({ currency, total, constate, reconnu, elapsed, solidColor, prov
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: solidColor }} /> {constateLabel} {fmt(currency, constate)}</span>
         {provision > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: `${solidColor}88` }} /> {provisionLabel} {fmt(currency, provision)}</span>}
         {rabot > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: `${C.rabot}55` }} /> {rabotLabel} {fmt(currency, rabot)}</span>}
-        <span className="flex items-center gap-1"><span className="h-2 w-0.5" style={{ background: C.reco }} /> Reconnu ({Math.round(elapsed * 100)} % de la période)</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-0.5" style={{ background: C.reco }} /> {progressLabel}</span>
       </div>
     </div>
   );
@@ -108,6 +114,7 @@ function RecoBar({ currency, total, constate, reconnu, elapsed, solidColor, prov
 
 const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
   budgetId, budgetCode, currency, initialAmount, resalePrice, startDate, endDate,
+  recognitionMethodCode, recognitionMethodName,
 }) => {
   const [aggregate, setAggregate] = useState<Aggregate>('charges');
   const hasResale = typeof resalePrice === 'number' && resalePrice > 0;
@@ -117,7 +124,7 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
     queryFn: async () => {
       const { data: pos, error: poErr } = await supabase
         .from('purchase_orders')
-        .select('id, po_number, total_amount, amount_ht, status, created_at, supplier_name')
+        .select('id, po_number, total_amount, amount_ht, status, created_at, expected_delivery_date, supplier_name')
         .eq('budget_id', budgetId)
         .neq('status', 'cancelled');
       if (poErr) throw poErr;
@@ -155,18 +162,35 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
     if (end <= start) return null;
-    const now = Date.now();
-    const elapsed = Math.min(1, Math.max(0, (now - start) / (end - start)));
     const timePct = (t: number) => ((t - start) / (end - start)) * 100;
 
     const htOf = (row: { amount_ht: number | null; amount?: number | null }) =>
       Number(row.amount_ht ?? row.amount ?? 0);
 
-    // ——— Charges ———
-    const comptabilise = data.invoices.reduce((s, inv) => s + htOf(inv), 0);
+    // ——— Charges : reconnaissance selon la méthode du budget ———
+    const reco = computeRecognition({
+      methodCode: recognitionMethodCode,
+      startDate,
+      endDate,
+      initialAmount,
+      purchaseOrders: data.pos.map(po => ({
+        id: po.id,
+        amountHt: Number(po.amount_ht ?? po.total_amount ?? 0),
+        status: po.status,
+        expectedDeliveryDate: po.expected_delivery_date ?? null,
+      })),
+      invoices: data.invoices.map(inv => ({
+        amountHt: htOf(inv),
+        invoiceDate: inv.invoice_date ?? null,
+        purchaseOrderId: inv.purchase_order_id ?? null,
+      })),
+    });
+    const { elapsed } = reco;
 
+    // En direct matching, le jalon pertinent d'un BdC est sa livraison, pas sa création.
+    const byDelivery = reco.methodCode === 'point_in_time';
     const posM = data.pos.map(po => ({
-      t: new Date(po.created_at).getTime(),
+      t: new Date(byDelivery && po.expected_delivery_date ? po.expected_delivery_date : po.created_at).getTime(),
       amount: Number(po.amount_ht ?? po.total_amount ?? 0),
       label: `${po.po_number} · ${po.supplier_name ?? ''}`,
     })).filter(m => m.t >= start - 15 * DAY && m.t <= end + 15 * DAY);
@@ -211,8 +235,8 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
       }))
       .filter(m => m.pct >= -3 && m.pct <= 103);
 
-    return { start, end, elapsed, comptabilise, facture, chargeMarkers, caMarkers };
-  }, [data, caInvoices, startDate, endDate, initialAmount, currency]);
+    return { start, end, elapsed, reco, facture, chargeMarkers, caMarkers };
+  }, [data, caInvoices, startDate, endDate, initialAmount, currency, recognitionMethodCode]);
 
   const clampPct = (n: number) => Math.min(100, Math.max(0, n));
 
@@ -231,7 +255,8 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
           <div>
             <CardTitle className="text-lg">Reconnaissance</CardTitle>
             <CardDescription>
-              Linéaire entre les dates du projet — provisions par différentiel d'engagement.
+              {model?.reco.description
+                ?? 'Selon la méthode du budget — provisions par différentiel d\'engagement.'}
             </CardDescription>
           </div>
           <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-xs">
@@ -266,17 +291,23 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
           <p className="text-sm text-muted-foreground py-4 text-center">Chargement…</p>
         ) : (
           <div className="space-y-5">
+            {!model.reco.modelled && (
+              <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Méthode « {recognitionMethodName ?? model.reco.methodCode} » pas encore modélisée ici :
+                les montants ci-dessous sont un repli linéaire indicatif, pas une base de clôture.
+              </p>
+            )}
             {aggregate === 'charges' && (
               <RecoBar
                 currency={currency}
-                total={initialAmount}
-                constate={model.comptabilise}
-                reconnu={initialAmount * model.elapsed}
-                elapsed={model.elapsed}
+                total={model.reco.chargesTotal}
+                constate={model.reco.comptabilise}
+                reconnu={model.reco.chargesReconnues}
+                progressLabel={model.reco.progressLabel}
                 solidColor={C.compta}
                 constateLabel="Comptabilisé HT"
                 provisionLabel="FNP"
-                rabotLabel="CCA"
+                rabotLabel={model.reco.rabotLabel}
               />
             )}
             {aggregate === 'ca' && hasResale && (
@@ -285,8 +316,8 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
                   currency={currency}
                   total={resalePrice as number}
                   constate={model.facture}
-                  reconnu={(resalePrice as number) * model.elapsed}
-                  elapsed={model.elapsed}
+                  reconnu={(resalePrice as number) * model.reco.progress}
+                  progressLabel={model.reco.progressLabel}
                   solidColor={C.facture}
                   constateLabel="Facturé HT (net d'avoirs)"
                   provisionLabel="FAE"
@@ -300,11 +331,11 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
               </>
             )}
             {aggregate === 'marge' && hasResale && (() => {
-              const caReco = (resalePrice as number) * model.elapsed;
-              const chargesReco = initialAmount * model.elapsed;
+              const caReco = (resalePrice as number) * model.reco.progress;
+              const chargesReco = model.reco.chargesReconnues;
               const rows = [
-                { label: 'Marge reconnue', hint: 'CA reconnu − charges reconnues (lissage)', value: caReco - chargesReco },
-                { label: 'Marge constatée', hint: 'Facturé − comptabilisé (pièces)', value: model.facture - model.comptabilise },
+                { label: 'Marge reconnue', hint: 'CA reconnu − charges reconnues (selon la méthode)', value: caReco - chargesReco },
+                { label: 'Marge constatée', hint: 'Facturé − comptabilisé (pièces)', value: model.facture - model.reco.comptabilise },
                 { label: 'Marge cible', hint: 'Prix de vente − charges budgétées', value: (resalePrice as number) - initialAmount },
               ];
               return (
@@ -371,7 +402,7 @@ const BudgetRecognitionTimeline: React.FC<BudgetRecognitionTimelineProps> = ({
                 <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
                   {aggregate === 'charges' ? (
                     <>
-                      <span className="flex items-center gap-1"><span className="h-3 w-1 rounded-sm" style={{ background: C.po }} /> BdC envoyés</span>
+                      <span className="flex items-center gap-1"><span className="h-3 w-1 rounded-sm" style={{ background: C.po }} /> {model.reco.methodCode === 'point_in_time' ? 'BdC (date de livraison)' : 'BdC envoyés'}</span>
                       <span className="flex items-center gap-1"><span className="h-2 w-2 rotate-45" style={{ background: C.invoice }} /> Factures hors BdC (grosses en plein)</span>
                     </>
                   ) : (
