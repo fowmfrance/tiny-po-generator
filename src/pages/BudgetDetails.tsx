@@ -112,6 +112,9 @@ const BudgetDetails = () => {
 
       let receivedAmount = 0; // consommé HT (économique)
       let decaisse = 0;       // décaissé TTC (trésorerie)
+      const invoiceHt = (invoice: any) =>
+        Number(invoice.amount_ht ?? (Number(invoice.amount || 0) - Number(invoice.vat_amount || 0)));
+      const invoicedByPo = new Map<string, number>(); // facturé HT par BdC
       if (poIds.length > 0) {
         const { data: invoices, error: invoicesError } = await supabase
           .from('supplier_invoices')
@@ -121,11 +124,10 @@ const BudgetDetails = () => {
 
         if (invoicesError) throw invoicesError;
         // Vision économique (défaut) : HT. Fallback amount - TVA avant migration.
-        receivedAmount = (invoices || []).reduce(
-          (sum, invoice: any) =>
-            sum + Number(invoice.amount_ht ?? (Number(invoice.amount || 0) - Number(invoice.vat_amount || 0))),
-          0,
-        );
+        receivedAmount = (invoices || []).reduce((sum, invoice: any) => sum + invoiceHt(invoice), 0);
+        for (const invoice of (invoices || []) as any[]) {
+          invoicedByPo.set(invoice.purchase_order_id, (invoicedByPo.get(invoice.purchase_order_id) || 0) + invoiceHt(invoice));
+        }
 
         // Décaissé (trésorerie TTC) : paiements réglés sur ces factures
         const invoiceIds = (invoices || []).map((i: any) => i.id);
@@ -157,6 +159,22 @@ const BudgetDetails = () => {
       const initial = Number(budget.initial_amount || 0);
       const availableAmount = initial - sentAmount;
 
+      // Coûts à terminaison (marge brute finale) : par BdC actif, max(BdC HT, facturé HT)
+      // — un dépassement facturé compte — + factures hors BdC rattachées au code projet.
+      const { data: horsBdc } = await supabase
+        .from('supplier_invoices')
+        .select('amount, amount_ht, vat_amount')
+        .eq('project_code', budget.code)
+        .is('purchase_order_id', null)
+        .neq('status', 'rejected');
+      const finalCosts = poList
+        .filter((po) => po.status !== 'rejected' && po.status !== 'cancelled')
+        .reduce(
+          (sum, po: any) => sum + Math.max(Number(po.amount_ht ?? po.total_amount ?? 0), invoicedByPo.get(po.id) || 0),
+          0,
+        )
+        + (horsBdc || []).reduce((sum: number, invoice: any) => sum + invoiceHt(invoice), 0);
+
       return {
         budget,
         purchaseOrders: poList,
@@ -167,6 +185,7 @@ const BudgetDetails = () => {
           sentAmount,
           receivedAmount,
           availableAmount,
+          finalCosts,
           decaisse,
           encaisse,
           poCount: poList.length,
@@ -429,7 +448,8 @@ const BudgetDetails = () => {
             budgetId={budget.id}
             currency={budget.currency}
             initialAmount={metrics.initialAmount}
-            resalePrice={budget.resale_price ?? null}
+            resalePrice={budget.resale_price != null ? Number(budget.resale_price) : null}
+            finalCosts={metrics.finalCosts}
           />
         </CardContent>
       </Card>
