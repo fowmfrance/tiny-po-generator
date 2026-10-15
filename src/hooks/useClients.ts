@@ -10,6 +10,15 @@ export interface Client {
   user_id: string;
   created_at: string;
   updated_at: string;
+  // Enrichissement 20261015120000 (lookup ventes + régime TVA) — colonnes
+  // absentes des types générés tant que la migration n'est pas resynchronisée.
+  legal_name?: string | null;
+  website?: string | null;
+  siren?: string | null;
+  vat_number?: string | null;
+  crm_id?: string | null;
+  crm_source?: string;
+  vat_regime?: string;
 }
 
 export function useClients() {
