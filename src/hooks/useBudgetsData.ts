@@ -67,6 +67,7 @@ export function useBudgetsData() {
       const poData = purchaseOrdersRes.data || [];
 
       const poBudgetMap = new Map<string, string>();
+      const livePoHt = new Map<string, number>(); // BdC actifs (ni rejetés ni annulés) → montant HT
       const poMetricsByBudget = new Map<string, { sent: number; poCount: number; poIds: string[] }>();
 
       for (const po of poData) {
@@ -82,12 +83,16 @@ export function useBudgetsData() {
           // Budget = charges -> HT (fallback total_amount avant migration)
           existing.sent += Number((po as any).amount_ht ?? po.total_amount ?? 0);
         }
+        if (po.status !== 'rejected' && po.status !== 'cancelled') {
+          livePoHt.set(po.id, Number(po.amount_ht ?? po.total_amount ?? 0));
+        }
 
         poMetricsByBudget.set(budgetId, existing);
       }
 
       const allPoIds = Array.from(poBudgetMap.keys());
       const receivedByBudget = new Map<string, number>();
+      const invoicedByPo = new Map<string, number>();
 
       if (allPoIds.length > 0) {
         const { data: invoices, error: invoicesError } = await supabase
@@ -109,6 +114,40 @@ export function useBudgetsData() {
             budgetId,
             (receivedByBudget.get(budgetId) || 0) + Number(ht || 0)
           );
+          invoicedByPo.set(
+            invoice.purchase_order_id,
+            (invoicedByPo.get(invoice.purchase_order_id) || 0) + Number(ht || 0)
+          );
+        }
+      }
+
+      // Coûts à terminaison (marge brute finale) : par BdC actif max(BdC HT, facturé HT)
+      // — un dépassement facturé compte — + factures hors BdC rattachées au code projet.
+      const finalCostsByBudget = new Map<string, number>();
+      for (const [poId, ht] of livePoHt) {
+        const budgetId = poBudgetMap.get(poId);
+        if (!budgetId) continue;
+        const cost = Math.max(ht, invoicedByPo.get(poId) || 0);
+        finalCostsByBudget.set(budgetId, (finalCostsByBudget.get(budgetId) || 0) + cost);
+      }
+      const budgetIdByCode = new Map<string, string>(
+        budgetsData.filter((b) => b.code).map((b) => [b.code as string, b.id]),
+      );
+      if (budgetIdByCode.size > 0) {
+        const { data: horsBdc, error: horsBdcError } = await supabase
+          .from('supplier_invoices')
+          .select('project_code, amount, amount_ht, vat_amount')
+          .is('purchase_order_id', null)
+          .in('project_code', [...budgetIdByCode.keys()])
+          .neq('status', 'rejected');
+        if (horsBdcError) {
+          console.error('useBudgetsData: factures hors BdC', horsBdcError);
+        }
+        for (const invoice of horsBdc || []) {
+          const budgetId = budgetIdByCode.get(invoice.project_code);
+          if (!budgetId) continue;
+          const ht = invoice.amount_ht ?? (Number(invoice.amount || 0) - Number(invoice.vat_amount || 0));
+          finalCostsByBudget.set(budgetId, (finalCostsByBudget.get(budgetId) || 0) + Number(ht || 0));
         }
       }
 
@@ -157,6 +196,7 @@ export function useBudgetsData() {
           remainingAmount,
           receivedAmount,
           availableAmount,
+          finalCosts: Number(finalCostsByBudget.get(budget.id) || 0),
           type:
             budget.budget_type_id === 'project'
               ? 'Project'
