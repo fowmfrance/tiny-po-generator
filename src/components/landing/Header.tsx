@@ -39,22 +39,15 @@ const Header = () => {
       )}
     >
       <div className="container mx-auto flex justify-between items-center">
-        {/* Logo on the left side with adjusted size and overflow handling */}
-        <div className="flex items-center overflow-hidden" style={{ height: "70px" }}> {/* Increased container height */}
-          <img 
-            src="/lovable-uploads/6c09108a-5adb-49a5-9224-982268aef474.png" 
-            alt="Sapajoo" 
-            className="h-24 w-auto object-contain" /* 200% of original h-12 */
-            style={{ 
-              display: "block",
-              visibility: "visible",
-              opacity: 1,
-              width: "auto",
-              minWidth: "100px",
-              objectPosition: "center 45%" /* Adjusted vertical position to show more logo */
-            }} 
+        {/* Logo on the left side */}
+        <div className="flex items-center">
+          <img
+            src="/sapajoo-logo.svg"
+            alt="Sapajoo"
+            className="h-10 md:h-12 w-auto"
           />
         </div>
+
         
         {/* Navigation on the right side */}
         <nav className="hidden sm:flex items-center space-x-8">
