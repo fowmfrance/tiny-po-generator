@@ -27,7 +27,7 @@ const FooterSection = () => {
           
           {/* Contact info - aligned left within the column and moved closer to center */}
           <div className="text-center md:text-left md:pl-10">
-            <h3 className="text-white font-bold text-xs mb-2">Contact</h3>
+            <h3 className="text-white text-xs mb-2">Contact</h3>
             <p className="text-white text-xs mb-2">hello@sapajoo.fr</p>
             <a 
               href="https://linkedin.com/company/sapajoo" 

@@ -8,16 +8,16 @@ const MentionsLegales = () => {
     <div className="min-h-screen flex flex-col bg-white">
       <Helmet>
         <title>Mentions légales — Sapajoo</title>
-        <meta name="description" content="Informations légales de Sapajoo (FOWM SAS) : éditeur, hébergeur et coordonnées de la solution de gestion des achats pour TPE/PME." />
+        <meta name="description" content="Informations légales de Sapajoo (The Ludic Company) : éditeur, hébergeur et coordonnées de la solution de gestion des achats pour TPE/PME." />
         <link rel="canonical" href="https://sapajoo.fr/mentions-legales" />
         <meta property="og:title" content="Mentions légales — Sapajoo" />
-        <meta property="og:description" content="Informations légales de Sapajoo (FOWM SAS), éditeur de la plateforme de gestion des achats et du contrôle budgétaire." />
+        <meta property="og:description" content="Informations légales de Sapajoo (The Ludic Company), éditeur de la plateforme de gestion des achats et du contrôle budgétaire." />
         <meta property="og:url" content="https://sapajoo.fr/mentions-legales" />
         <script type="application/ld+json">{`
 {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  "name": "FOWM (Sapajoo)",
+  "name": "The Ludic Company (Sapajoo)",
   "url": "https://sapajoo.fr/mentions-legales",
   "image": "https://sapajoo.fr/lovable-uploads/31b5b719-db9f-4cc5-8b06-08110cd382ab.png",
   "email": "hello@sapajoo.fr",
@@ -57,23 +57,22 @@ const MentionsLegales = () => {
             <section>
               <h2 className="text-xl font-semibold text-primary">1. Éditeur du site</h2>
               <p>
-                Le site www.sapajoo.fr est édité par :<br />
-                Société : FOWM<br />
-                Forme juridique : SAS (Société par Actions Simplifiée)<br />
-                Siège social : 9 rue Milton, 75009 PARIS<br />
-                SIREN : 928 508 142<br />
-                RCS : PARIS<br />
-                Capital social : 1 000 €<br />
-                Date de création : 8/04/2024<br />
-                Email : hello@sapajoo.fr<br />
-                Directeur de la publication : Clément Robin, co-fondateur
+                Le site www.sapajoo.fr est édité par&nbsp;:<br />
+                Société&nbsp;: The Ludic Company<br />
+                Forme juridique&nbsp;: SARL unipersonnelle<br />
+                Siège social&nbsp;: 9 rue Milton, 75009 PARIS<br />
+                SIREN&nbsp;: 951 755 834<br />
+                RCS&nbsp;: PARIS<br />
+                Date de création&nbsp;: 18/04/2023<br />
+                Email&nbsp;: hello@sapajoo.fr<br />
+                Directeur de la publication&nbsp;: Clément ROBIN, Gérant
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-primary">2. Hébergement</h2>
               <p>
-                Le site www.sapajoo.fr est hébergé par :<br />
+                Le site www.sapajoo.fr est hébergé par&nbsp;:<br />
                 Vercel, Inc., dont le siège social est situé au 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis
               </p>
             </section>
@@ -81,13 +80,13 @@ const MentionsLegales = () => {
             <section>
               <h2 className="text-xl font-semibold text-primary">3. Propriété intellectuelle</h2>
               <p>
-                L'ensemble des éléments constituant le site www.fowm.io (textes, graphismes, logiciels, photographies, images, vidéos, sons, plans, logos, marques, etc.) ainsi que le site lui-même, sont la propriété exclusive de FOWM ou des tiers ayant autorisé FOWM à les utiliser.
+                L'ensemble des éléments constituant le site www.sapajoo.fr (textes, graphismes, logiciels, photographies, images, vidéos, sons, plans, logos, marques, etc.) ainsi que le site lui-même, sont la propriété exclusive de SAPAJOO ou des tiers ayant autorisé SAPAJOO à les utiliser.
               </p>
               <p>
-                Toute reproduction, représentation, modification, publication, adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite, sauf autorisation écrite préalable de FOWM.
+                Toute reproduction, représentation, modification, publication, adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite, sauf autorisation écrite préalable de SAPAJOO.
               </p>
               <p>
-                Toute exploitation non autorisée du site ou de l'un quelconque des éléments qu'il contient sera considérée comme constitutive d'une contrefaçon et poursuivie conformément aux dispositions des articles L.335-2 et suivants du Code de Propriété Intellectuelle.
+                Toute exploitation non autorisée du site ou de l'un quelconque des éléments qu'il contient sera considérée comme constitutive d'une contrefaçon et poursuivie conformément aux dispositions des articles L.335-2 et suivants du Code de la propriété intellectuelle.
               </p>
             </section>
 
@@ -97,16 +96,16 @@ const MentionsLegales = () => {
                 Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés modifiée, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition aux données vous concernant.
               </p>
               <p>
-                Ces droits peuvent être exercés en contactant FOWM à l'adresse suivante : contact@fowm.io.
+                Ces droits peuvent être exercés en contactant SAPAJOO à l'adresse suivante&nbsp;: hello@sapajoo.fr.
               </p>
               <p>
                 Pour plus d'informations sur la gestion de vos données personnelles, veuillez consulter notre Politique de confidentialité.
               </p>
               <p>
-                Le délégué à la protection des données de FOWM est : Clément Robin - clement@fowm.io.
+                Le délégué à la protection des données de SAPAJOO est&nbsp;: Clément Robin, clement@fowm.io.
               </p>
               <p>
-                Vous disposez également du droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL).
+                Vous disposez également du droit d'introduire une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL).
               </p>
             </section>
 
@@ -123,10 +122,10 @@ const MentionsLegales = () => {
             <section>
               <h2 className="text-xl font-semibold text-primary">6. Limitation de responsabilité</h2>
               <p>
-                FOWM s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées sur le présent site, dont elle se réserve le droit de corriger le contenu à tout moment. Toutefois, FOWM ne peut garantir l'exactitude, la précision ou l'exhaustivité des informations mises à disposition sur ce site.
+                SAPAJOO s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées sur le présent site, dont elle se réserve le droit de corriger le contenu à tout moment. Toutefois, SAPAJOO ne peut garantir l'exactitude, la précision ou l'exhaustivité des informations mises à disposition sur ce site.
               </p>
               <p>
-                FOWM décline toute responsabilité :
+                SAPAJOO décline toute responsabilité&nbsp;:
               </p>
               <ul className="list-disc pl-6 space-y-1">
                 <li>Pour toute interruption du site</li>
@@ -140,7 +139,7 @@ const MentionsLegales = () => {
             <section>
               <h2 className="text-xl font-semibold text-primary">7. Liens hypertextes</h2>
               <p>
-                Le site www.sapajoo.fr peut contenir des liens vers d'autres sites internet ou d'autres sources d'informations. Dans la mesure où FOWM ne peut contrôler ces sites et ces sources externes, FOWM ne peut être tenue pour responsable de la mise à disposition de ces sites et sources externes, et ne peut supporter aucune responsabilité quant au contenu, publicités, produits, services ou tout autre matériel disponible sur ou à partir de ces sites ou sources externes.
+                Le site www.sapajoo.fr peut contenir des liens vers d'autres sites internet ou d'autres sources d'informations. Dans la mesure où SAPAJOO ne peut contrôler ces sites et ces sources externes, SAPAJOO ne peut être tenue pour responsable de la mise à disposition de ces sites et sources externes, et ne peut supporter aucune responsabilité quant au contenu, publicités, produits, services ou tout autre matériel disponible sur ou à partir de ces sites ou sources externes.
               </p>
             </section>
 
@@ -154,12 +153,12 @@ const MentionsLegales = () => {
             <section>
               <h2 className="text-xl font-semibold text-primary">9. Contact</h2>
               <p>
-                Pour toute question relative aux présentes mentions légales, vous pouvez nous contacter à l'adresse suivante : contact@fowm.io
+                Pour toute question relative aux présentes mentions légales, vous pouvez nous contacter à l'adresse suivante&nbsp;: hello@sapajoo.fr
               </p>
             </section>
 
             <p className="text-sm text-gray-500 text-right">
-              Dernière mise à jour : 14/05/2025
+              Dernière mise à jour&nbsp;: 03/11/2026
             </p>
           </div>
         </div>
