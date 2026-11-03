@@ -26,24 +26,23 @@ const MissionSection = () => {
         <div className="text-center mb-16">
           <h2 
             className={cn(
-              "text-3xl md:text-4xl font-bold text-primary mb-6",
+              "text-3xl md:text-4xl text-primary mb-6",
               "transition-all duration-700 ease-out",
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            Notre mission : démocratiser les meilleures pratiques en matière de gestion du cycle achats
+            Notre mission&nbsp;: rendre accessibles les bonnes pratiques de gestion des achats
           </h2>
           <p 
             className={cn(
-              "text-gray-600 max-w-3xl mx-auto text-lg",
+              "text-muted-foreground max-w-3xl mx-auto text-lg",
               "transition-all duration-700 delay-300 ease-out",
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}
           >
-            Un ERP? Surdimensionné par rapport aux flux et au budget outils de la plupart des PME...<br />
-            Un outil d'achat ad hoc? Cela existe, mais les workflow de validation sont complexes et le budget là encore hors de portée des TPE/PME<br />      
-            Sapajoo propose donc d'offrir aux TPE/PME une alternative accessible techniquement et financièrement au plus grand nombre.<br />
-            Fini les dépenses non budgétées ou les factures oubliées lors d'un exercice comptable!
+            Un ERP&nbsp;? Trop lourd, et trop cher pour la plupart des PME.<br />
+            Un outil d'achat spécialisé&nbsp;? Il existe, mais ses circuits de validation sont complexes et son prix reste hors de portée des TPE et PME.<br />
+            Sapajoo propose une alternative accessible, techniquement et financièrement, au plus grand nombre.
           </p>
         </div>
       </div>

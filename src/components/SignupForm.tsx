@@ -112,7 +112,7 @@ const SignupForm = () => {
             {isSubmitting ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              "S'inscrire sur la liste d'attente"
+              "Rejoindre la liste d'attente"
             )}
           </Button>
         </form>

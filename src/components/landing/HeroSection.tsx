@@ -34,12 +34,12 @@ const HeroSection = () => {
         <div className="mb-12 text-center">
           <h1
             className={cn(
-              "text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight",
+              "text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight",
               "transition-all duration-700 ease-out",
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
             )}
           >
-            Gérez votre process achats sans ERP!
+            Gérez vos achats sans ERP&nbsp;!
           </h1>
         </div>
 
@@ -49,14 +49,23 @@ const HeroSection = () => {
           <div className="space-y-8 lg:pr-8">
             <p
               className={cn(
-                "text-lg md:text-xl text-gray-700",
+                "text-lg md:text-xl text-muted-foreground",
                 "transition-all duration-700 delay-300 ease-out",
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
               )}
             >
-              Sapajoo est une solution SaaS tout-en-un intuitive vous permettant de structurer et sécuriser votre
-              processus achats, depuis l'enregistrement de vos fournisseurs à la mise en règlement de leurs factures, en
-              passant par l'affectation budgétaire des dépenses
+              Sapajoo est une solution SaaS tout-en-un et intuitive qui vous permet de structurer et de sécuriser votre
+              processus d'achat, de l'enregistrement de vos fournisseurs au règlement de leurs factures, en passant par
+              la pré-comptabilité et l'affectation budgétaire des dépenses.
+            </p>
+            <p
+              className={cn(
+                "font-semibold text-foreground text-lg md:text-xl",
+                "transition-all duration-700 delay-300 ease-out",
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+              )}
+            >
+              Fini les dépenses non budgétées et les factures oubliées.
             </p>
           </div>
 

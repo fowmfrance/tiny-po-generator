@@ -20,9 +20,10 @@ export const NameFields = ({ form }: FormFieldsProps) => (
         <FormItem>
           <FormControl>
             <Input 
-              placeholder="Prénom" 
+              placeholder="Prénom"
+              aria-label="Prénom" 
               {...field} 
-              className="h-12 rounded-md border-gray-300 bg-white focus:border-primary"
+              className="h-12 rounded-md border-border bg-white focus:border-primary"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -36,9 +37,10 @@ export const NameFields = ({ form }: FormFieldsProps) => (
         <FormItem>
           <FormControl>
             <Input 
-              placeholder="Nom" 
+              placeholder="Nom"
+              aria-label="Nom" 
               {...field} 
-              className="h-12 rounded-md border-gray-300 bg-white focus:border-primary"
+              className="h-12 rounded-md border-border bg-white focus:border-primary"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -56,10 +58,11 @@ export const EmailField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <FormControl>
           <Input 
-            placeholder="Adresse email" 
+            placeholder="Adresse e-mail professionnelle"
+              aria-label="Adresse e-mail professionnelle" 
             type="email"
             {...field} 
-            className="h-12 rounded-md border-gray-300 bg-white focus:border-primary"
+            className="h-12 rounded-md border-border bg-white focus:border-primary"
           />
         </FormControl>
         <FormMessage className="text-xs mt-1" />
@@ -77,9 +80,10 @@ export const CompanyFields = ({ form }: FormFieldsProps) => (
         <FormItem>
           <FormControl>
             <Input 
-              placeholder="Société" 
+              placeholder="Société"
+              aria-label="Société" 
               {...field} 
-              className="h-12 rounded-md border-gray-300 bg-white focus:border-primary"
+              className="h-12 rounded-md border-border bg-white focus:border-primary"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -93,9 +97,10 @@ export const CompanyFields = ({ form }: FormFieldsProps) => (
         <FormItem>
           <FormControl>
             <Input 
-              placeholder="Fonction" 
+              placeholder="Fonction"
+              aria-label="Fonction" 
               {...field} 
-              className="h-12 rounded-md border-gray-300 bg-white focus:border-primary"
+              className="h-12 rounded-md border-border bg-white focus:border-primary"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -113,15 +118,15 @@ export const RevenueField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-gray-300 bg-white focus:border-primary">
-              <SelectValue placeholder="Chiffre d'affaires" />
+            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Chiffre d'affaires annuel">
+              <SelectValue placeholder="Chiffre d'affaires annuel" />
             </SelectTrigger>
           </FormControl>
           <SelectContent>
-            <SelectItem value="moins de 500k€">Moins de 500k€</SelectItem>
-            <SelectItem value="entre 500k€ et 1m€">Entre 500k€ et 1m€</SelectItem>
-            <SelectItem value="entre 1m€ et 10m€">Entre 1m€ et 10m€</SelectItem>
-            <SelectItem value="plus de 10m€">Plus de 10m€</SelectItem>
+            <SelectItem value="moins de 500k€">Moins de 500&nbsp;k€</SelectItem>
+            <SelectItem value="entre 500k€ et 1m€">500&nbsp;k€ à 1&nbsp;M€</SelectItem>
+            <SelectItem value="entre 1m€ et 10m€">1 à 10&nbsp;M€</SelectItem>
+            <SelectItem value="plus de 10m€">Plus de 10&nbsp;M€</SelectItem>
           </SelectContent>
         </Select>
         <FormMessage className="text-xs mt-1" />
@@ -138,14 +143,14 @@ export const SuppliersCountField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-gray-300 bg-white focus:border-primary">
-              <SelectValue placeholder="Nombre de fournisseurs différents sollicités chaque mois" />
+            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Fournisseurs différents sollicités chaque mois">
+              <SelectValue placeholder="Fournisseurs différents sollicités chaque mois" />
             </SelectTrigger>
           </FormControl>
           <SelectContent>
             <SelectItem value="moins de 10">Moins de 10</SelectItem>
-            <SelectItem value="entre 10 et 25">Entre 10 et 25</SelectItem>
-            <SelectItem value="entre 25 et 50">Entre 25 et 50</SelectItem>
+            <SelectItem value="entre 10 et 25">10 à 25</SelectItem>
+            <SelectItem value="entre 25 et 50">25 à 50</SelectItem>
             <SelectItem value="plus de 50">Plus de 50</SelectItem>
           </SelectContent>
         </Select>
@@ -163,8 +168,8 @@ export const CurrentToolField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-gray-300 bg-white focus:border-primary">
-              <SelectValue placeholder="Avez-vous actuellement un outil (ERP)" />
+            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Votre outil actuel (ERP ou comptabilité)">
+              <SelectValue placeholder="Votre outil actuel (ERP ou comptabilité)" />
             </SelectTrigger>
           </FormControl>
           <SelectContent>
@@ -174,7 +179,7 @@ export const CurrentToolField = ({ form }: FormFieldsProps) => (
             <SelectItem value="Axonaut">Axonaut</SelectItem>
             <SelectItem value="Odoo">Odoo</SelectItem>
             <SelectItem value="Cegid">Cegid</SelectItem>
-            <SelectItem value="Système sur-mesure">Système sur-mesure</SelectItem>
+            <SelectItem value="Système sur-mesure">Système sur mesure</SelectItem>
             <SelectItem value="Dolibarr">Dolibarr</SelectItem>
             <SelectItem value="Evoliz">Evoliz</SelectItem>
             <SelectItem value="Hello Harel">Hello Harel</SelectItem>
@@ -204,8 +209,8 @@ export const ConsentField = ({ form }: FormFieldsProps) => (
           />
         </FormControl>
         <div className="space-y-1 leading-none">
-          <p className="text-xs text-gray-500">
-            En cochant cette case, je reconnais avoir pris connaissance de la politique de confidentialité des données et accepte d'être recontacté(e) par l'équipe Sapajoo
+          <p className="text-xs text-muted-foreground">
+            J'ai lu la politique de confidentialité et j'accepte d'être recontacté(e) par l'équipe Sapajoo.
           </p>
           <FormMessage className="text-xs mt-1" />
         </div>
