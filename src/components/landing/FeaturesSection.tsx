@@ -3,33 +3,33 @@ import { Users, Wallet, Activity, Plug, BarChart3, LayoutDashboard } from 'lucid
 
 const features = [
   {
-    title: "Gestion des Fournisseurs",
-    description: "Bénéficiez d'un portail fournisseur clé en main, permettant l'enregistrement sécurisé, la transmission de factures, et le partage des informations de règlement",
+    title: "Gestion des fournisseurs",
+    description: "Un portail fournisseur clé en main\u00a0: vos fournisseurs s'enregistrent en toute sécurité, vous transmettent leurs factures et partagent leurs informations de règlement.",
     icon: Users
   },
   {
-    title: "Pilotage des Budgets",
-    description: "Contrôlez facilement vos dépenses avec une gestion intuitive des budgets.",
+    title: "Pilotage des budgets",
+    description: "Suivez vos dépenses par département, projet ou catégorie, avec des budgets simples à définir et à contrôler.",
     icon: Wallet
   },
   {
-    title: "Suivi en Temps Réel",
-    description: "Accédez à l'état de vos budgets : montants engagés, factures reçues, factures restant à payer...Et traduction comptable en terme de reconnaissance des charges",
+    title: "Suivi en temps réel",
+    description: "Consultez l'état de vos budgets\u00a0: montants engagés, factures reçues, factures restant à payer. Sapajoo en assure aussi la traduction comptable (reconnaissance des charges).",
     icon: Activity
   },
   {
-    title: "Implémentation en quelques clicks",
-    description: "Personnalisez votre nomenclature, importez et exportez facilement vers d'autres outils, ou créez des connexion avec nos API",
+    title: "Prêt en quelques clics",
+    description: "Personnalisez votre nomenclature, importez et exportez vos données vers vos autres outils, ou connectez-vous via notre API.",
     icon: Plug
   },
   {
-    title: "Analyses Détaillées",
-    description: "Obtenez des insights précieux grâce à des rapports et analyses complets",
+    title: "Analyses détaillées",
+    description: "Des rapports et des analyses pour comprendre où part votre budget et décider plus vite.",
     icon: BarChart3
   },
   {
-    title: "Interface Intuitive",
-    description: "Une interface utilisateur conçue pour être simple et efficace",
+    title: "Interface intuitive",
+    description: "Une interface simple, pensée pour être prise en main sans formation.",
     icon: LayoutDashboard
   }
 ];
@@ -39,11 +39,11 @@ const FeaturesSection = () => {
     <section id="features" className="py-20 px-4 md:px-8 lg:px-16 bg-white/30 backdrop-blur-sm">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
+          <h2 className="text-3xl md:text-4xl text-primary mb-6">
             Fonctionnalités principales
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Découvrez comment Sapajoo peut révolutionner votre workflow et vous faire gagner du temps
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            Gagnez du temps à chaque étape, du fournisseur à l'écriture comptable.
           </p>
         </div>
         
@@ -53,8 +53,8 @@ const FeaturesSection = () => {
               <div className="w-14 h-14 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
                 <feature.icon className="h-7 w-7 text-brand" strokeWidth={1.5} />
               </div>
-              <h3 className="font-semibold text-xl mb-3 text-primary text-center">{feature.title}</h3>
-              <p className="text-gray-600 text-center">{feature.description}</p>
+              <h3 className=" text-xl mb-3 text-primary text-center">{feature.title}</h3>
+              <p className="text-muted-foreground text-center">{feature.description}</p>
             </div>
           ))}
         </div>

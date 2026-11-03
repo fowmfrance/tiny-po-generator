@@ -64,7 +64,7 @@ const Header = () => {
                 href="#mission" 
                 className={cn(
                   "font-medium hover:text-primary transition-colors",
-                  scrolled ? "text-gray-800" : "text-white"
+                  "text-foreground"
                 )}
               >
                 Mission
@@ -75,7 +75,7 @@ const Header = () => {
                 href="#features" 
                 className={cn(
                   "font-medium hover:text-primary transition-colors",
-                  scrolled ? "text-gray-800" : "text-white"
+                  "text-foreground"
                 )}
               >
                 Fonctionnalités
@@ -86,10 +86,10 @@ const Header = () => {
                 href="#avantages" 
                 className={cn(
                   "font-medium hover:text-primary transition-colors",
-                  scrolled ? "text-gray-800" : "text-white"
+                  "text-foreground"
                 )}
               >
-                Avantages
+                Comment ça marche
               </a>
             </li>
             <li>
@@ -97,7 +97,7 @@ const Header = () => {
                 href="#signup" 
                 className={cn(
                   "font-medium hover:text-primary transition-colors",
-                  scrolled ? "text-gray-800" : "text-white"
+                  "text-foreground"
                 )}
               >
                 Contact

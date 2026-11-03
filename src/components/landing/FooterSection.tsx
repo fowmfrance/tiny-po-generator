@@ -10,9 +10,9 @@ const FooterSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Logo section - moved closer to center */}
           <div className="text-center md:text-left md:pl-4">
-            <h2 className="text-white text-xs mb-2">
-              Sapajoo (<span className="font-bold">LA</span> plateforme de gestion du process achat des PME/TPE)
-            </h2>
+            <p className="text-white text-xs mb-2">
+              Sapajoo, la plateforme de gestion des achats pour les TPE et PME.
+            </p>
             <NavLink to="/mentions-legales" className="text-white text-xs hover:underline transition-colors">
               Mentions légales
             </NavLink>
