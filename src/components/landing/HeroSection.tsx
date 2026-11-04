@@ -44,12 +44,12 @@ const HeroSection = () => {
         </div>
 
         {/* Two columns: paragraph and image */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center">
           {/* Left Column - Text Content */}
-          <div className="space-y-8 lg:pr-8">
+          <div className="space-y-8 md:pr-4 lg:pr-8">
             <p
               className={cn(
-                "text-lg md:text-xl text-muted-foreground",
+                "text-base md:text-lg lg:text-xl text-muted-foreground",
                 "transition-all duration-700 delay-300 ease-out",
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
               )}
@@ -60,7 +60,7 @@ const HeroSection = () => {
             </p>
             <p
               className={cn(
-                "font-semibold text-foreground text-lg md:text-xl",
+                "font-semibold text-foreground text-base md:text-lg lg:text-xl",
                 "transition-all duration-700 delay-300 ease-out",
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
               )}
@@ -77,7 +77,7 @@ const HeroSection = () => {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
             )}
           >
-            <div className="bg-white rounded-2xl shadow-marie">
+            <div className="bg-white rounded-2xl shadow-marie w-full max-w-sm sm:max-w-md md:max-w-none mx-auto">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-xl">
                 <div className="w-full h-full overflow-hidden">
                   <img
