@@ -47,8 +47,8 @@ const Header = () => {
 
         
         {/* Navigation on the right side */}
-        <nav className="hidden sm:flex items-center space-x-8">
-          <ul className="flex space-x-8">
+        <nav className="flex items-center gap-8">
+          <ul className="hidden lg:flex space-x-8">
             <li>
               <a 
                 href="#mission" 
