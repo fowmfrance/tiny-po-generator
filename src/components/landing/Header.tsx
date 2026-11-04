@@ -33,18 +33,15 @@ const Header = () => {
   
   return (
     <header 
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 py-3 px-6 transition-all duration-300", // Adjusted padding
-        scrolled ? "bg-white shadow-md" : "bg-transparent"
-      )}
+      className="fixed top-0 left-0 right-0 z-50 h-[68px] bg-background/85 backdrop-blur border-b border-border"
     >
-      <div className="container mx-auto flex justify-between items-center">
+      <div className="mx-auto max-w-6xl h-full px-4 md:px-8 flex justify-between items-center">
         {/* Logo on the left side */}
         <div className="flex items-center">
           <img
             src="/sapajoo-logo.svg"
             alt="Sapajoo"
-            className="h-10 md:h-12 w-auto"
+            className="h-10 w-auto"
           />
         </div>
 
@@ -56,7 +53,7 @@ const Header = () => {
               <a 
                 href="#mission" 
                 className={cn(
-                  "font-medium hover:text-primary transition-colors",
+                  "font-medium hover:text-brand transition-colors",
                   "text-foreground"
                 )}
               >
@@ -67,7 +64,7 @@ const Header = () => {
               <a 
                 href="#features" 
                 className={cn(
-                  "font-medium hover:text-primary transition-colors",
+                  "font-medium hover:text-brand transition-colors",
                   "text-foreground"
                 )}
               >
@@ -78,7 +75,7 @@ const Header = () => {
               <a 
                 href="#avantages" 
                 className={cn(
-                  "font-medium hover:text-primary transition-colors",
+                  "font-medium hover:text-brand transition-colors",
                   "text-foreground"
                 )}
               >
@@ -89,7 +86,7 @@ const Header = () => {
               <a 
                 href="#signup" 
                 className={cn(
-                  "font-medium hover:text-primary transition-colors",
+                  "font-medium hover:text-brand transition-colors",
                   "text-foreground"
                 )}
               >
@@ -99,7 +96,8 @@ const Header = () => {
           </ul>
           <Link to="/auth">
             <Button 
-              variant={scrolled ? "default" : "secondary"}
+              variant="outline"
+              className="rounded-[10px] border-border bg-transparent text-foreground hover:bg-secondary"
               size="sm"
             >
               Se connecter
