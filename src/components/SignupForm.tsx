@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from './ui/button';
@@ -37,6 +37,16 @@ const SignupForm = () => {
       consent: false
     },
   });
+
+  useEffect(() => {
+    const applyPrefill = () => {
+      const email = sessionStorage.getItem('sapajoo_prefill_email');
+      if (email) form.setValue('email', email, { shouldDirty: true });
+    };
+    applyPrefill();
+    window.addEventListener('sapajoo:prefill', applyPrefill);
+    return () => window.removeEventListener('sapajoo:prefill', applyPrefill);
+  }, [form]);
 
   const onSubmit = async (values: SignUpValues) => {
     setIsSubmitting(true);
@@ -107,7 +117,7 @@ const SignupForm = () => {
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="w-full py-6 rounded-md font-serif text-lg bg-primary hover:bg-primary/90"
+            className="w-full h-12 rounded-[10px] font-semibold text-base bg-brand text-brand-foreground hover:bg-brand/90"
           >
             {isSubmitting ? (
               <Loader2 className="h-5 w-5 animate-spin" />

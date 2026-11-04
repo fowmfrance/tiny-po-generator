@@ -23,7 +23,7 @@ export const NameFields = ({ form }: FormFieldsProps) => (
               placeholder="Prénom"
               aria-label="Prénom" 
               {...field} 
-              className="h-12 rounded-md border-border bg-white focus:border-primary"
+              className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -40,7 +40,7 @@ export const NameFields = ({ form }: FormFieldsProps) => (
               placeholder="Nom"
               aria-label="Nom" 
               {...field} 
-              className="h-12 rounded-md border-border bg-white focus:border-primary"
+              className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -62,7 +62,7 @@ export const EmailField = ({ form }: FormFieldsProps) => (
               aria-label="Adresse e-mail professionnelle" 
             type="email"
             {...field} 
-            className="h-12 rounded-md border-border bg-white focus:border-primary"
+            className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand"
           />
         </FormControl>
         <FormMessage className="text-xs mt-1" />
@@ -83,7 +83,7 @@ export const CompanyFields = ({ form }: FormFieldsProps) => (
               placeholder="Société"
               aria-label="Société" 
               {...field} 
-              className="h-12 rounded-md border-border bg-white focus:border-primary"
+              className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -100,7 +100,7 @@ export const CompanyFields = ({ form }: FormFieldsProps) => (
               placeholder="Fonction"
               aria-label="Fonction" 
               {...field} 
-              className="h-12 rounded-md border-border bg-white focus:border-primary"
+              className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand"
             />
           </FormControl>
           <FormMessage className="text-xs mt-1" />
@@ -118,7 +118,7 @@ export const RevenueField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Chiffre d'affaires annuel">
+            <SelectTrigger className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand" aria-label="Chiffre d'affaires annuel">
               <SelectValue placeholder="Chiffre d'affaires annuel" />
             </SelectTrigger>
           </FormControl>
@@ -143,7 +143,7 @@ export const SuppliersCountField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Fournisseurs différents sollicités chaque mois">
+            <SelectTrigger className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand" aria-label="Fournisseurs différents sollicités chaque mois">
               <SelectValue placeholder="Fournisseurs différents sollicités chaque mois" />
             </SelectTrigger>
           </FormControl>
@@ -168,7 +168,7 @@ export const CurrentToolField = ({ form }: FormFieldsProps) => (
       <FormItem>
         <Select onValueChange={field.onChange} value={field.value}>
           <FormControl>
-            <SelectTrigger className="h-12 rounded-md border-border bg-white focus:border-primary" aria-label="Votre outil actuel (ERP ou comptabilité)">
+            <SelectTrigger className="h-12 rounded-[10px] border-border bg-card text-foreground focus:border-brand" aria-label="Votre outil actuel (ERP ou comptabilité)">
               <SelectValue placeholder="Votre outil actuel (ERP ou comptabilité)" />
             </SelectTrigger>
           </FormControl>
@@ -204,12 +204,13 @@ export const ConsentField = ({ form }: FormFieldsProps) => (
       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
         <FormControl>
           <Checkbox 
+            className="border-background/70 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
             checked={field.value}
             onCheckedChange={field.onChange}
           />
         </FormControl>
         <div className="space-y-1 leading-none">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-background/70">
             J'ai lu la politique de confidentialité et j'accepte d'être recontacté(e) par l'équipe Sapajoo.
           </p>
           <FormMessage className="text-xs mt-1" />

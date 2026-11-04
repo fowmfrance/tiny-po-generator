@@ -94,7 +94,7 @@ const LandingPage = () => {
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
       
-      <main className="min-h-screen flex flex-col overflow-x-hidden w-full relative">
+      <main className="min-h-screen flex flex-col overflow-x-hidden w-full relative bg-background">
         <Header />
         
         <article itemScope itemType="https://schema.org/WebPage">
@@ -106,17 +106,7 @@ const LandingPage = () => {
           <FAQSection />
         </article>
         
-        {/* Contact section and footer with gradient background */}
-        <footer className="relative">
-          <div 
-            className="absolute inset-0 w-full h-full -z-10" 
-            style={{
-              backgroundImage: "url('/lovable-uploads/e52049c0-6ccd-4165-9d7a-3003172c2fa5.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              opacity: 0.85,
-            }}
-          />
+        <footer className="bg-background">
           <SignupFormSection />
           <FooterSection />
         </footer>
