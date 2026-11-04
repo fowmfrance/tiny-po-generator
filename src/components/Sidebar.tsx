@@ -23,13 +23,18 @@ const Sidebar = () => {
     <div className="w-16 h-screen flex-shrink-0">
       <div className="group fixed top-0 left-0 w-16 h-screen bg-sidebar flex flex-col text-white overflow-hidden z-40 hover:w-56 hover:shadow-2xl transition-all duration-300 ease-in-out">
       <div className="p-2 flex justify-center items-center group-hover:justify-start group-hover:pl-3 h-14 flex-shrink-0">
-        <img 
-          src="/sapajoo-logo.svg" 
-          alt="Sapajoo" 
-          className="h-10 w-auto max-w-full object-contain filter brightness-0 invert"
+        <img
+          src="/sapajoo-singe.svg"
+          alt="Sapajoo"
+          className="h-11 w-auto object-contain filter brightness-0 invert group-hover:hidden"
         />
-
+        <img
+          src="/sapajoo-logo.svg"
+          alt="Sapajoo"
+          className="hidden group-hover:block h-10 w-auto max-w-full object-contain filter brightness-0 invert"
+        />
       </div>
+
       
       <nav className="flex-1 px-2 py-1">
         <ul className="space-y-1">
