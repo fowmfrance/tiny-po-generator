@@ -13,7 +13,10 @@ const HeroSection = () => {
       setVisible(true);
     }, 100);
 
-    const [email, setEmail] = useState("");
+    return () => clearTimeout(timer);
+  }, []);
+
+  const [email, setEmail] = useState("");
 
   const handlePrefill = (e: React.FormEvent) => {
     e.preventDefault();

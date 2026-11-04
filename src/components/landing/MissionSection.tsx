@@ -15,7 +15,12 @@ const MissionSection = () => {
     const section = document.getElementById('mission');
     if (section) observer.observe(section);
     
-    const anim = (delay: string) => cn(
+    return () => {
+      if (section) observer.unobserve(section);
+    };
+  }, []);
+
+  const anim = (delay: string) => cn(
     'transition-all duration-700 ease-out', delay,
     visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
   );
