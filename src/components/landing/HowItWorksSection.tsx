@@ -21,25 +21,25 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section id="avantages" className="py-20 px-4 md:px-8 lg:px-16 bg-transparent w-screen overflow-hidden">
-      <div className="container mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl text-primary mb-6">
+    <section id="avantages" className="py-20 md:py-24 bg-secondary">
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="max-w-2xl mb-12">
+          <h2 className="text-3xl md:text-4xl text-foreground mb-4">
             Comment ça marche
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+          <p className="text-muted-foreground text-lg">
             Un processus solide, sans la complexité des outils traditionnels.
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {steps.map((step, index) => (
-            <div key={index} className="flex flex-col items-center p-6 bg-white/50 backdrop-blur-sm rounded-lg shadow-marie">
-              <div className="w-14 h-14 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
-                <step.icon className="h-7 w-7 text-brand" strokeWidth={1.5} />
+            <div key={index} className="border-t-[3px] border-brand pt-4 text-left">
+              <div className="w-12 h-12 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
+                <step.icon className="h-6 w-6 text-brand" strokeWidth={1.5} />
               </div>
-              <h3 className=" text-xl mb-3 text-primary text-center">{step.title}</h3>
-              <p className="text-muted-foreground text-center" dangerouslySetInnerHTML={{ __html: step.description }}></p>
+              <h3 className="font-serif text-2xl mb-2 text-foreground">{step.title}</h3>
+              <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: step.description }}></p>
             </div>
           ))}
         </div>

@@ -19,31 +19,28 @@ const MissionSection = () => {
       if (section) observer.unobserve(section);
     };
   }, []);
-  
+
+  const anim = (delay: string) => cn(
+    'transition-all duration-700 ease-out', delay,
+    visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+  );
+
   return (
-    <section id="mission" className="py-20 px-4 md:px-8 lg:px-16 bg-transparent">
-      <div className="container mx-auto">
-        <div className="text-center mb-16">
-          <h2 
-            className={cn(
-              "text-3xl md:text-4xl text-primary mb-6",
-              "transition-all duration-700 ease-out",
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            Notre mission&nbsp;: rendre accessibles les bonnes pratiques de gestion des achats
-          </h2>
-          <p 
-            className={cn(
-              "text-muted-foreground max-w-3xl mx-auto text-lg",
-              "transition-all duration-700 delay-300 ease-out",
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            Un ERP&nbsp;? Trop lourd, et trop cher pour la plupart des PME.<br />
-            Un outil d'achat spécialisé&nbsp;? Il existe, mais ses circuits de validation sont complexes et son prix reste hors de portée des TPE et PME.<br />
-            Sapajoo propose une alternative accessible, techniquement et financièrement, au plus grand nombre.
-          </p>
+    <section id="mission" className="py-20 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-8 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-start">
+        <h2 className={cn('text-3xl md:text-4xl lg:text-5xl text-foreground leading-tight', anim(''))}>
+          Notre mission&nbsp;: rendre accessibles les bonnes pratiques de gestion des achats
+        </h2>
+        <div className="space-y-4">
+          <div className={cn('bg-card border border-border rounded-2xl p-6 text-muted-foreground text-lg', anim('delay-150'))}>
+            <strong className="font-semibold text-foreground">Un ERP&nbsp;?</strong> Trop lourd, et trop cher pour la plupart des PME.
+          </div>
+          <div className={cn('bg-card border border-border rounded-2xl p-6 text-muted-foreground text-lg', anim('delay-300'))}>
+            <strong className="font-semibold text-foreground">Un outil d'achat spécialisé&nbsp;?</strong> Il existe, mais ses circuits de validation sont complexes et son prix reste hors de portée des TPE et PME.
+          </div>
+          <div className={cn('bg-brand-subtle border border-brand/20 rounded-2xl p-6 text-foreground text-lg', anim('delay-500'))}>
+            <strong className="font-semibold">Sapajoo</strong> propose une alternative accessible, techniquement et financièrement, au plus grand nombre.
+          </div>
         </div>
       </div>
     </section>

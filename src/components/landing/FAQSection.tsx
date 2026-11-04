@@ -43,25 +43,21 @@ const faqs = [
 
 const FAQSection = () => {
   return (
-    <section id="faq" className="py-20 px-4 md:px-8 lg:px-16 bg-white/50">
-      <div className="container mx-auto max-w-4xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl text-primary mb-4">
+    <section id="faq" className="py-20 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="max-w-2xl mb-10">
+          <h2 className="text-3xl md:text-4xl text-foreground mb-4">
             Questions fréquentes
           </h2>
           <p className="text-muted-foreground text-lg">
             Tout savoir sur la gestion des achats et le contrôle budgétaire avec Sapajoo.
           </p>
         </div>
-        
-        <Accordion type="single" collapsible className="w-full space-y-4">
+
+        <Accordion type="single" collapsible className="w-full max-w-[820px] border-t border-border">
           {faqs.map((faq, index) => (
-            <AccordionItem 
-              key={index} 
-              value={`item-${index}`}
-              className="bg-white rounded-lg shadow-sm border border-border px-6"
-            >
-              <AccordionTrigger className="text-left font-medium text-primary hover:no-underline py-5">
+            <AccordionItem key={index} value={`item-${index}`} className="border-b border-border">
+              <AccordionTrigger className="text-left text-lg font-medium text-foreground hover:no-underline py-5 [&>svg]:text-brand">
                 {faq.question}
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">

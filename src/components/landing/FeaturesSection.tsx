@@ -36,25 +36,25 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-20 px-4 md:px-8 lg:px-16 bg-white/30 backdrop-blur-sm">
-      <div className="container mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl text-primary mb-6">
+    <section id="features" className="py-20 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="max-w-2xl mb-12">
+          <h2 className="text-3xl md:text-4xl text-foreground mb-4">
             Fonctionnalités principales
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+          <p className="text-muted-foreground text-lg">
             Gagnez du temps à chaque étape, du fournisseur à l'écriture comptable.
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <div key={index} className="flex flex-col items-center p-6 bg-white/50 backdrop-blur-sm rounded-lg shadow-marie">
-              <div className="w-14 h-14 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
-                <feature.icon className="h-7 w-7 text-brand" strokeWidth={1.5} />
+            <div key={index} className="flex flex-col items-start text-left p-6 bg-card border border-border rounded-2xl">
+              <div className="w-12 h-12 rounded-2xl bg-brand-subtle flex items-center justify-center mb-4">
+                <feature.icon className="h-6 w-6 text-brand" strokeWidth={1.5} />
               </div>
-              <h3 className=" text-xl mb-3 text-primary text-center">{feature.title}</h3>
-              <p className="text-muted-foreground text-center">{feature.description}</p>
+              <h3 className="font-serif text-xl mb-2 text-foreground">{feature.title}</h3>
+              <p className="text-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>

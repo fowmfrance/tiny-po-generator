@@ -10,8 +10,8 @@ const steps = [
 ];
 
 const ProcessFlowSection = () => (
-  <section className="bg-secondary border-y border-border py-12 px-4 md:px-8 lg:px-16">
-    <div className="container mx-auto">
+  <section className="bg-secondary border-y border-border py-12">
+    <div className="mx-auto max-w-6xl px-4 md:px-8">
       <ol aria-label="Le parcours achats dans Sapajoo" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-8">
         {steps.map((step, index) => (
           <li key={step.title} className={cn('px-6 py-2', index > 0 && 'lg:border-l lg:border-border')}>
